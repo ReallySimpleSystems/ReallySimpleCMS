@@ -1,21 +1,18 @@
 <?php
 /**
  * Admin menus page.
- * @since 1.8.0[a]
+ * @since 1.8.0-alpha
  */
+
 require_once __DIR__ . '/header.php';
 
-// Fetch the menu's id
 $id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
 
-// Create a Menu object
-$rs_menu = new Menu($id);
+$rs_menu = new Menu($id, $action);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'create':
 			// Create a new menu

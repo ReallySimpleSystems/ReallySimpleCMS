@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class LabelTag extends \DomTag implements DomTagInterface {
+class LabelTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0

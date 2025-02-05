@@ -8,21 +8,18 @@
 
 require_once dirname(__DIR__) . '/init.php';
 require_once ADMIN_FUNC;
-require_once FUNC;
+require_once RS_FUNC;
 
 if(file_exists(slash(PATH . THEMES) . getSetting('theme') . '/functions.php'))
 	require_once slash(PATH . THEMES) . getSetting('theme') . '/functions.php';
 
 ob_start();
 
-// Fetch the user's session data if they're logged in
-if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session'])) {
-	$session = getOnlineUser($_COOKIE['session']);
-} else {
+// Verify that the user is logged in
+if(!isset($_COOKIE['session']) || !isValidSession($_COOKIE['session'])) {
 	$login_slug = getSetting('login_slug');
 	$redirect = ($_SERVER['REQUEST_URI'] !== '/admin/' ? 'redirect=' . urlencode($_SERVER['PHP_SELF']) : '');
 	
-	// Redirect them to the login page if their session is invalid
 	if(!empty($login_slug))
 		redirect('/login.php?secure_login=' . $login_slug . (!empty($redirect) ? '&' . $redirect : ''));
 	else
@@ -35,7 +32,7 @@ $notices = array();
 <!DOCTYPE html>
 <html>
 	<head>
-		<title><?php echo getPageTitle(); ?> &rtrif; <?php putSetting('site_title'); ?> &mdash; <?php echo CMS_ENGINE; ?></title>
+		<title><?php echo getPageTitle(); ?> ▸ <?php putSetting('site_title'); ?> &mdash; <?php echo RS_ENGINE; ?></title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="robots" content="noindex, nofollow">

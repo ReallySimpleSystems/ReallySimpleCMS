@@ -1,18 +1,17 @@
 <?php
 /**
  * Admin profile page.
- * @since 2.0.0[a]
+ * @since 2.0.0-alpha
  */
+
 require_once __DIR__ . '/header.php';
 
-// Create a Profile object
-$rs_profile = new Profile($session['id']);
+$action = $_GET['action'] ?? '';
+
+$rs_profile = new Profile($session['id'], $action);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'reset_password':
 			// Reset password

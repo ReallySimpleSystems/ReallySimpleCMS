@@ -6,6 +6,35 @@
  *
  * @package ReallySimpleCMS
  * @subpackage Engine
+ *
+ * ## VARIABLES ##
+ * - private string $slug
+ * - private array $type_data
+ * - private array $tax_data
+ * - private array $tables
+ * - private array $px
+ *
+ * ## METHODS ##
+ * - public __construct(string $slug)
+ * GETTER METHODS:
+ * - public getPostId(): int
+ * - public getPostTitle(): string
+ * - public getPostAuthor(): string
+ * - public getPostDate(): string
+ * - public getPostModDate(): string
+ * - public getPostContent(): string
+ * - public getPostStatus(): string
+ * - public getPostSlug(int $id): string
+ * - public getPostParent(): int
+ * - public getPostType(): string
+ * - public getPostFeaturedImage(): string
+ * - public getPostMeta(string $key): string
+ * - public getPostTerms(string $taxonomy, bool $linked): array
+ * - public getPostComments(bool $feed_only): void
+ * - public getPostPermalink(string $type, int $parent, string $slug): string
+ * MISCELLANEOUS:
+ * - public getPostUrl(): string
+ * - public postHasFeaturedImage(): bool
  */
 namespace Engine;
 
@@ -38,6 +67,26 @@ class Post {
 	private $tax_data = array();
 	
 	/**
+	 * The associated database tables.
+	 * 0 => `posts`, 1 => `postmeta`
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $tables = array('posts', 'postmeta');
+	
+	/**
+	 * The table prefixes.
+	 * 0 => `p_`, 1 => `pm_`
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $px = array('p_', 'pm_');
+	
+	/**
 	 * Class constructor. Sets the default queried post slug.
 	 * @since 2.2.3-alpha
 	 *
@@ -55,7 +104,10 @@ class Post {
 			
 			// Home page
 			if($raw_uri === '/' || (str_starts_with($raw_uri, '/?') && !isset($_GET['preview']))) {
-				$home_page = $rs_query->selectField('settings', 'value', array('name' => 'home_page'));
+				$home_page = $rs_query->selectField('settings', 's_value', array(
+					's_name' => 'home_page'
+				));
+				
 				$this->slug = $this->getPostSlug($home_page);
 				$status = $this->getPostStatus();
 				
@@ -174,6 +226,10 @@ class Post {
 		}
 	}
 	
+	/*------------------------------------*\
+		GETTER METHODS
+	\*------------------------------------*/
+	
 	/**
 	 * Fetch the post's id.
 	 * @since 2.2.0-alpha
@@ -184,7 +240,9 @@ class Post {
 	public function getPostId(): int {
 		global $rs_query;
 		
-		return (int)$rs_query->selectField('posts', 'id', array('slug' => $this->slug));
+		return (int)$rs_query->selectField($this->tables[0], $this->px[0] . 'id', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
 	}
 	
 	/**
@@ -197,7 +255,9 @@ class Post {
 	public function getPostTitle(): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('posts', 'title', array('slug' => $this->slug));
+		return $rs_query->selectField($this->tables[0], $this->px[0] . 'title', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
     }
 	
 	/**
@@ -210,16 +270,18 @@ class Post {
 	public function getPostAuthor(): string {
 		global $rs_query;
 		
-		$author = $rs_query->selectField('posts', 'author', array('slug' => $this->slug));
+		$author = $rs_query->selectField($this->tables[0], $this->px[0] . 'author', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
 		
-		return $rs_query->selectField('usermeta', 'value', array(
-			'user' => $author,
-			'datakey' => 'display_name'
+		return $rs_query->selectField('usermeta', 'um_value', array(
+			'um_user' => $author,
+			'um_key' => 'display_name'
 		));
 	}
 	
 	/**
-	 * Fetch the post's publish date.
+	 * Fetch the post's creation (publish) date.
 	 * @since 2.2.0-alpha
 	 *
 	 * @access public
@@ -228,12 +290,17 @@ class Post {
 	public function getPostDate(): string {
 		global $rs_query;
 		
-		$date = $rs_query->selectField('posts', 'date', array('slug' => $this->slug));
+		$created = $rs_query->selectField($this->tables[0], $this->px[0] . 'created', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
 		
-		if(empty($date))
-			$date = $rs_query->selectField('posts', 'modified', array('slug' => $this->slug));
+		if(empty($created)) {
+			$created = $rs_query->selectField($this->tables[0], $this->px[0] . 'modified', array(
+				$this->px[0] . 'slug' => $this->slug
+			));
+		}
 		
-		return formatDate($date, 'j M Y @ g:i A');
+		return formatDate($created, 'j M Y @ g:i A');
     }
 	
 	/**
@@ -246,7 +313,9 @@ class Post {
 	public function getPostModDate(): string {
 		global $rs_query;
 		
-		$modified = $rs_query->selectField('posts', 'modified', array('slug' => $this->slug));
+		$modified = $rs_query->selectField($this->tables[0], $this->px[0] . 'modified', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
 		
 		return formatDate($modified, 'j M Y @ g:i A');
     }
@@ -261,7 +330,9 @@ class Post {
 	public function getPostContent(): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('posts', 'content', array('slug' => $this->slug));
+		return $rs_query->selectField($this->tables[0], $this->px[0] . 'content', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
     }
 	
 	/**
@@ -274,7 +345,9 @@ class Post {
 	public function getPostStatus(): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('posts', 'status', array('slug' => $this->slug));
+		return $rs_query->selectField($this->tables[0], $this->px[0] . 'status', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
     }
 	
 	/**
@@ -288,7 +361,9 @@ class Post {
     public function getPostSlug(int $id): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('posts', 'slug', array('id' => $id));
+		return $rs_query->selectField($this->tables[0], $this->px[0] . 'slug', array(
+			$this->px[0] . 'id' => $id
+		));
     }
 	
 	/**
@@ -301,7 +376,9 @@ class Post {
 	public function getPostParent(): int {
 		global $rs_query;
 		
-		return (int)$rs_query->selectField('posts', 'parent', array('slug' => $this->slug));
+		return (int)$rs_query->selectField($this->tables[0], $this->px[0] . 'parent', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
     }
 	
 	/**
@@ -314,7 +391,9 @@ class Post {
 	public function getPostType(): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('posts', 'type', array('slug' => $this->slug));
+		return $rs_query->selectField($this->tables[0], $this->px[0] . 'type', array(
+			$this->px[0] . 'slug' => $this->slug
+		));
 	}
 	
 	/**
@@ -327,12 +406,14 @@ class Post {
 	public function getPostFeaturedImage(): string {
 		global $rs_query;
 		
-		$featured_image = (int)$rs_query->selectField('postmeta', 'value', array(
-			'post' => $this->getPostId(),
-			'datakey' => 'feat_image'
+		$featured_image = (int)$rs_query->selectField($this->tables[1], $this->px[1] . 'value', array(
+			$this->px[1] . 'post' => $this->getPostId(),
+			$this->px[1] . 'key' => 'feat_image'
 		));
 		
-		return getMedia($featured_image, array('class' => 'featured-image'));
+		return getMedia($featured_image, array(
+			'class' => 'featured-image'
+		));
     }
 	
 	/**
@@ -346,9 +427,9 @@ class Post {
 	public function getPostMeta(string $key): string {
 		global $rs_query;
 		
-		$field = $rs_query->selectField('postmeta', 'value', array(
-			'post' => $this->getPostId(),
-			'datakey' => $key
+		$field = $rs_query->selectField($this->tables[1], $this->px[1] . 'value', array(
+			$this->px[1] . 'post' => $this->getPostId(),
+			$this->px[1] . 'key' => $key
 		));
 		
 		// Escape double quotes in meta descriptions
@@ -371,22 +452,22 @@ class Post {
 		global $rs_query;
 		
 		$terms = array();
-		$relationships = $rs_query->select('term_relationships', 'term', array(
-			'post' => $this->getPostId()
+		$relationships = $rs_query->select('term_relationships', 'tr_term', array(
+			'tr_post' => $this->getPostId()
 		));
 		
 		foreach($relationships as $relationship) {
-			$slug = $rs_query->selectField('terms', 'slug', array(
-				'id' => $relationship['term'],
-				'taxonomy' => getTaxonomyId($taxonomy)
+			$slug = $rs_query->selectField('terms', 't_slug', array(
+				't_id' => $relationship['tr_term'],
+				't_taxonomy' => getTaxonomyId($taxonomy)
 			));
 			
 			$rs_term = getTerm($slug);
 			
 			$terms[] = $linked ? domTag('a', array(
-					'href' => $rs_term->getTermUrl(),
-					'content' => $rs_term->getTermName()
-				)) : $rs_term->getTermName();
+				'href' => $rs_term->getTermUrl(),
+				'content' => $rs_term->getTermName()
+			)) : $rs_term->getTermName();
 		}
 		
 		return $terms;
@@ -421,6 +502,10 @@ class Post {
 		return getPermalink($type, $parent, $slug);
 	}
 	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
 	/**
 	 * Fetch the post's full URL.
 	 * @since 2.2.3-alpha
@@ -430,7 +515,7 @@ class Post {
 	 */
 	public function getPostUrl(): string {
 		if(isHomePage($this->getPostId())) {
-			return trailingSlash(getSetting('site_url'));
+			return slash(getSetting('site_url'));
 		} else {
 			return getSetting('site_url') . $this->getPostPermalink(
 				$this->getPostType(),
@@ -450,9 +535,9 @@ class Post {
 	public function postHasFeaturedImage(): bool {
 		global $rs_query;
 		
-		return (int)$rs_query->selectField('postmeta', 'value', array(
-			'post' => $this->getPostId(),
-			'datakey' => 'feat_image'
+		return (int)$rs_query->selectField($this->tables[1], $this->px[1] . 'value', array(
+			$this->px[1] . 'post' => $this->getPostId(),
+			$this->px[1] . 'key' => 'feat_image'
 		)) !== 0;
 	}
 }

@@ -1,13 +1,13 @@
 <?php
 /**
- * Named constants for the CMS.
+ * Named constants for the system.
  * @since 2.3.0-alpha
  *
  * @package ReallySimpleCMS
  */
 
 /*------------------------------------*\
-    VERSIONS
+    SOFTWARE VERSIONS
 \*------------------------------------*/
 
 // Minimum supported PHP version
@@ -16,15 +16,13 @@ define('PHP_MINIMUM', '8.0');
 // Recommended PHP version
 define('PHP_RECOMMENDED', '8.1');
 
-// Current CMS version
-#define('CMS_VERSION', '1.3.13-beta');
-define('CMS_VERSION', '1.3.12-beta');
+// Current system version
+#define('RS_VERSION', '1.3.13-beta'); // testing update system
+#define('RS_VERSION', '1.3.12-beta');
+define('RS_VERSION', '1.4.0-beta_snap-02');
 
 // Current jQuery version
 define('JQUERY_VERSION', '3.7.1');
-
-// Current DOMtags version
-define('DOMTAGS_VERSION', '1.0.4');
 
 // Current Font Awesome icons version
 define('ICONS_VERSION', '6.2.1');
@@ -48,39 +46,42 @@ define('RES', '/resources');
 // Path to the `content` directory
 define('CONT', '/content');
 
+// Path to the `setup` directory
+define('SETUP', '/setup');
+
+// Path to the `modules` directory
+define('MODULES', '/modules');
+
+// Path to the `uploads` directory
+define('UPLOADS', CONT . '/uploads');
+
+// Path to the `themes` directory
+define('THEMES', CONT . '/themes');
+
 // Path to the stylesheets directory
 define('STYLES', RES . '/css');
 
 // Path to the scripts directory
 define('SCRIPTS', RES . '/js');
 
-// Path to the themes directory
-define('THEMES', CONT . '/themes');
-
-// Path to the uploads directory
-define('UPLOADS', CONT . '/uploads');
-
 /*------------------------------------*\
     CORE FILES
 \*------------------------------------*/
 
 // Path to the database configuration file
-define('DB_CONFIG', PATH . '/config.php');
+define('RS_CONFIG', PATH . '/config.php');
 
 // Path to the database schema file
-define('DB_SCHEMA', PATH . INC . '/schema.php');
-
-// Path to the Query class
-define('QUERY_CLASS', PATH . INC . '/class-query.php');
+define('RS_SCHEMA', PATH . INC . '/schema.php');
 
 // Path to the primary functions file
-define('FUNC', PATH . INC . '/functions.php');
+define('RS_FUNC', PATH . INC . '/functions.php');
 
 // Path to the debugging functions file
-define('DEBUG_FUNC', PATH . INC . '/debug.php');
+define('RS_DEBUG_FUNC', PATH . INC . '/debug.php');
 
 // Path to the critical functions file
-define('CRIT_FUNC', PATH . INC . '/critical-functions.php');
+define('RS_CRIT_FUNC', PATH . INC . '/critical-functions.php');
 
 // Path to the global functions file
 define('GLOBAL_FUNC', PATH . INC . '/global-functions.php');
@@ -92,5 +93,19 @@ define('ADMIN_FUNC', PATH . ADMIN . INC . '/functions.php');
     MISCELLANEOUS
 \*------------------------------------*/
 
-// The name of the CMS engine
-define('CMS_ENGINE', 'ReallySimpleCMS');
+// Engine name
+define('RS_ENGINE', 'ReallySimpleCMS');
+
+// Developer name
+define('RS_DEVELOPER', 'ReallySimpleSoftware');
+
+// Project start
+define('RS_PROJ_START', '2019');
+
+## CREDITS ##
+
+// Lead developer
+define('RS_LEAD_DEV', array(
+	'name' => 'Jace Fincham',
+	'url' => 'https://jacefincham.com/'
+));

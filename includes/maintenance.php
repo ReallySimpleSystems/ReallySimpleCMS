@@ -7,6 +7,10 @@
  *
  * @package ReallySimpleCMS
  */
+
+$debug = false;
+
+if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -14,7 +18,12 @@
 		<title>Under Maintenance ▸ <?php putSetting('site_title'); ?></title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<?php putStylesheet('style.min.css'); ?>
+		<?php
+		if($debug)
+			putStylesheet('style.css');
+		else
+			putStylesheet('style.min.css');
+		?>
 	</head>
 	<body class="maintenance">
 		<div class="wrapper">
@@ -22,6 +31,6 @@
 			<p>This site is currently down for scheduled maintenance.</p>
 			<p>Check back again later to see if the maintenance has ended.</p>
 		</div>
-		<p class="copyright">&copy; <?php echo date('Y'); ?> <?php echo CMS_ENGINE; ?>. All rights reserved.</p>
+		<p class="copyright">&copy; <?php echo date('Y'); ?> <?php echo RS_ENGINE; ?>. All rights reserved.</p>
 	</body>
 </html>

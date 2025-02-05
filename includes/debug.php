@@ -8,7 +8,7 @@
 
 if(!defined('DEBUG_MODE')) define('DEBUG_MODE', false);
 
-// Check whether the CMS is in debug mode
+// Check whether the system is in debug mode
 if(DEBUG_MODE === true && !ini_get('display_errors'))
 	ini_set('display_errors', 1);
 elseif(DEBUG_MODE === false && ini_get('display_errors'))

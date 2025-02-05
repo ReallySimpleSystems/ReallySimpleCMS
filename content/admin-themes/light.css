@@ -1,10 +1,13 @@
-/**
+/*!
  * Admin dashboard Light theme.
- * @since 1.2.4[b]
+ * @since 1.2.4-beta
  * @version 1.2
+ *
+ * @package ReallySimpleCMS
  */
 
 :root {
+	
 	/* Background colors */
 	
 	--global--bg-color: #efe2d6;

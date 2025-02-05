@@ -1,7 +1,9 @@
 <?php
 /**
  * Submit bulk actions via AJAX.
- * @since 1.2.7[b]
+ * @since 1.2.7-beta
+ *
+ * @package ReallySimpleCMS
  */
 
 // Only initialize the base files and functions
@@ -16,7 +18,7 @@ define('ADMIN_URI', $_POST['uri']);
 require_once ADMIN_FUNC;
 
 // Site-wide functions
-require_once FUNC;
+require_once RS_FUNC;
 
 $theme_path = slash(PATH . THEMES) . getSetting('theme');
 
@@ -51,13 +53,20 @@ switch($_POST['page']) {
 		$rs_post = new Post(0, '', $post_types[$type]);
 		
 		// Update all selected posts
-		if(!empty($_POST['selected']))
-			foreach($_POST['selected'] as $id) $rs_post->updatePostStatus($_POST['action'], $id);
+		if(!empty($_POST['selected'])) {
+			foreach($_POST['selected'] as $id) {
+				$id = (int)$id;
+				
+				if($id === 0) continue;
+				
+				$rs_post->updatePostStatus($_POST['action'], $id);
+			}
+		}
 		
 		echo $rs_post->listRecords();
 		break;
 	case 'comments':
-		$rs_comment = new Comment;
+		$rs_comment = new Comment(0, '');
 		
 		switch($_POST['action']) {
 			case 'delete_spam':
@@ -66,27 +75,48 @@ switch($_POST['page']) {
 				break;
 			default:
 				// Update all selected comments
-				if(!empty($_POST['selected']))
-					foreach($_POST['selected'] as $id) $rs_comment->updateCommentStatus($_POST['action'], $id);
+				if(!empty($_POST['selected'])) {
+					foreach($_POST['selected'] as $id) {
+						$id = (int)$id;
+						
+						if($id === 0) continue;
+						
+						$rs_comment->updateCommentStatus($_POST['action'], $id);
+					}
+				}
 		}
 		
 		echo $rs_comment->listRecords();
 		break;
 	case 'widgets':
-		$rs_widget = new Widget;
+		$rs_widget = new Widget(0, '');
 		
 		// Update all selected widgets
-		if(!empty($_POST['selected']))
-			foreach($_POST['selected'] as $id) $rs_widget->updateWidgetStatus($_POST['action'], $id);
+		if(!empty($_POST['selected'])) {
+			foreach($_POST['selected'] as $id) {
+				$id = (int)$id;
+				
+				if($id === 0) continue;
+				
+				$rs_widget->updateWidgetStatus($_POST['action'], $id);
+			}
+		}
 		
 		echo $rs_widget->listRecords();
 		break;
 	case 'users':
-		$rs_user = new User;
+		$rs_user = new User(0, '');
 		
 		// Update all selected users
-		if(!empty($_POST['selected']))
-			foreach($_POST['selected'] as $id) $rs_user->updateUserRole($_POST['action'], $id);
+		if(!empty($_POST['selected'])) {
+			foreach($_POST['selected'] as $id) {
+				$id = (int)$id;
+				
+				if($id === 0) continue;
+				
+				$rs_user->updateUserRole($_POST['action'], $id);
+			}
+		}
 		
 		echo $rs_user->listRecords();
 		break;

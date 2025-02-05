@@ -1,3 +1,12 @@
+<?php
+/**
+ * Carbon theme - header template.
+ * @since 1.5.5-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
+ */
+?>
 <!DOCTYPE html>
 <html lang="en">
 	<head>

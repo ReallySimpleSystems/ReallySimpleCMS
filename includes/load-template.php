@@ -17,7 +17,9 @@ if(!is_null($theme_path)) {
 					require_once $theme_path . '/templates/' . $template;
 				} else {
 					// Load either the generic 'page' template file or the index.php file as a last resort
-					if(file_exists($theme_path . '/page.php'))
+					if(file_exists($theme_path . '/homepage.php') && $_SERVER['REQUEST_URI'] === '/')
+						require_once $theme_path . '/homepage.php';
+					elseif(file_exists($theme_path . '/page.php'))
 						require_once $theme_path . '/page.php';
 					else
 						require_once $theme_path . '/index.php';

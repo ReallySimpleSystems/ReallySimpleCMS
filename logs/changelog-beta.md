@@ -13,19 +13,17 @@
 - x.x.X (standard/minor release)
 - x.x.x.X (bug fix/emergency patch release)
 - x.x.x_snap-xx (snapshot release)
+- \*-alpha (Alpha version)
+- \*-beta (Beta version)
 
-**Other**
-- [a] = alpha
-- [b] = beta
-
-## Version 1.3.13.1[b] (2023-12-25)
+## Version 1.3.13.1-beta (2023-12-25)
 
 - Incremented the CMS version
 
 **Modified files:**
 - n/a
 
-## Version 1.3.13[b] (2023-12-24)
+## Version 1.3.13-beta (2023-12-24)
 
 - Cleaned up documentation in multiple files
   - A new, detailed comment about the loading order of core files has been added to the top of the file
@@ -61,7 +59,7 @@
 - index.php (M)
 - init.php
 
-## Version 1.3.12.1[b] (2023-12-13)
+## Version 1.3.12.1-beta (2023-12-13)
 
 - Tweaked a previous entry in the changelog
 - Tweaked title tags on all front end pages
@@ -79,14 +77,14 @@
 - init.php (M)
 - login.php (M)
 
-## Version 1.3.12[b] (2023-12-13)
+## Version 1.3.12-beta (2023-12-13)
 
 - Added the following to the admin about page:
   - Added a link to the changelog on the GitHub repo
   - Added DOMtags version information
   - Added links to sources and documentation for included libraries
 - Comments with `unapproved` status are now changed to `pending`
-- Removed old scripts from the `update-db.php` file for versions prior to `1.2.0[b]`
+- Removed old scripts from the `update-db.php` file for versions prior to `1.2.0-beta`
 - Cleaned up code in the `dashboardWidget` and `statsBarGraph` functions
 - Updated jQuery to v3.7.1
 - Added a new global constant for the `resources` directory
@@ -149,7 +147,7 @@
 - resources/css/font-awesome-rules.min.css (M)
 - resources/js/jquery.min.js
 
-## Version 1.3.11.2[b] (2023-11-06)
+## Version 1.3.11.2-beta (2023-11-06)
 
 - Tweaked a previous entry in the changelog
 
@@ -159,14 +157,14 @@
 **Modified files:**
 - includes/functions.php (M)
 
-## Version 1.3.11.1[b] (2023-11-06)
+## Version 1.3.11.1-beta (2023-11-06)
 
 - Incremented the CMS version
 
 **Modified files:**
 - n/a
 
-## Version 1.3.11[b] (2023-11-06)
+## Version 1.3.11-beta (2023-11-06)
 
 - Only admins can now see the Software and Database sections of the admin About page
 - Removed a deprecated constant
@@ -223,7 +221,7 @@
 - includes/update.php
 - init.php
 
-## Version 1.3.10.2[b] (2023-09-21)
+## Version 1.3.10.2-beta (2023-09-21)
 
 - n/a
 
@@ -234,7 +232,7 @@
 - admin/setup.php (M)
 - includes/update.php
 
-## Version 1.3.10.1[b] (2023-09-20)
+## Version 1.3.10.1-beta (2023-09-20)
 
 - Incremented the CMS version
 - Tweaked a previous entry in the changelog
@@ -242,7 +240,7 @@
 **Modified files:**
 - n/a
 
-## Version 1.3.10[b] (2023-09-20)
+## Version 1.3.10-beta (2023-09-20)
 
 - Tweaked a previous entry in the changelog
 - When the record search button is clicked, the form field now receives focus
@@ -307,7 +305,7 @@
 - includes/global-functions.php (M)
 - init.php (M)
 
-## Version 1.3.9[b] (2023-09-01)
+## Version 1.3.9-beta (2023-09-01)
 
 - Tweaked the readme file
 - General code cleanup
@@ -360,7 +358,7 @@
 - includes/update-db.php
 - init.php
 
-## Version 1.3.8[b] (2023-01-27)
+## Version 1.3.8-beta (2023-01-27)
 
 - Cleaned up internal documentation throughout the CMS
 - Removed some test code from the `Query` class
@@ -450,7 +448,7 @@
 - includes/theme-functions.php
 - includes/update-db.php
 
-## Version 1.3.7.1[b] (2022-12-18)
+## Version 1.3.7.1-beta (2022-12-18)
 
 - Tweaked a previous entry in the changelog
 - Removed an unused block of admin CSS
@@ -463,7 +461,7 @@
 - admin/includes/functions.php
 - includes/class-query.php (M)
 
-## Version 1.3.7[b] (2022-12-18)
+## Version 1.3.7-beta (2022-12-18)
 
 - Cleaned up internal documentation throughout the CMS
 - Posts of any type can now be duplicated
@@ -517,7 +515,7 @@
 - includes/global-functions.php
 - init.php (M)
 
-## Version 1.3.6.1[b] (2022-09-09)
+## Version 1.3.6.1-beta (2022-09-09)
 
 - Tweaked a previous entry in the changelog
 - Incremented the CMS version
@@ -525,7 +523,7 @@
 **Modified files:**
 - n/a
 
-## Version 1.3.6[b] (2022-09-09)
+## Version 1.3.6-beta (2022-09-09)
 
 - Tweaked a previous entry in the changelog
 - Tweaked styles in the default front end stylesheet
@@ -560,7 +558,7 @@
 - includes/update-db.php (M)
 - init.php
 
-## Version 1.3.5[b] (2022-07-07)
+## Version 1.3.5-beta (2022-07-07)
 
 - Updated Font Awesome to v6.1.1
 - Cleaned up internal documentation throughout the CMS
@@ -615,7 +613,7 @@
 - includes/update.php
 - init.php
 
-## Version 1.3.4.1[b] (2022-05-31)
+## Version 1.3.4.1-beta (2022-05-31)
 
 **Bug fixes:**
 - Certain items are not displaying on the admin menu and the admin bar
@@ -623,7 +621,7 @@
 **Modified files:**
 - includes/global-functions.php (M)
 
-## Version 1.3.4[b] (2022-05-31)
+## Version 1.3.4-beta (2022-05-31)
 
 - Cleaned up internal documentation throughout the CMS
 - Added a new arg to the `registerTaxonomy` function for specifying the post type the taxonomy links to
@@ -659,7 +657,7 @@
 - includes/constants.php
 - includes/global-functions.php
 
-## Version 1.3.3.1[b] (2022-05-26)
+## Version 1.3.3.1-beta (2022-05-26)
 
 - Incremented the CMS version
 
@@ -669,7 +667,7 @@
 **Modified files:**
 - includes/global-functions.php (M)
 
-## Version 1.3.3[b] (2022-05-26)
+## Version 1.3.3-beta (2022-05-26)
 
 - Cleaned up internal documentation throughout the CMS (not every line needs to be documented, so this will be cut back quite a bit from here on)
 - The `role` parameter of the `userHasPrivilege` and `userHasPrivileges` functions are now optional (the functions will default to the currently active user's role)
@@ -725,7 +723,7 @@
 - init.php
 - login.php (M)
 
-## Version 1.3.2[b] (2022-02-15)
+## Version 1.3.2-beta (2022-02-15)
 
 - Cleaned up some internal documentation
 - Added bulk actions to the "List Users" page
@@ -765,7 +763,7 @@
 - includes/css/style.min.css (M)
 - includes/js/script.js
 
-## Version 1.3.1[b] (2022-02-14)
+## Version 1.3.1-beta (2022-02-14)
 
 - Fixed a typo in the README file
 - The default menu link arg in the `registerPostType` function is now `'posts.php?type='.$name` (previously it was simply `'posts.php'`)
@@ -804,7 +802,7 @@
 - includes/sitemap-index.php (M)
 - init.php
 
-## Version 1.3.0[b] (2022-02-10)
+## Version 1.3.0-beta (2022-02-10)
 *Feature Update: QoL Improvements*
 
 - Tweaked the README file
@@ -901,7 +899,7 @@
 - init.php
 - login.php
 
-## Version 1.2.9[b] (2022-02-04)
+## Version 1.2.9-beta (2022-02-04)
 
 - Added bulk actions to the "List \<post_type>" page
   - Post statuses can be changed between `published`, `draft`, and `trash`
@@ -948,14 +946,14 @@
 - includes/theme-functions.php
 - includes/update.php
 
-## Version 1.2.8.1[b] (2022-02-02)
+## Version 1.2.8.1-beta (2022-02-02)
 
 - Incremented the version from 1.2.7 to 1.2.8
 
 **Modified files:**
 - n/a
 
-## Version 1.2.8[b] (2022-02-02)
+## Version 1.2.8-beta (2022-02-02)
 
 - Significantly revised changelog formatting
   - Functions are now listed at the bottom of the updates section (not complete)
@@ -1005,7 +1003,7 @@
 - includes/update.php
 - init.php
 
-## Version 1.2.7[b] (2021-11-27)
+## Version 1.2.7-beta (2021-11-27)
 
 - Tweaked the `install.css` styles
 - Optimized some code in the admin `Post` class
@@ -1058,7 +1056,7 @@
 - index.php (M)
 - init.php (M)
 
-## Version 1.2.6[b] (2021-10-24)
+## Version 1.2.6-beta (2021-10-24)
 
 - Tweaked a previous entry in the changelog
 - Completely overhauled the database installation code
@@ -1083,7 +1081,7 @@
 - admin/terms.php (M)
 - content/admin-themes/light.css (M)
 
-## Version 1.2.5[b] (2021-10-13)
+## Version 1.2.5-beta (2021-10-13)
 
 - Tweaked the Beta changelog formatting
 - Updated the copyright year in the README file
@@ -1118,7 +1116,7 @@
 - includes/js/jquery.min.js
 - init.php (M)
 
-## Version 1.2.4.1[b] (2021-10-12)
+## Version 1.2.4.1-beta (2021-10-12)
 
 - Incremented the version from 1.2.3 to 1.2.4
 - Updated the minified stylesheet for the admin dashboard
@@ -1127,7 +1125,7 @@
 - admin/includes/css/style.min.css
 - admin/includes/functions.php (M)
 
-## Version 1.2.4[b] (2021-04-26)
+## Version 1.2.4-beta (2021-04-26)
 
 - Improved the way the `init.php` file checks the current PHP version
 - Updated Font Awesome to v5.15.3
@@ -1153,7 +1151,7 @@
 - includes/functions.php (M)
 - init.php
 
-## Version 1.2.3[b] (2021-02-01)
+## Version 1.2.3-beta (2021-02-01)
 
 - Added a "Replace Media" button to the "Edit Media" form
 - Cleaned up code in the `Media` class
@@ -1179,7 +1177,7 @@
 - admin/includes/css/style.min.css (M)
 - admin/media.php
 
-## Version 1.2.2[b] (2021-01-31)
+## Version 1.2.2-beta (2021-01-31)
 
 - Added a box shadow to the admin widgets
 - Comment feeds now only load the ten most recent comments by default
@@ -1202,7 +1200,7 @@
 - includes/functions.php (M)
 - includes/js/script.js
 
-## Version 1.2.1[b] (2021-01-20)
+## Version 1.2.1-beta (2021-01-20)
 
 - The active theme is now listed first on the "List Themes" page
 - Created widgets for the admin dashboard
@@ -1238,7 +1236,7 @@
 - includes/js/script.js
 - includes/update.php
 
-## Version 1.2.0[b] (2021-01-16)
+## Version 1.2.0-beta (2021-01-16)
 *Feature Update: Login Tracking*
 
 ### Dedicated to my grandmother, "Nam" (1940 - 2021)
@@ -1282,7 +1280,7 @@
 - includes/schema.php (M)
 - includes/update.php
 
-## Version 1.1.7[b] (2020-12-03)
+## Version 1.1.7-beta (2020-12-03)
 
 - Canonical links for the home page no longer include the page's slug and point to the actual home URL
 - Added a default error message for the `Query::errorMsg` function
@@ -1324,7 +1322,7 @@
 - includes/js/script.js (M)
 - includes/update.php
 
-## Version 1.1.6[b] (2020-11-15)
+## Version 1.1.6-beta (2020-11-15)
 
 - The `sitemap-index.php` file is now loaded after the theme (this allows for custom post type and taxonomy sitemaps to be generated)
 - The `sitemap-posts.php` and `sitemap-terms.php` files are now loaded at the top of the `sitemap-index.php` file
@@ -1340,7 +1338,7 @@
 - includes/sitemap-index.php
 - init.php (M)
 
-## Version 1.1.5[b] (2020-11-14)
+## Version 1.1.5-beta (2020-11-14)
 
 - Removed an unnecessary `if` statement from the `ajax.php` file
 - Menu items can no longer be linked to unpublished posts
@@ -1374,7 +1372,7 @@
 - includes/sitemap.xsl (N)
 - init.php (M)
 
-## Version 1.1.4[b] (2020-11-10)
+## Version 1.1.4-beta (2020-11-10)
 
 - Improved security for the `session` and `pw-reset` cookies
 - Created a variable for the `Login` class that stores whether HTTPS is enabled
@@ -1407,7 +1405,7 @@
 - includes/sitemap-terms.php (M)
 - init.php
 
-## Version 1.1.3[b] (2020-11-07)
+## Version 1.1.3-beta (2020-11-07)
 
 - Meta tags can now be dynamically added to the `head` section in themes
 - Added canonical tags to the list of meta tags included in the `head` section
@@ -1435,7 +1433,7 @@
 - includes/load-theme.php
 - includes/sitemap-index.php (M)
 
-## Version 1.1.2[b] (2020-11-04)
+## Version 1.1.2-beta (2020-11-04)
 
 - Added validation in the `init.php` file that checks whether the `BASE_INIT` constant has been defined (if so, it only loads the basic initialization files, otherwise it loads everything)
 - Cleaned up code in the `ajax.php` file
@@ -1464,7 +1462,7 @@
 - includes/sitemap-terms.php (N)
 - init.php
 
-## Version 1.1.1[b] (2020-10-24)
+## Version 1.1.1-beta (2020-10-24)
 
 - Fixed the mobile sizing of media thumbnails on the "Edit Media" page
 - Updated Font Awesome to v5.15.1
@@ -1517,7 +1515,7 @@
 - includes/functions.php
 - includes/js/script.js
 
-## Version 1.1.0[b] (2020-10-22)
+## Version 1.1.0-beta (2020-10-22)
 *Feature Update: Comments*
 
 - For a full list of changes, see: `changelog-beta-snapshots.md`
@@ -1553,7 +1551,7 @@
 - content/themes/carbon/script.js
 - includes/globals.php (M)
 
-## Version 1.0.9[b] (2020-09-10)
+## Version 1.0.9-beta (2020-09-10)
 
 - The current post's `type` is now added to the `body` tag as a CSS class
 - Replaced `section` tags with `div` tags in several Carbon theme files
@@ -1598,7 +1596,7 @@
 - includes/deprecated.php
 - includes/functions.php
 
-## Version 1.0.8[b] (2020-08-11)
+## Version 1.0.8-beta (2020-08-11)
 
 - The `Query::showTables` function now has an optional `table` parameter
 - The existence of a specific database table can now be checked using the `Query` class
@@ -1625,7 +1623,7 @@
 - includes/globals.php
 - init.php
 
-## Version 1.0.7[b] (2020-07-30)
+## Version 1.0.7-beta (2020-07-30)
 
 - Tweaked a previous entry in the changelog
 - The `parent` parameter of the `getPermalink` function is now optional (default value is 0)
@@ -1652,7 +1650,7 @@
 - includes/globals.php
 - includes/load-template.php
 
-## Version 1.0.6[b] (2020-07-25)
+## Version 1.0.6-beta (2020-07-25)
 
 - Improved how permalinks are structured for custom post types and taxonomies (this fixed an issue with all taxonomies having `term` as their base url)
 - Tweaked a previous entry in the changelog
@@ -1703,7 +1701,7 @@
 - index.php
 - init.php
 
-## Version 1.0.5[b] (2020-07-23)
+## Version 1.0.5-beta (2020-07-23)
 
 - Added the `can_upload_media` permission to the admin nav menu
 - Post types can now be unregistered (this only applies to custom post types)
@@ -1766,7 +1764,7 @@
 - includes/functions.php
 - includes/globals.php
 
-## Version 1.0.4[b] (2020-07-12)
+## Version 1.0.4-beta (2020-07-12)
 
 - Tweaked the max width of select inputs in data form sidebars
 - Permalinks no longer redirect to the 404 not found page if they contain query parameters
@@ -1813,7 +1811,7 @@
 - includes/globals.php
 - init.php (M)
 
-## Version 1.0.3[b] (2020-07-04)
+## Version 1.0.3-beta (2020-07-04)
 
 - Tweaked previous entries in the changelog
 - Whitelisted the `style` attribute for divs and spans in the `formTag` function
@@ -1846,7 +1844,7 @@
 - includes/class-menu.php
 - includes/globals.php
 
-## Version 1.0.2[b] (2020-07-02)
+## Version 1.0.2-beta (2020-07-02)
 
 - Code cleanup in the `Post` class
 - The `Post` class variables are now updated by the `Post::validateData` function
@@ -1875,7 +1873,7 @@
 - includes/functions.php
 - includes/globals.php
 
-## Version 1.0.1[b] (2020-06-25)
+## Version 1.0.1-beta (2020-06-25)
 
 - Tweaked the readme
 - Tweaked a previous entry in the changelog
@@ -1922,7 +1920,7 @@
 - includes/globals.php
 - init.php (M)
 
-## Version 1.0.0[b] (2020-06-21)
+## Version 1.0.0-beta (2020-06-21)
 *Feature Update: Custom Post Types*
 
 - Created content for the readme

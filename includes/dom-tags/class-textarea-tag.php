@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class TextareaTag extends \DomTag implements DomTagInterface {
+class TextareaTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0
@@ -31,7 +31,7 @@ class TextareaTag extends \DomTag implements DomTagInterface {
 	public static function props(): array {
 		return array_merge(
 			parent::ALWAYS_WL,
-			array('name', 'cols', 'rows')
+			array('name', 'cols', 'rows', 'placeholder')
 		);
 	}
 }

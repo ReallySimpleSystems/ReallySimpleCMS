@@ -10,6 +10,7 @@
 if(!defined('PATH')) exit('You do not have permission to access this directory.');
 
 $public_post_types = array();
+$px = 'p_';
 
 foreach($post_types as $post_type) {
 	// Skip the `media` post type
@@ -19,25 +20,27 @@ foreach($post_types as $post_type) {
 }
 
 foreach($public_post_types as $type) {
-	// Make sure that the home directory can be written to
 	if(is_writable(PATH)) {
 		$sitemap_file_path = PATH . '/sitemap-' . str_replace('_', '-', $type) . '.xml';
 		
-		$posts = $rs_query->select('posts', array('id', 'date', 'modified', 'slug', 'parent', 'type'), array(
-			'status' => 'published',
-			'type' => $type
-		), 'date', 'DESC');
+		$posts = $rs_query->select('posts', array(
+			$px . 'id', $px . 'created',
+			$px . 'modified', $px . 'slug',
+			$px . 'parent', $px . 'type'
+		), array(
+			$px . 'status' => 'published',
+			$px . 'type' => $type
+		), array(
+			'order_by' => $px . 'created',
+			'order' => 'DESC'
+		));
 		
 		if(file_exists($sitemap_file_path)) {
 			$file = simplexml_load_file($sitemap_file_path);
-			
-			// Fetch the number of URLs in the sitemap
 			$count = count($file->url);
 		}
 		
-		// Check whether the sitemap already exists and whether the URL count matches the count in the database
 		if(!file_exists($sitemap_file_path) || (file_exists($sitemap_file_path) && $count !== count($posts))) {
-			// Open the file stream in write mode
 			$handle = fopen($sitemap_file_path, 'w');
 			
 			fwrite($handle, '<?xml version="1.0" encoding="UTF-8"?>' .
@@ -46,10 +49,11 @@ foreach($public_post_types as $type) {
 			
 			foreach($posts as $post) {
 				$permalink = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] .
-					(isHomePage($post['id']) ? '/' : getPermalink($type, $post['parent'], $post['slug']));
+					(isHomePage($post[$px . 'id']) ? '/' : getPermalink($type, $post[$px . 'parent'], $post[$px . 'slug']));
 				
 				fwrite($handle, '<url>' . chr(10) . '<loc>' . $permalink . '</loc>' . chr(10) .
-					'<lastmod>' . (formatDate((is_null($post['modified']) ? $post['date'] : $post['modified']), 'Y-m-d\TH:i:s')) . '</lastmod>' . chr(10) . '</url>' . chr(10));
+					'<lastmod>' . (formatDate((is_null($post[$px . 'modified']) ? $post[$px . 'created'] :
+						$post[$px . 'modified']), 'Y-m-d\TH:i:s')) . '</lastmod>' . chr(10) . '</url>' . chr(10));
 			}
 			
 			fwrite($handle, '</urlset>');

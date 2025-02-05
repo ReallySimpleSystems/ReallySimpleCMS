@@ -1,6 +1,9 @@
-/**
- * Stylesheet for the default front end theme.
- * @since 2.2.2[a]
+/*!
+ * Stylesheet for the Carbon theme.
+ * @since 2.2.2-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
  */
 
 h1 {
@@ -449,7 +452,7 @@ main.content {
 	font-weight: 700;
 }
 
-.comments .comment .date {
+.comments .comment .created {
 	font-size: 0.875em;
 }
 

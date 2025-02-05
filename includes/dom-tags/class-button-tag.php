@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class ButtonTag extends \DomTag implements DomTagInterface {
+class ButtonTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0
@@ -29,6 +29,9 @@ class ButtonTag extends \DomTag implements DomTagInterface {
 	 * @return array
 	 */
 	public static function props(): array {
-		return self::ALWAYS_WL;
+		return array_merge(
+			array('type'),
+			parent::ALWAYS_WL
+		);
 	}
 }

@@ -4,6 +4,33 @@
  * @since 1.0.0-alpha
  *
  * @package ReallySimpleCMS
+ *
+ * ## CONSTANTS ##
+ * - string COOKIE_HASH
+ *
+ * ## FUNCTIONS ##
+ * HEADER & FOOTER:
+ * - getThemeScript(string $script, string $version): string
+ * - putThemeScript(string $script, string $version): void
+ * - getThemeStylesheet(string $stylesheet, string $version): string
+ * - putThemeStylesheet(string $stylesheet, string $version): void
+ * - headerScripts(string|array $exclude, array $include_styles, array $include_scripts): void
+ * - footerScripts(string|array $exclude, array $include_styles, array $include_scripts): void
+ * - bodyClasses(string|array $addtl_classes): string
+ * - adminBar(): void
+ * MISCELLANEOUS:
+ * - handleSecureLogin(): void
+ * - guessPageType(): void
+ * - postTypeExists(string $type): bool
+ * - taxonomyExists(string $taxonomy): bool
+ * - getPost(string $slug): object
+ * - getTerm(string $slug): object
+ * - getCategory(string $slug): object
+ * - getMenu(string $slug): void
+ * - getWidget(string $slug, bool $display_title = false): void
+ * - registerMenu(string $name, string $slug): void
+ * - registerWidget(string $title, string $slug): void
+ * - formatEmail(string $heading, array $fields): string
  */
 
 // Generate a cookie hash based on the site's URL
@@ -21,7 +48,7 @@ define('COOKIE_HASH', md5(getSetting('site_url')));
  * @param string $version (optional) -- The script's version.
  * @return string
  */
-function getThemeScript(string $script, string $version = CMS_VERSION): string {
+function getThemeScript(string $script, string $version = RS_VERSION): string {
 	$theme_path = slash(THEMES) . getSetting('theme');
 	
 	return '<script src="' . slash($theme_path) . $script .
@@ -35,7 +62,7 @@ function getThemeScript(string $script, string $version = CMS_VERSION): string {
  * @param string $script -- The script to load.
  * @param string $version (optional) -- The script's version.
  */
-function putThemeScript(string $script, string $version = CMS_VERSION): void {
+function putThemeScript(string $script, string $version = RS_VERSION): void {
 	echo getThemeScript($script, $version);
 }
 
@@ -47,7 +74,7 @@ function putThemeScript(string $script, string $version = CMS_VERSION): void {
  * @param string $version (optional) -- The stylesheet's version.
  * @return string
  */
-function getThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): string {
+function getThemeStylesheet(string $stylesheet, string $version = RS_VERSION): string {
 	$theme_path = slash(THEMES) . getSetting('theme');
 	
 	return '<link href="' . slash($theme_path) . $stylesheet .
@@ -61,7 +88,7 @@ function getThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): 
  * @param string $stylesheet -- The stylesheet to load.
  * @param string $version (optional) -- The stylesheet's version.
  */
-function putThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): void {
+function putThemeStylesheet(string $stylesheet, string $version = RS_VERSION): void {
 	echo getThemeStylesheet($stylesheet, $version);
 }
 
@@ -73,11 +100,7 @@ function putThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): 
  * @param array $include_styles (optional) -- Any additional stylesheets to include.
  * @param array $include_scripts (optional) -- Any additional scripts to include.
  */
-function headerScripts(
-	string|array $exclude = '',
-	array $include_styles = array(),
-	array $include_scripts = array()
-): void {
+function headerScripts(string|array $exclude = '', array $include_styles = array(), array $include_scripts = array()): void {
 	if(!is_array($exclude)) $exclude = explode(' ', $exclude);
 	
 	$debug = false;
@@ -123,11 +146,7 @@ function headerScripts(
  * @param array $include_styles (optional) -- Any additional stylesheets to include.
  * @param array $include_scripts (optional) -- Any additional scripts to include.
  */
-function footerScripts(
-	string|array $exclude = '',
-	array $include_styles = array(),
-	array $include_scripts = array()
-): void {
+function footerScripts(string|array $exclude = '', array $include_styles = array(), array $include_scripts = array()): void {
 	if(!is_array($exclude)) $exclude = explode(' ', $exclude);
 	
 	$debug = false;
@@ -200,7 +219,17 @@ function adminBar(): void {
 	<div id="admin-bar">
 		<ul class="menu">
 			<li>
-				<a href="javascript:void(0)"><i class="fa-solid fa-gauge-high"></i> <span>Admin</span></a>
+				<?php
+				// Admin options
+				echo domTag('a', array(
+					'href' => 'javascript:void(0)',
+					'content' => domTag('i', array(
+						'class' => 'fa-solid fa-gauge-high'
+					)) . ' ' . domTag('span', array(
+						'content' => 'Admin'
+					))
+				));
+				?>
 				<ul class="sub-menu">
 					<?php
 					// Dashboard
@@ -386,7 +415,17 @@ function adminBar(): void {
 				</ul>
 			</li>
 			<li>
-				<a href="javascript:void(0)"><i class="fa-solid fa-plus"></i> <span>New</span></a>
+				<?php
+				// New options
+				echo domTag('a', array(
+					'href' => 'javascript:void(0)',
+					'content' => domTag('i', array(
+						'class' => 'fa-solid fa-plus'
+					)) . ' ' . domTag('span', array(
+						'content' => 'New'
+					))
+				));
+				?>
 				<ul class="sub-menu">
 					<?php
 					// Post types
@@ -634,8 +673,13 @@ function guessPageType(): void {
 		
 		// Check whether the current page is the home page
 		if($raw_uri === '/' || str_starts_with($raw_uri, '/?')) {
-			$home_page = $rs_query->selectField('settings', 'value', array('name' => 'home_page'));
-			$slug = $rs_query->selectField('posts', 'slug', array('id' => $home_page));
+			$home_page = $rs_query->selectField('settings', 's_value', array(
+				's_name' => 'home_page'
+			));
+			
+			$slug = $rs_query->selectField('posts', 'p_slug', array(
+				'p_id' => $home_page
+			));
 		} else {
 			$uri = explode('/', $raw_uri);
 			$uri = array_filter($uri);
@@ -648,9 +692,13 @@ function guessPageType(): void {
 		}
 		
 		// Check whether the current page is a post or a term
-		if($rs_query->selectRow('posts', 'COUNT(slug)', array('slug' => $slug)) > 0) {
+		if($rs_query->selectRow('posts', 'COUNT(p_slug)', array(
+			'p_slug' => $slug
+		)) > 0) {
 			$rs_post = new \Engine\Post;
-		} elseif($rs_query->selectRow('terms', 'COUNT(slug)', array('slug' => $slug)) > 0) {
+		} elseif($rs_query->selectRow('terms', 'COUNT(t_slug)', array(
+			't_slug' => $slug
+		)) > 0) {
 			$rs_term = new \Engine\Term;
 		} else {
 			// Catastrophic failure, abort
@@ -671,7 +719,9 @@ function postTypeExists(string $type): bool {
 	
 	$type = sanitize($type);
 	
-	return $rs_query->selectRow('posts', 'COUNT(type)', array('type' => $type)) > 0;
+	return $rs_query->selectRow('posts', 'COUNT(p_type)', array(
+		'p_type' => $type
+	)) > 0;
 }
 
 /**
@@ -686,7 +736,9 @@ function taxonomyExists(string $taxonomy): bool {
 	
 	$taxonomy = sanitize($taxonomy);
 	
-	return $rs_query->selectRow('taxonomies', 'COUNT(name)', array('name' => $taxonomy)) > 0;
+	return $rs_query->selectRow('taxonomies', 'COUNT(ta_name)', array(
+		'ta_name' => $taxonomy
+	)) > 0;
 }
 
 /**
@@ -744,38 +796,40 @@ function getMenu(string $slug): void {
 function getWidget(string $slug, bool $display_title = false): void {
 	global $rs_query;
 	
-	$widget = $rs_query->selectRow('posts', array('title', 'content', 'status'), array(
-		'type' => 'widget',
-		'slug' => $slug
+	$px = 'p_';
+	
+	$widget = $rs_query->selectRow('posts', array($px . 'title', $px . 'content', $px . 'status'), array(
+		$px . 'slug' => $slug,
+		$px . 'type' => 'widget'
 	));
 	
 	if(empty($widget)) {
-		?>
-		<div class="widget">
-			<h3>The specified widget does not exist.</h3>
-		</div>
-		<?php
-	} elseif($widget['status'] === 'inactive') {
-		?>
-		<div class="widget">
-			<h3>The specified widget could not be loaded.</h3>
-		</div>
-		<?php
+		echo domTag('div', array(
+			'class' => 'widget',
+			'content' => domTag('h3', array(
+				'class' => 'widget-title',
+				'content' => 'The specified widget does not exist.'
+			))
+		));
+	} elseif($widget[$px . 'status'] === 'inactive') {
+		echo domTag('div', array(
+			'class' => 'widget',
+			'content' => domTag('h3', array(
+				'class' => 'widget-title',
+				'content' => 'The specified widget could not be loaded.'
+			))
+		));
 	} else {
-		?>
-		<div class="widget <?php echo $slug; ?>">
-			<?php
-			if($display_title) {
-				?>
-				<h3 class="widget-title"><?php echo $widget['title']; ?></h3>
-				<?php
-			}
-			?>
-			<div class="widget-content">
-				<?php echo $widget['content']; ?>
-			</div>
-		</div>
-		<?php
+		echo domTag('div', array(
+			'class' => 'widget ' . $slug,
+			'content' => ($display_title ? domTag('h3', array(
+				'class' => 'widget-title',
+				'content' => $widget[$px . 'title']
+			)) : '') . domTag('div', array(
+				'class' => 'widget-content',
+				'content' => $widget[$px . 'content']
+			))
+		));
 	}
 }
 
@@ -789,14 +843,19 @@ function getWidget(string $slug, bool $display_title = false): void {
 function registerMenu(string $name, string $slug): void {
 	global $rs_query;
 	
+	$px = 't_';
 	$slug = sanitize($slug);
-	$menu = $rs_query->selectRow('terms', '*', array('slug' => $slug, 'taxonomy' => getTaxonomyId('nav_menu')));
+	
+	$menu = $rs_query->selectRow('terms', '*', array(
+		$px . 'slug' => $slug,
+		$px . 'taxonomy' => getTaxonomyId('nav_menu')
+	));
 	
 	if(empty($menu)) {
 		$rs_query->insert('terms', array(
-			'name' => $name,
-			'slug' => $slug,
-			'taxonomy' => getTaxonomyId('nav_menu')
+			$px . 'name' => $name,
+			$px . 'slug' => $slug,
+			$px . 'taxonomy' => getTaxonomyId('nav_menu')
 		));
 	}
 }
@@ -811,17 +870,22 @@ function registerMenu(string $name, string $slug): void {
 function registerWidget(string $title, string $slug): void {
 	global $rs_query;
 	
+	$px = 'p_';
 	$slug = sanitize($slug);
-	$widget = $rs_query->selectRow('posts', '*', array('slug' => $slug, 'type' => 'widget'));
+	
+	$widget = $rs_query->selectRow('posts', '*', array(
+		$px . 'slug' => $slug,
+		$px . 'type' => 'widget'
+	));
 	
 	if(empty($widget)) {
 		$rs_query->insert('posts', array(
-			'title' => $title,
-			'date' => 'NOW()',
-			'content' => '',
-			'status' => 'active',
-			'slug' => $slug,
-			'type' => 'widget'
+			$px . 'title' => $title,
+			$px . 'created' => 'NOW()',
+			$px . 'content' => '',
+			$px . 'status' => 'active',
+			$px . 'slug' => $slug,
+			$px . 'type' => 'widget'
 		));
 	}
 }

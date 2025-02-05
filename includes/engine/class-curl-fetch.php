@@ -5,6 +5,13 @@
  *
  * @package ReallySimpleCMS
  * @subpackage Engine
+ *
+ * ## VARIABLES ##
+ * - private string $endpoint
+ *
+ * ## METHODS ##
+ * - public __construct(string $endpoint)
+ * - protected curlGet(string $command, array $get = array(), array $options = array()): string|int
  */
 namespace Engine;
 
@@ -34,13 +41,14 @@ class CurlFetch {
 	 * @since 1.4.0-beta_snap-01
 	 *
 	 * @access protected
+	 * @param string $command -- The command to run.
 	 * @param array $get -- GET values to send.
 	 * @param array $options -- cURL options.
 	 * @return string|int
 	 */
-	protected function curlGet(array $get = array(), array $options = array()): string|int {
+	protected function curlGet(string $command, array $get = array(), array $options = array()): string|int {
 		$defaults = array(
-			CURLOPT_URL => $this->endpoint . (
+			CURLOPT_URL => $this->endpoint . slash($command) . (
 				!empty($get) ? ((strpos($this->endpoint, '?') === false ? '?' : '') . http_build_query($get)) : ''
 			),
 			CURLOPT_HEADER => 0,
@@ -66,7 +74,7 @@ class CurlFetch {
 			// Check HTTP return code, too; might be something else than 200
 			$httpReturnCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 			
-			return $content;
+			return trim($content);
 		} catch(Exception $e) {
 			trigger_error(sprintf(
 				'Curl failed with error #%d: %s',

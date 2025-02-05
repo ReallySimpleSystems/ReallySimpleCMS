@@ -1,7 +1,9 @@
 <?php
 /**
  * Handle admin AJAX requests to the server.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
+ *
+ * @package ReallySimpleCMS
  */
 
 // Only initialize the base files and functions
@@ -30,9 +32,11 @@ if(isset($_POST)) {
 		
 		$dismissed = serialize($session['dismissed_notices']);
 		
-		$rs_query->update('usermeta', array('value' => $dismissed), array(
-			'user' => $session['id'],
-			'datakey' => 'dismissed_notices'
+		$rs_query->update('usermeta', array(
+			'um_value' => $dismissed
+		), array(
+			'um_user' => $session['id'],
+			'um_key' => 'dismissed_notices'
 		));
 	}
 }

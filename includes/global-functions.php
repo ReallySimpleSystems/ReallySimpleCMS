@@ -4,13 +4,68 @@
  * @since 1.2.0-alpha
  *
  * @package ReallySimpleCMS
+ *
+ * ## VARIABLES ##
+ * - array $post_types
+ * - array $taxonomies
+ *
+ * ## FUNCTIONS ##
+ * DATABASE & INSTALLATION:
+ * - populateTables(array $user_data, array $settings_data): void
+ * - populateTable(string $table): void
+ * - repopulateTable(string $table): void
+ * - populatePosts(int $author): array
+ * - populateUserRoles(): void
+ * - populateUserPrivileges(): void
+ * - populateUsers(array $args): int
+ * - populateSettings(array $args): void
+ * - populateTaxonomies(): void
+ * - populateTerms(int $post): void
+ * POST TYPES & TAXONOMIES:
+ * - getPostTypeLabels(string $name, array $labels): array
+ * - registerPostType(string $name, array $args): void
+ * - unregisterPostType(string $name, bool $del_posts): void
+ * - registerDefaultPostTypes(): void
+ * - getTaxonomyLabels(string $name, array $labels): array
+ * - registerTaxonomy(string $name, string $post_type, array $args): void
+ * - unregisterTaxonomy(string $name): void
+ * - registerDefaultTaxonomies(): void
+ * USER PRIVILEGES:
+ * - userHasPrivilege(string $privilege, ?int $role): bool
+ * - userHasPrivileges(array $privileges, string $logic, ?int $role): bool
+ * - getUserRoleId(string $name): int
+ * - getUserPrivilegeId(string $name): int
+ * MISCELLANEOUS:
+ * - isEmptyDir(string $dir): ?bool
+ * - isHomePage(int $id): bool
+ * - isLogin(): bool
+ * - is404(): bool
+ * - getScript(string $script, string $version): string
+ * - putScript(string $script, string $version): void
+ * - getStylesheet(string $stylesheet, string $version): string
+ * - putStylesheet(string $stylesheet, string $version): void
+ * - getSetting(string $name): string
+ * - putSetting(string $name): void
+ * - getPermalink(string $name, int $parent, string $slug): string
+ * - isValidSession(string $session): bool
+ * - getOnlineUser(string $session): array
+ * - getMediaSrc(int $id): string
+ * - getMedia(int $id, array $args): string
+ * - getTaxonomyId(string $name): int
+ * - trimWords(string $text, int $num_words, string $more): string
+ * - sanitize(string $text, string $regex, bool $lc): string
+ * - button(array $args, bool $link): void
+ * - formatDate(string $date, string $format): string
+ * - generateHash(int $length, bool $special_chars, string $salt): string
+ * - generatePassword(int $length, bool $special_chars): string
  */
 
-require_once PATH . INC . '/dom-tags.php';
+require_once PATH . INC . '/domtags.php';
 
 // Set the server timezone
 ini_set('date.timezone', date_default_timezone_get());
 
+// Global variables
 $post_types = array();
 $taxonomies = array();
 
@@ -19,7 +74,42 @@ $taxonomies = array();
 \*------------------------------------*/
 
 /**
- * Populate a database table.
+ * Populate the database tables on installation.
+ * @since 1.7.0-alpha
+ *
+ * @param array $user_data -- The user data.
+ * @param array $settings_data -- The settings data.
+ */
+function populateTables(array $user_data, array $settings_data): void {
+	global $rs_query;
+	
+	populateUserRoles();
+	populateUserPrivileges();
+	
+	$user = populateUsers($user_data);
+	$post = populatePosts($user);
+	
+	$settings_data['home_page'] = $post['home_page'];
+	populateSettings($settings_data);
+	
+	populateTaxonomies();
+	populateTerms($post['blog_post']);
+	
+	// Set post indexing based on the global setting
+	$posts = $rs_query->select('posts', 'p_id');
+	
+	foreach($posts as $post) {
+		$meta = $rs_query->update('postmeta', array(
+			'pm_value' => getSetting('do_robots')
+		), array(
+			'pm_post' => $post['p_id'],
+			'pm_key' => 'index_post'
+		));
+	}
+}
+
+/**
+ * Populate a database table without erasing anything (safe).
  * @since 1.0.8-beta
  *
  * @param string $table -- The table.
@@ -42,7 +132,13 @@ function populateTable(string $table): void {
 			}
 			
 			$admin_user_role = getUserRoleId('Administrator');
-			$admin = $rs_query->selectField('users', 'id', array('role' => $admin_user_role), 'id', 'ASC', '1');
+			$admin = $rs_query->selectField('users', 'u_id', array(
+				'u_role' => $admin_user_role
+			), array(
+				'order_by' => 'u_id',
+				'order' => 'ASC',
+				'limit' => '1'
+			));
 			
 			populatePosts($admin);
 			break;
@@ -63,10 +159,14 @@ function populateTable(string $table): void {
 				}
 			}
 			
-			$post = $rs_query->selectField('posts', 'id', array(
-				'status' => 'published',
-				'type' => 'post'
-			), 'id', 'ASC', '1');
+			$post = $rs_query->selectField('posts', 'p_id', array(
+				'p_status' => 'published',
+				'p_type' => 'post'
+			), array(
+				'order_by' => 'id',
+				'order' => 'ASC',
+				'limit' => '1'
+			));
 			
 			populateTerms($post);
 			break;
@@ -83,24 +183,32 @@ function populateTable(string $table): void {
 			
 			populateUsers();
 			break;
-		case 'user_privileges':
-		case 'user_relationships':
+		case 'user_privileges': // Also populates `user_relationships`
+			populateUserPrivileges();
+			break;
 		case 'user_roles':
-			$names = array('user_privileges', 'user_relationships', 'user_roles');
-			
-			foreach($names as $name) {
-				if($rs_query->tableExists($name)) {
-					$rs_query->dropTable($name);
-					$rs_query->doQuery($schema[$name]);
-				}
-			}
-			
-			if($table === 'user_roles')
-				populateUserRoles();
-			else
-				populateUserPrivileges();
+			populateUserRoles();
 			break;
 	}
+}
+
+/**
+ * Re-populate a database table. Erases all existing data (use with caution).
+ * @since 1.4.0-beta_snap-02
+ *
+ * @param string $table -- The table.
+ */
+function repopulateTable(string $table): void {
+	global $rs_query;
+	
+	$schema = dbSchema();
+	
+	if($rs_query->tableExists($table)) {
+		$rs_query->dropTable($table);
+		$rs_query->doQuery($schema[$table]);
+	}
+	
+	#populateTable($table);
 }
 
 /**
@@ -116,35 +224,37 @@ function populatePosts(int $author): array {
 	
 	// Create a sample page
 	$post['home_page'] = $rs_query->insert('posts', array(
-		'title' => 'Sample Page',
-		'author' => $author,
-		'date' => 'NOW()',
-		'content' => '<p>This is just a sample page to get you started.</p>',
-		'status' => 'published',
-		'slug' => 'sample-page',
-		'type' => 'page'
+		'p_title' => 'Sample Page',
+		'p_author' => $author,
+		'p_created' => 'NOW()',
+		'p_content' => '<p>This is just a sample page to get you started.</p>',
+		'p_status' => 'published',
+		'p_slug' => 'sample-page',
+		'p_type' => 'page'
 	));
 	
 	// Create a sample blog post
 	$post['blog_post'] = $rs_query->insert('posts', array(
-		'title' => 'Sample Blog Post',
-		'author' => $author,
-		'date' => 'NOW()',
-		'content' => '<p>This is your first blog post. Feel free to remove this text and replace it with your own.</p>',
-		'status' => 'published',
-		'slug' => 'sample-post'
+		'p_title' => 'Sample Blog Post',
+		'p_author' => $author,
+		'p_created' => 'NOW()',
+		'p_content' => '<p>This is your first blog post. Feel free to remove this text and replace it with your own.</p>',
+		'p_status' => 'published',
+		'p_slug' => 'sample-post'
 	));
 	
 	$postmeta = array(
 		'home_page' => array(
 			'title' => 'Sample Page',
 			'description' => 'Just a simple meta description for your sample page.',
+			'index_post' => 0,
 			'feat_image' => 0,
 			'template' => 'default'
 		),
 		'blog_post' => array(
 			'title' => 'Sample Blog Post',
 			'description' => 'Just a simple meta description for your first blog post.',
+			'index_post' => 0,
 			'feat_image' => 0,
 			'comment_status' => 1,
 			'comment_count' => 0
@@ -154,9 +264,9 @@ function populatePosts(int $author): array {
 	foreach($postmeta as $metadata) {
 		foreach($metadata as $key => $value) {
 			$rs_query->insert('postmeta', array(
-				'post' => $post[key($postmeta)],
-				'datakey' => $key,
-				'value' => $value
+				'pm_post' => $post[key($postmeta)],
+				'pm_key' => $key,
+				'pm_value' => $value
 			));
 		}
 		
@@ -177,8 +287,8 @@ function populateUserRoles(): void {
 	
 	foreach($roles as $role) {
 		$rs_query->insert('user_roles', array(
-			'name' => $role,
-			'is_default' => 1
+			'ur_name' => $role,
+			'ur_is_default' => 1
 		));
 	}
 }
@@ -207,7 +317,13 @@ function populateUserPrivileges(): void {
 		'settings',
 		'user_roles'
 	);
-	$privileges = array('can_view_', 'can_create_', 'can_edit_', 'can_delete_');
+	
+	$privileges = array(
+		'can_view_',
+		'can_create_',
+		'can_edit_',
+		'can_delete_'
+	);
 	
 	foreach($admin_pages as $admin_page) {
 		foreach($privileges as $privilege) {
@@ -238,7 +354,8 @@ function populateUserPrivileges(): void {
 			}
 			
 			$rs_query->insert('user_privileges', array(
-				'name' => $admin_page === 'update' ? $privilege : $privilege . $admin_page
+				'up_name' => ($admin_page === 'update' ? $privilege : $privilege . $admin_page),
+				'up_is_default' => 1
 			));
 		}
 	}
@@ -262,10 +379,14 @@ function populateUserPrivileges(): void {
 	 * 47 => 'can_view_user_roles', 48 => 'can_create_user_roles', 49 => 'can_edit_user_roles', 50 => 'can_delete_user_roles'
 	 */
 	
-	$roles = $rs_query->select('user_roles', 'id', array('id' => array('IN', 1, 2, 3, 4)), 'id');
+	$roles = $rs_query->select('user_roles', 'ur_id', array(
+		'ur_id' => array('IN', 1, 2, 3, 4)
+	), array(
+		'order_by' => 'ur_id'
+	));
 	
 	foreach($roles as $role) {
-		switch($role['id']) {
+		switch($role['ur_id']) {
 			case 1:
 				// User
 				$privileges = array();
@@ -295,8 +416,12 @@ function populateUserPrivileges(): void {
 				break;
 		}
 		
-		foreach($privileges as $privilege)
-			$rs_query->insert('user_relationships', array('role' => $role['id'], 'privilege' => $privilege));
+		foreach($privileges as $privilege) {
+			$insert_id = $rs_query->insert('user_relationships', array(
+				'ue_role' => $role['ur_id'],
+				'ue_privilege' => $privilege
+			));
+		}
 	}
 }
 
@@ -305,7 +430,7 @@ function populateUserPrivileges(): void {
  * @since 1.3.1-alpha
  * @deprecated from 1.7.0-alpha to 1.0.8-beta
  *
- * @param array $args (optional) -- The args.
+ * @param array $args (optional) -- User-supplied arguments.
  * @return int
  */
 function populateUsers(array $args = array()): int {
@@ -314,22 +439,20 @@ function populateUsers(array $args = array()): int {
 	$defaults = array(
 		'username' => 'admin',
 		'password' => '12345678',
-		'email' => 'admin@rscmswebsite.com',
+		'email' => 'admin@rscms.com',
 		'role' => getUserRoleId('Administrator')
 	);
 	
 	$args = array_merge($defaults, $args);
 	
-	// Encrypt password
 	$hashed_password = password_hash($args['password'], PASSWORD_BCRYPT, array('cost' => 10));
 	
-	// Create an admin user
 	$user = $rs_query->insert('users', array(
-		'username' => $args['username'],
-		'password' => $hashed_password,
-		'email' => $args['email'],
-		'registered' => 'NOW()',
-		'role' => $args['role']
+		'u_username' => $args['username'],
+		'u_password' => $hashed_password,
+		'u_email' => $args['email'],
+		'u_registered' => 'NOW()',
+		'u_role' => $args['role']
 	));
 	
 	$usermeta = array(
@@ -343,9 +466,9 @@ function populateUsers(array $args = array()): int {
 	
 	foreach($usermeta as $key => $value) {
 		$rs_query->insert('usermeta', array(
-			'user' => $user,
-			'datakey' => $key,
-			'value' => $value
+			'um_user' => $user,
+			'um_key' => $key,
+			'um_value' => $value
 		));
 	}
 	
@@ -357,21 +480,25 @@ function populateUsers(array $args = array()): int {
  * @since 1.3.0-alpha
  * @deprecated from 1.7.0-alpha to 1.0.8-beta
  *
- * @param array $args (optional) -- The args.
+ * @param array $args (optional) -- User-supplied arguments.
  */
 function populateSettings(array $args = array()): void {
 	global $rs_query;
 	
 	$defaults = array(
 		'site_title' => 'My Website',
-		'description' => 'A new ' . CMS_ENGINE . ' website!',
-		'site_url' => (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'],
-		'admin_email' => 'admin@rscmswebsite.com',
+		'description' => 'A new ' . RS_ENGINE . ' website!',
+		'site_url' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'],
+		'admin_email' => 'admin@rscms.com',
 		'default_user_role' => getUserRoleId('User'),
 		'home_page' => $rs_query->selectField('posts', 'id', array(
 			'status' => 'published',
 			'type' => 'page'
-		), 'id', 'ASC', '1'),
+		), array(
+			'order_by' => 'id',
+			'order' => 'ASC',
+			'limit' => '1'
+		)),
 		'do_robots' => 1,
 		'enable_comments' => 1,
 		'auto_approve_comments' => 0,
@@ -387,8 +514,12 @@ function populateSettings(array $args = array()): void {
 	
 	$args = array_merge($defaults, $args);
 	
-	foreach($args as $name => $value)
-		$rs_query->insert('settings', array('name' => $name, 'value' => $value));
+	foreach($args as $name => $value) {
+		$rs_query->insert('settings', array(
+			's_name' => $name,
+			's_value' => $value
+		));
+	}
 }
 
 /**
@@ -401,8 +532,11 @@ function populateTaxonomies(): void {
 	
 	$taxonomies = array('category', 'nav_menu');
 	
-	foreach($taxonomies as $taxonomy)
-		$rs_query->insert('taxonomies', array('name' => $taxonomy));
+	foreach($taxonomies as $taxonomy) {
+		$rs_query->insert('taxonomies', array(
+			'ta_name' => $taxonomy
+		));
+	}
 }
 
 /**
@@ -416,13 +550,16 @@ function populateTerms(int $post): void {
 	global $rs_query;
 	
 	$term = $rs_query->insert('terms', array(
-		'name' => 'Uncategorized',
-		'slug' => 'uncategorized',
-		'taxonomy' => getTaxonomyId('category'),
-		'count' => 1
+		't_name' => 'Uncategorized',
+		't_slug' => 'uncategorized',
+		't_taxonomy' => getTaxonomyId('category'),
+		't_count' => 1
 	));
 	
-	$rs_query->insert('term_relationships', array('term' => $term, 'post' => $post));
+	$rs_query->insert('term_relationships', array(
+		'tr_term' => $term,
+		'tr_post' => $post
+	));
 }
 
 /*------------------------------------*\
@@ -442,17 +579,22 @@ function getPostTypeLabels(string $name, array $labels = array()): array {
 		array('_', '-'), ' ',
 		($name === 'media' ? $name : $name . 's')
 	));
+	
+	$name_lowercase = strtolower($name_default);
 	$name_singular = ucwords(str_replace(array('_', '-'), ' ', $name));
 	
 	$defaults = array(
 		'name' => $name_default,
-		'name_lowercase' => strtolower($name_default),
+		'name_lowercase' => $name_lowercase,
 		'name_singular' => $name_singular,
 		'list_items' => 'List ' . $name_default,
 		'create_item' => 'Create ' . $name_singular,
 		'edit_item' => 'Edit ' . $name_singular,
-		'duplicate_item' => 'Duplicate ' . $name_singular
+		'duplicate_item' => 'Duplicate ' . $name_singular,
+		'no_items' => 'There are no ' . $name_lowercase . ' to display.',
+		'title_placeholder' => $name_singular . ' title'
 	);
+	
 	$labels = array_merge($defaults, $labels);
 	
 	return $labels;
@@ -493,6 +635,7 @@ function registerPostType(string $name, array $args = array()): void {
 		'comments' => false,
 		'taxonomies' => array()
 	);
+	
 	$args = array_merge($defaults, $args);
 	
 	// Remove any unrecognized args
@@ -523,18 +666,24 @@ function registerPostType(string $name, array $args = array()): void {
 			'can_delete_' . $name_lowercase
 		);
 		
-		$db_privileges = $rs_query->select('user_privileges', '*', array('name' => array('IN',
-			$privileges[0],
-			$privileges[1],
-			$privileges[2],
-			$privileges[3]
-		)));
+		$db_privileges = $rs_query->select('user_privileges', '*', array(
+			'up_name' => array(
+				'IN',
+				$privileges[0],
+				$privileges[1],
+				$privileges[2],
+				$privileges[3]
+			),
+			'up_is_default' => ($args['is_default'] ? 1 : 0)
+		));
 		
 		if(empty($db_privileges)) {
 			$insert_ids = array();
 			
 			for($i = 0; $i < count($privileges); $i++) {
-				$insert_ids[] = $rs_query->insert('user_privileges', array('name' => $privileges[$i]));
+				$insert_ids[] = $rs_query->insert('user_privileges', array(
+					'up_name' => $privileges[$i]
+				));
 				
 				if($privileges[$i] === 'can_view_' . $name_lowercase ||
 					$privileges[$i] === 'can_create_' . $name_lowercase ||
@@ -542,29 +691,32 @@ function registerPostType(string $name, array $args = array()): void {
 						
 					// Editor
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Editor'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Editor'),
+						'ue_privilege' => $insert_ids[$i]
 					));
+					
 					// Moderator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Moderator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Moderator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
+					
 					// Administrator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Administrator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Administrator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
 				} elseif($privileges[$i] === 'can_delete_' . $name_lowercase) {
 					// Moderator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Moderator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Moderator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
+					
 					// Administrator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Administrator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Administrator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
 				}
 			}
@@ -577,17 +729,32 @@ function registerPostType(string $name, array $args = array()): void {
  * @since 1.0.5-beta
  *
  * @param string $name -- The post type's name.
+ * @param bool $del_posts -- Whether to delete all post data from the database.
  */
-function unregisterPostType(string $name): void {
+function unregisterPostType(string $name, bool $del_posts = false): void {
 	global $rs_query, $post_types;
 	
 	$name = sanitize($name);
 	
-	// Delete the existing post type as long as it's not one of the defaults
 	if((postTypeExists($name) || array_key_exists($name, $post_types)) && !$post_types[$name]['is_default']) {
-		$rs_query->delete('posts', array('type' => $name));
+		if($del_posts) {
+			$posts = $rs_query->select('posts', 'p_id', array(
+				'p_type' => $name
+			));
+			
+			foreach($posts as $post) {
+				$rs_query->delete('postmeta', array(
+					'pm_post' => $post['p_id']
+				));
+			}
+			
+			$rs_query->delete('posts', array(
+				'p_type' => $name
+			));
+		}
 		
 		$type = str_replace(' ', '_', $post_types[$name]['labels']['name_lowercase']);
+		
 		$privileges = array(
 			'can_view_' . $type,
 			'can_create_' . $type,
@@ -597,9 +764,12 @@ function unregisterPostType(string $name): void {
 		
 		foreach($privileges as $privilege) {
 			$rs_query->delete('user_relationships', array(
-				'privilege' => getUserPrivilegeId($privilege)
+				'ue_privilege' => getUserPrivilegeId($privilege)
 			));
-			$rs_query->delete('user_privileges', array('name' => $privilege));
+			
+			$rs_query->delete('user_privileges', array(
+				'up_name' => $privilege
+			));
 		}
 		
 		if(array_key_exists($name, $post_types)) unset($post_types[$name]);
@@ -667,16 +837,20 @@ function getTaxonomyLabels(string $name, array $labels = array()): array {
 		array('_', '-'), ' ',
 		($name === 'category' ? 'Categories' : $name . 's')
 	));
+	
+	$name_lowercase = strtolower($name_default);
 	$name_singular = ucwords(str_replace(array('_', '-'), ' ', $name));
 	
 	$defaults = array(
 		'name' => $name_default,
-		'name_lowercase' => strtolower($name_default),
+		'name_lowercase' => $name_lowercase,
 		'name_singular' => $name_singular,
 		'list_items' => 'List ' . $name_default,
 		'create_item' => 'Create ' . $name_singular,
 		'edit_item' => 'Edit ' . $name_singular,
+		'no_items' => 'There are no ' . $name_lowercase . ' to display.'
 	);
+	
 	$labels = array_merge($defaults, $labels);
 	
 	return $labels;
@@ -703,10 +877,15 @@ function registerTaxonomy(string $name, string $post_type, array $args = array()
 	// If the name is already registered, abort
 	if(isset($taxonomies[$name]) || isset($post_types[$name])) return;
 	
-	$taxonomy = $rs_query->selectRow('taxonomies', '*', array('name' => $name));
+	$taxonomy = $rs_query->selectRow('taxonomies', '*', array(
+		'ta_name' => $name
+	));
 	
-	if(empty($taxonomy))
-		$rs_query->insert('taxonomies', array('name' => $name));
+	if(empty($taxonomy)) {
+		$rs_query->insert('taxonomies', array(
+			'ta_name' => $name
+		));
+	}
 	
 	$defaults = array(
 		'slug' => $name,
@@ -724,6 +903,7 @@ function registerTaxonomy(string $name, string $post_type, array $args = array()
 			'slug' => ''
 		)
 	);
+	
 	$args = array_merge($defaults, $args);
 	
 	// Remove any unrecognized args
@@ -756,14 +936,23 @@ function registerTaxonomy(string $name, string $post_type, array $args = array()
 		);
 		
 		$db_privileges = $rs_query->select('user_privileges', '*', array(
-			'name' => array('IN', $privileges[0], $privileges[1], $privileges[2], $privileges[3])
+			'up_name' => array(
+				'IN',
+				$privileges[0],
+				$privileges[1],
+				$privileges[2],
+				$privileges[3]
+			),
+			'up_is_default' => ($args['is_default'] ? 1 : 0)
 		));
 		
 		if(empty($db_privileges)) {
 			$insert_ids = array();
 			
 			for($i = 0; $i < count($privileges); $i++) {
-				$insert_ids[] = $rs_query->insert('user_privileges', array('name' => $privileges[$i]));
+				$insert_ids[] = $rs_query->insert('user_privileges', array(
+					'up_name' => $privileges[$i]
+				));
 				
 				if($privileges[$i] === 'can_view_' . $name_lowercase ||
 					$privileges[$i] === 'can_create_' . $name_lowercase ||
@@ -771,29 +960,32 @@ function registerTaxonomy(string $name, string $post_type, array $args = array()
 						
 					// Editor
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Editor'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Editor'),
+						'ue_privilege' => $insert_ids[$i]
 					));
+					
 					// Moderator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Moderator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Moderator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
+					
 					// Administrator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Administrator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Administrator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
 				} elseif($privileges[$i] === 'can_delete_'.$name_lowercase) {
 					// Moderator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Moderator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Moderator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
+					
 					// Administrator
 					$rs_query->insert('user_relationships', array(
-						'role' => getUserRoleId('Administrator'),
-						'privilege' => $insert_ids[$i]
+						'ue_role' => getUserRoleId('Administrator'),
+						'ue_privilege' => $insert_ids[$i]
 					));
 				}
 			}
@@ -801,13 +993,15 @@ function registerTaxonomy(string $name, string $post_type, array $args = array()
 	}
 	
 	if(!empty($args['default_term']['name']) && !empty($args['default_term']['slug'])) {
-		$term = $rs_query->selectRow('terms', 'COUNT(*)', array('slug' => $args['default_term']['slug'])) > 0;
+		$term = $rs_query->selectRow('terms', 'COUNT(*)', array(
+			't_slug' => $args['default_term']['slug']
+		)) > 0;
 		
 		if(!$term) {
 			$rs_query->insert('terms', array(
-				'name' => $args['default_term']['name'],
-				'slug' => $args['default_term']['slug'],
-				'taxonomy' => getTaxonomyId($name)
+				't_name' => $args['default_term']['name'],
+				't_slug' => $args['default_term']['slug'],
+				't_taxonomy' => getTaxonomyId($name)
 			));
 		}
 	}
@@ -818,22 +1012,33 @@ function registerTaxonomy(string $name, string $post_type, array $args = array()
  * @since 1.0.5-beta
  *
  * @param string $name -- The taxonomy's name.
+ * @param bool $del_terms -- Whether to delete all term data from the database.
  */
 function unregisterTaxonomy(string $name): void {
 	global $rs_query, $taxonomies;
 	
 	$name = sanitize($name);
 	
-	// Delete the existing taxonomy as long as it's not one of the defaults
 	if((taxonomyExists($name) || array_key_exists($name, $taxonomies)) && !$taxonomies[$name]['is_default']) {
-		$terms = $rs_query->select('terms', 'id', array('taxonomy' => getTaxonomyId($name)));
-		
-		foreach($terms as $term) {
-			$rs_query->delete('term_relationships', array('term' => $term));
-			$rs_query->delete('terms', array('id' => $term));
+		if($del_terms) {
+			$terms = $rs_query->select('terms', 't_id', array(
+				't_taxonomy' => getTaxonomyId($name)
+			));
+			
+			foreach($terms as $term) {
+				$rs_query->delete('term_relationships', array(
+					'tr_term' => $term
+				));
+				
+				$rs_query->delete('terms', array(
+					't_id' => $term
+				));
+			}
+			
+			$rs_query->delete('taxonomies', array(
+				'ta_name' => $name
+			));
 		}
-		
-		$rs_query->delete('taxonomies', array('name' => $name));
 		
 		$taxonomy = str_replace(' ', '_', $taxonomies[$name]['labels']['name_lowercase']);
 		$privileges = array(
@@ -844,8 +1049,13 @@ function unregisterTaxonomy(string $name): void {
 		);
 		
 		foreach($privileges as $privilege) {
-			$rs_query->delete('user_relationships', array('privilege' => getUserPrivilegeId($privilege)));
-			$rs_query->delete('user_privileges', array('name' => $privilege));
+			$rs_query->delete('user_relationships', array(
+				'ue_privilege' => getUserPrivilegeId($privilege)
+			));
+			
+			$rs_query->delete('user_privileges', array(
+				'up_name' => $privilege
+			));
 		}
 		
 		if(array_key_exists($name, $taxonomies)) unset($taxonomies[$name]);
@@ -890,21 +1100,22 @@ function registerDefaultTaxonomies(): void {
  * Check whether a user has a specified privilege.
  * @since 1.7.2-alpha
  *
- * @param string $privilege
- * @param int $role (optional; default: null)
+ * @param string $privilege -- The privilege's name.
+ * @param null|int $role (optional) -- The role's id.
  * @return bool
  */
-function userHasPrivilege($privilege, $role = null): bool {
-	// Extend the Query object and the user's session data
+function userHasPrivilege(string $privilege, ?int $role = null): bool {
 	global $rs_query, $session;
 	
 	if(is_null($role)) $role = $session['role'];
 	
-	$id = $rs_query->selectField('user_privileges', 'id', array('name' => $privilege));
+	$id = $rs_query->selectField('user_privileges', 'up_id', array(
+		'up_name' => $privilege
+	));
 	
 	return $rs_query->selectRow('user_relationships', 'COUNT(*)', array(
-		'role' => $role,
-		'privilege' => $id
+		'ue_role' => $role,
+		'ue_privilege' => $id
 	)) > 0;
 }
 
@@ -912,12 +1123,12 @@ function userHasPrivilege($privilege, $role = null): bool {
  * Check whether a user has a specified group of privileges.
  * @since 1.2.0-beta_snap-02
  *
- * @param array $privileges (optional; default: array())
- * @param string $logic (optional; default: 'AND')
- * @param int $role (optional; default: null)
+ * @param array $privileges (optional) -- A list of the privileges' names.
+ * @param string $logic (optional) -- Query logic operator.
+ * @param null|int $role (optional) -- The role's id.
  * @return bool
  */
-function userHasPrivileges($privileges = array(), $logic = 'AND', $role = null): bool {
+function userHasPrivileges(array $privileges = array(), string $logic = 'AND', ?int $role = null): bool {
 	if(!is_array($privileges)) $privileges = (array)$privileges;
 	
 	foreach($privileges as $privilege) {
@@ -941,32 +1152,34 @@ function userHasPrivileges($privileges = array(), $logic = 'AND', $role = null):
  * Fetch a user role's id.
  * @since 1.0.5-beta
  *
- * @param string $name
+ * @param string $name -- The role's name.
  * @return int
  */
-function getUserRoleId($name): int {
-	// Extend the Query object
+function getUserRoleId(string $name): int {
 	global $rs_query;
 	
 	$name = sanitize($name);
 	
-	return (int)$rs_query->selectField('user_roles', 'id', array('name' => $name)) ?? 0;
+	return (int)$rs_query->selectField('user_roles', 'ur_id', array(
+		'ur_name' => $name
+	)) ?? 0;
 }
 
 /**
  * Fetch a user privilege's id.
  * @since 1.0.5-beta
  *
- * @param string $name
+ * @param string $name -- The privilege's name.
  * @return int
  */
-function getUserPrivilegeId($name): int {
-	// Extend the Query object
+function getUserPrivilegeId(string $name): int {
 	global $rs_query;
 	
 	$name = sanitize($name);
 	
-	return (int)$rs_query->selectField('user_privileges', 'id', array('name' => $name)) ?? 0;
+	return (int)$rs_query->selectField('user_privileges', 'up_id', array(
+		'up_name' => $name
+	)) ?? 0;
 }
 
 /*------------------------------------*\
@@ -977,10 +1190,10 @@ function getUserPrivilegeId($name): int {
  * Check whether a directory is empty.
  * @since 2.3.0-alpha
  *
- * @param string $dir
- * @return nullable (null|bool)
+ * @param string $dir -- The directory to open.
+ * @return null|bool
  */
-function isEmptyDir($dir): ?bool {
+function isEmptyDir(string $dir): ?bool {
 	if(!is_readable($dir)) return null;
 	
 	$handle = opendir($dir);
@@ -995,24 +1208,15 @@ function isEmptyDir($dir): ?bool {
  * Check whether a post is the website's home page.
  * @since 1.4.0-alpha
  *
- * @param int $id
+ * @param int $id -- The post's id.
  * @return bool
  */
-function isHomePage($id): bool {
-	// Extend the Query object
+function isHomePage(int $id): bool {
 	global $rs_query;
 	
-	return (int)$rs_query->selectField('settings', 'value', array('name' => 'home_page')) === $id;
-}
-
-/**
- * Check whether the user is viewing a page on the admin dashboard.
- * @since 1.0.6-beta
- *
- * @return bool
- */
-function isAdmin(): bool {
-	return str_starts_with($_SERVER['REQUEST_URI'], '/admin/');
+	return (int)$rs_query->selectField('settings', 's_value', array(
+		's_name' => 'home_page'
+	)) === $id;
 }
 
 /**
@@ -1046,7 +1250,7 @@ function is404(): bool {
  * @param string $version (optional) -- The script's version.
  * @return string
  */
-function getScript(string $script, string $version = CMS_VERSION): string {
+function getScript(string $script, string $version = RS_VERSION): string {
 	return '<script src="' . slash(SCRIPTS) . $script .
 		(!empty($version) ? '?v=' . $version : '') . '"></script>';
 }
@@ -1058,7 +1262,7 @@ function getScript(string $script, string $version = CMS_VERSION): string {
  * @param string $script -- The script to load.
  * @param string $version (optional) -- The script's version.
  */
-function putScript(string $script, string $version = CMS_VERSION): void {
+function putScript(string $script, string $version = RS_VERSION): void {
 	echo getScript($script, $version);
 }
 
@@ -1070,7 +1274,7 @@ function putScript(string $script, string $version = CMS_VERSION): void {
  * @param string $version (optional) -- The stylesheet's version.
  * @return string
  */
-function getStylesheet(string $stylesheet, string $version = CMS_VERSION): string {
+function getStylesheet(string $stylesheet, string $version = RS_VERSION): string {
 	return '<link href="' . slash(STYLES) . $stylesheet .
 		(!empty($version) ? '?v=' . $version : '') . '" rel="stylesheet">';
 }
@@ -1082,7 +1286,7 @@ function getStylesheet(string $stylesheet, string $version = CMS_VERSION): strin
  * @param string $stylesheet -- The stylesheet to load.
  * @param string $version (optional) -- The stylesheet's version.
  */
-function putStylesheet(string $stylesheet, string $version = CMS_VERSION): void {
+function putStylesheet(string $stylesheet, string $version = RS_VERSION): void {
 	echo getStylesheet($stylesheet, $version);
 }
 
@@ -1090,25 +1294,24 @@ function putStylesheet(string $stylesheet, string $version = CMS_VERSION): void 
  * Retrieve a setting from the database.
  * @since 1.2.5-alpha
  *
- * @param string $name
+ * @param string $name -- The setting's name.
  * @return string
  */
-function getSetting($name): string {
-	// Extend the Query object
+function getSetting(string $name): string {
 	global $rs_query;
 	
-	return $rs_query->selectField('settings', 'value', array('name' => $name));
+	return $rs_query->selectField('settings', 's_value', array(
+		's_name' => $name
+	));
 }
 
 /**
  * Output a setting from the database.
  * @since 1.3.0-beta
  *
- * @param string $name
+ * @param string $name -- The setting's name.
  */
-function putSetting($name): void {
-	echo getSetting($name);
-}
+function putSetting(string $name): void { echo getSetting($name); }
 
 /**
  * Construct a permalink.
@@ -1124,6 +1327,7 @@ function getPermalink(string $name, int $parent = 0, string $slug = ''): string 
 	
 	if(array_key_exists($name, $post_types)) {
 		$table = 'posts';
+		$px = 'p_';
 		
 		if($name !== 'post' && $name !== 'page') {
 			if($post_types[$name]['slug'] !== $name)
@@ -1133,6 +1337,7 @@ function getPermalink(string $name, int $parent = 0, string $slug = ''): string 
 		}
 	} elseif(array_key_exists($name, $taxonomies)) {
 		$table = 'terms';
+		$px = 't_';
 		
 		if($taxonomies[$name]['slug'] !== $name)
 			$base = str_replace('_', '-', $taxonomies[$name]['slug']);
@@ -1143,9 +1348,12 @@ function getPermalink(string $name, int $parent = 0, string $slug = ''): string 
 	$permalink = array();
 	
 	while((int)$parent !== 0) {
-		$item = $rs_query->selectRow($table, array('slug', 'parent'), array('id' => $parent));
-		$parent = (int)$item['parent'];
-		$permalink[] = $item['slug'];
+		$item = $rs_query->selectRow($table, array($px . 'slug', $px . 'parent'), array(
+			$px . 'id' => $parent
+		));
+		
+		$parent = (int)$item[$px . 'parent'];
+		$permalink[] = $item[$px . 'slug'];
 	}
 	
 	$permalink = implode('/', array_reverse($permalink));
@@ -1166,7 +1374,9 @@ function getPermalink(string $name, int $parent = 0, string $slug = ''): string 
 function isValidSession(string $session): bool {
 	global $rs_query;
 	
-	return $rs_query->selectRow('users', 'COUNT(*)', array('session' => $session)) > 0;
+	return $rs_query->selectRow('users', 'COUNT(*)', array(
+		'u_session' => $session
+	)) > 0;
 }
 
 /**
@@ -1179,20 +1389,32 @@ function isValidSession(string $session): bool {
 function getOnlineUser(string $session): array {
 	global $rs_query;
 	
-	$user = $rs_query->selectRow('users', array('id', 'username', 'role'), array(
-		'session' => $session
+	$user = $rs_query->select('users', array('u_id', 'u_username', 'u_role'), array(
+		'u_session' => $session
 	));
 	
-	$usermeta = array('display_name', 'avatar', 'theme', 'dismissed_notices');
-	
-	foreach($usermeta as $meta) {
-		$user[$meta] = $rs_query->selectField('usermeta', 'value', array(
-			'user' => $user['id'],
-			'datakey' => $meta
-		));
+	if(!empty($user)) {
+		$user = array_map(function($u) {
+			return array(
+				'id' => $u['u_id'],
+				'username' => $u['u_username'],
+				'role' => $u['u_role']
+			);
+		}, $user);
+		
+		$user = array_merge(...$user);
+		
+		$usermeta = array('display_name', 'avatar', 'theme', 'dismissed_notices');
+		
+		foreach($usermeta as $meta) {
+			$user[$meta] = $rs_query->selectField('usermeta', 'um_value', array(
+				'um_user' => $user['u_id'],
+				'um_key' => $meta
+			));
+		}
+		
+		$user['dismissed_notices'] = unserialize($user['dismissed_notices']);
 	}
-	
-	$user['dismissed_notices'] = unserialize($user['dismissed_notices']);
 	
 	return $user;
 }
@@ -1201,16 +1423,15 @@ function getOnlineUser(string $session): array {
  * Fetch the source of a specified media item.
  * @since 2.1.5-alpha
  *
- * @param int $id
+ * @param int $id -- The media's id.
  * @return string
  */
-function getMediaSrc($id): string {
-	// Extend the Query object
+function getMediaSrc(int $id): string {
 	global $rs_query;
 	
-	$media = $rs_query->selectField('postmeta', 'value', array(
-		'post' => $id,
-		'datakey' => 'filepath'
+	$media = $rs_query->selectField('postmeta', 'pm_value', array(
+		'pm_post' => $id,
+		'pm_key' => 'filepath'
 	));
 	
 	if(!empty($media))
@@ -1223,12 +1444,11 @@ function getMediaSrc($id): string {
  * Fetch a specified media item.
  * @since 2.2.0-alpha
  *
- * @param int $id
- * @param array $args (optional; default: array())
+ * @param int $id -- The media's id.
+ * @param array $args (optional) -- Additional args.
  * @return string
  */
-function getMedia($id, $args = array()): string {
-	// Extend the Query object
+function getMedia(int $id, array $args = array()): string {
 	global $rs_query;
 	
 	$src = getMediaSrc($id);
@@ -1236,32 +1456,40 @@ function getMedia($id, $args = array()): string {
 	if(empty($args['cached'])) $args['cached'] = true;
 	
 	if($args['cached'] === true && $src !== '//:0') {
-		$modified = $rs_query->selectField('posts', 'modified', array('id' => $id));
+		$modified = $rs_query->selectField('posts', 'p_modified', array(
+			'p_id' => $id
+		));
+		
 		$src .= '?cached=' . formatDate($modified, 'YmdHis');
 	}
 	
-	$mime_type = $rs_query->selectField('postmeta', 'value', array(
-		'post' => $id,
-		'datakey' => 'mime_type'
+	$mime_type = $rs_query->selectField('postmeta', 'pm_value', array(
+		'pm_post' => $id,
+		'pm_key' => 'mime_type'
 	));
 	
 	// Determine what kind of HTML tag to construct based on the media's MIME type
 	if(str_starts_with($mime_type, 'image') || $src === '//:0') {
 		// Image tag
-		$alt_text = $rs_query->selectField('postmeta', 'value', array(
-			'post' => $id,
-			'datakey' => 'alt_text'
+		$alt_text = $rs_query->selectField('postmeta', 'pm_value', array(
+			'pm_post' => $id,
+			'pm_key' => 'alt_text'
 		));
-		$props = array_merge(array('src' => $src, 'alt' => $alt_text), $args);
-		$tag = '<img';
+		
+		$props = array_merge(array(
+			'src' => $src,
+			'alt' => $alt_text
+		), $args);
+		
+		$tag_args = array();
 		
 		foreach($props as $key => $value) {
 			if($key === 'cached') continue;
 			
-			$tag .= ' ' . $key . '="' . $value . '"';
+			$tag_args[$key] = $value;
 		}
 		
-		return $tag . '>';
+		return domTag('img', $tag_args);
 	} elseif(str_starts_with($mime_type, 'audio')) {
 		// Audio tag
 		return '<audio' . (!empty($args['class']) ? ' class="' . $args['class'] . '"' : '') . ' src="' .
@@ -1272,12 +1500,26 @@ function getMedia($id, $args = array()): string {
 			$src . '"></video>';
 	} else {
 		// Anchor tag
-		if(empty($args['link_text']))
-			$args['link_text'] = $rs_query->selectField('posts', 'title', array('id' => $id));
+		if(empty($args['link_text'])) {
+			$args['link_text'] = $rs_query->selectField('posts', 'p_title', array(
+				'p_id' => $id
+			));
+		}
 		
-		return '<a' . (!empty($args['class']) ? ' class="' . $args['class'] . '"' : '') . ' href="' .
-			$src . '"' . (!empty($args['newtab']) && $args['newtab'] === 1 ?
-			' target="_blank" rel="noreferrer noopener"' : '') . '>' . $args['link_text'] . '</a>';
+		$tag_args = array();
+		
+		if(!empty($args['class'])) $tag_args['class'] = $args['class'];
+		
+		$tag_args['href'] = $src;
+		
+		if(!empty($args['newtab']) && $args['newtab'] === 1) {
+			$tag_args['target'] = '_blank';
+			$tag_args['rel'] = 'noreferrer noopener';
+		}
+		
+		$tag_args['content'] = $args['link_text'];
+		
+		return domTag('a', $tag_args);
 	}
 }
 
@@ -1293,23 +1535,24 @@ function getTaxonomyId(string $name): int {
 	
 	$name = sanitize($name);
 	
-	return (int)$rs_query->selectField('taxonomies', 'id', array('name' => $name)) ?? 0;
+	return (int)$rs_query->selectField('taxonomies', 'ta_id', array(
+		'ta_name' => $name
+	)) ?? 0;
 }
 
 /**
  * Trim text down to a specified number of words.
  * @since 1.2.5-alpha
  *
- * @param string $text
- * @param int $num_words (optional; default: 50)
- * @param string $more (optional; default: '&hellip;')
+ * @param string $text -- The text to trim.
+ * @param int $num_words (optional) -- The number of words to include before trimming.
+ * @param string $more (optional) -- The 'more' text.
  * @return string
  */
-function trimWords($text, $num_words = 50, $more = '&hellip;'): string {
+function trimWords(string $text, int $num_words = 50, string $more = '&hellip;'): string {
 	$words = explode(' ', $text);
 	
 	if(count($words) > $num_words) {
-		// Trim the text down to the number of words specified
 		$words = array_slice($words, 0, $num_words);
 		
 		return implode(' ', $words) . $more;
@@ -1327,7 +1570,7 @@ function trimWords($text, $num_words = 50, $more = '&hellip;'): string {
  * @param bool $lc (optional) -- Whether to format in lowercase.
  * @return string
  */
-function sanitize(string $text, string $regex = '/[^a-z0-9_\-]/', bool $lc = true): string {
+function sanitize(string $text, string $regex = '/[^A-Za-z0-9_-]/', bool $lc = true): string {
 	$text = strip_tags($text);
 	
 	if($lc) $text = strtolower($text);
@@ -1339,33 +1582,26 @@ function sanitize(string $text, string $regex = '/[^a-z0-9_\-]/', bool $lc = tru
  * Create a button.
  * @since 1.2.7-beta
  *
- * @param array $args (optional; default: array())
- * @param bool $link (optional; default: false)
+ * @param array $args (optional) -- The args.
+ * @param bool $link (optional) -- Whether to link the button.
  */
-function button($args = array(), $link = false): void {
+function button(array $args = array(), bool $link = false): void {
 	if($link) {
-		echo '<a id="' . (!empty($args['id']) ? $args['id'] : '') . '"' .
-			' class="' . (!empty($args['class']) ? $args['class'] . ' ' : '') . 'button" href="' .
-			($args['link'] ?? '#') . '"' . (!empty($args['title']) ? ' title="' . $args['title'] . '"' : '') .
-			'>' . ($args['label'] ?? 'Button') . '</a>';
+		echo domTag('a', array(
+			'id' => (!empty($args['id']) ? $args['id'] : ''),
+			'class' => (!empty($args['class']) ? $args['class'] . ' ' : '') . 'button',
+			'href' => ($args['link'] ?? '#'),
+			'title' => (!empty($args['title']) ? $args['title'] : ''),
+			'content' => ($args['label'] ?? 'Button')
+		));
 	} else {
-		echo '<button id="' . (!empty($args['id']) ? $args['id'] : '') . '"' .
-			' class="' . (!empty($args['class']) ? $args['class'] . ' ' : '') . 'button"' .
-			(!empty($args['title']) ? ' title="' . $args['title'] . '"' : '') . '>' .
-			($args['label'] ?? 'Button') . '</button>';
+		echo domTag('button', array(
+			'id' => (!empty($args['id']) ? $args['id'] : ''),
+			'class' => (!empty($args['class']) ? $args['class'] . ' ' : '') . 'button',
+			'title' => (!empty($args['title']) ? $args['title'] : ''),
+			'content' => ($args['label'] ?? 'Button')
+		));
 	}
-}
-
-/**
- * Add a trailing slash to a string.
- * @since 1.3.1-alpha
- * @deprecated since 1.3.6-beta
- *
- * @param string $text
- * @return string
- */
-function trailingSlash($text): string {
-	return slash($text);
 }
 
 /**
@@ -1384,12 +1620,12 @@ function formatDate(string $date, string $format = 'Y-m-d H:i:s'): string {
  * Generate a random hash.
  * @since 2.0.5-alpha
  *
- * @param int $length (optional; default: 20)
- * @param bool $special_chars (optional; default: true)
- * @param string $salt (optional; default: '')
+ * @param int $length (optional) -- The length of the hash.
+ * @param bool $special_chars (optional) -- Whether to include special characters.
+ * @param string $salt (optional) -- The hash salt.
  * @return string
  */
-function generateHash($length = 20, $special_chars = true, $salt = ''): string {
+function generateHash(int $length = 20, bool $special_chars = true, string $salt = ''): string {
 	$chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 	
 	if($special_chars) $chars .= '!@#$%^&*()-_[]{}<>~`+=,.;:/?|';
@@ -1408,10 +1644,10 @@ function generateHash($length = 20, $special_chars = true, $salt = ''): string {
  * Generate a random password.
  * @since 1.3.0-alpha
  *
- * @param int $length (optional; default: 16)
- * @param bool $special_chars (optional; default: true)
+ * @param int $length (optional) -- The length of the password.
+ * @param bool $special_chars (optional) -- Whether to include special characters.
  * @return string
  */
-function generatePassword($length = 16, $special_chars = true): string {
+function generatePassword(int $length = 16, bool $special_chars = true): string {
 	return generateHash($length, $special_chars);
 }

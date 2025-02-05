@@ -7,7 +7,7 @@
  */
 
 require_once __DIR__ . '/init.php';
-require_once FUNC;
+require_once RS_FUNC;
 
 // Fetch the user's session data if they're logged in
 if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session']))

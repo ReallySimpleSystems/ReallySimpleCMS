@@ -1,24 +1,18 @@
 <?php
 /**
  * Admin logins page.
- * @since 1.2.0[b]{ss-01}
+ * @since 1.2.0-beta_snap-01
  */
 require_once __DIR__ . '/header.php';
 
-// Fetch the current logins page
-$page = $_GET['page'] ?? '';
-
-// Fetch the current id
+$page = $_GET['page'] ?? 'attempts';
 $id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
 
-// Create a Login object
-$rs_login = new Login($page, $id);
+$rs_login = new Login($id, $action, $page);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($page) {
 		case 'blacklist':
 			switch($action) {

@@ -4,6 +4,21 @@
  * @since 1.3.9-beta
  *
  * @package ReallySimpleCMS
+ *
+ * ## FUNCTIONS ##
+ * - spl_autoload_register(string $class) [class autoloader]
+ * SETUP:
+ * - baseSetup(): void
+ * - checkPHPVersion(): void
+ * - checkDBConfig(): void
+ * - checkDBStatus(): void
+ * MISCELLANEOUS:
+ * - isAdmin(): bool
+ * - redirect(string $url, int $status): void
+ * - getClassFilename(string $name): string
+ * - formatPathFragment(string $frag): string
+ * - unslash(string $text): string
+ * - slash(string $text): string
  */
 
 require_once PATH . INC . '/polyfill-functions.php';
@@ -22,19 +37,100 @@ spl_autoload_register(function(string $class) {
 });
 
 /*------------------------------------*\
-    MISCELLANEOUS
+    SETUP
 \*------------------------------------*/
+
+/**
+ * Conduct basic system setup.
+ * Can be run from any file that is accessed directly, such as an AJAX loader.
+ * @since 1.4.0-beta_snap-02
+ */
+function baseSetup(): void {
+	// Initialize Query class and user session superglobals
+	// These are both required for the system to run
+	global $rs_query, $session;
+	
+	/**
+	 * ## PHASE 1 ##
+	 * Initial checks/database config setup
+	 */
+	
+	checkPHPVersion();
+	
+	if(!file_exists(RS_CONFIG)) redirect(SETUP . '/rsdb-config.php');
+	
+	require_once RS_CONFIG;
+	require_once RS_DEBUG_FUNC;
+	require_once GLOBAL_FUNC;
+	
+	/**
+	 * ## PHASE 2 ##
+	 * Database connection/initialization
+	 */
+	
+	$rs_query = new \Engine\Query;
+	checkDBStatus();
+	
+	/**
+	 * ## PHASE 3 ##
+	 * Database installation
+	 */
+	
+	require_once RS_SCHEMA;
+	
+	$schema = dbSchema();
+	$tables = $rs_query->showTables();
+	
+	if(empty($tables)) redirect(SETUP . '/rsdb-install.php');
+	
+	// Verify all required tables exist
+	// For a list, see `schema.php`
+	foreach($schema as $key => $value) {
+		if(!$rs_query->tableExists($key)) {
+			$rs_query->createTable($key, $value);
+			# $rs_query->doQuery($schema[$key]);
+			# populateTable($key);
+		}
+	}
+	
+	/**
+	 * ## PHASE 4 ##
+	 * Login status/software update checks
+	 */
+	
+	if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session']))
+		$session = getOnlineUser($_COOKIE['session']);
+	
+	# registerRequiredModules();
+	
+	// Maintenance mode, triggered by defining `MAINT_MODE` in `config.php`
+	#if((defined('MAINT_MODE') && MAINT_MODE) && !isset($session))
+	#	require_once PATH . INC . '/maintenance.php';
+	
+	// An update is running; triggered by the update system
+	#if(isset($rs_doing_upgrade) && $rs_doing_upgrade === true)
+	#	require_once PATH . INC . '/update.php';
+}
 
 /**
  * Make sure the server is running the required PHP version.
  * @since 1.3.9-beta
  */
 function checkPHPVersion(): void {
-	$notice = 'The minimum version of PHP that is supported by ' . CMS_ENGINE . ' is ' . PHP_MINIMUM .
-		'; your server is running on ' . PHP_VERSION . '. ' .
-		'Please upgrade to the minimum required version or higher to use this software.';
+	$notice = 'The minimum version of PHP that is supported by ' . RS_ENGINE . ' is ' . PHP_MINIMUM . '; your server is running on ' . PHP_VERSION . '. Please upgrade to the minimum required version or higher to use this software.';
 	
 	if(version_compare(PHP_VERSION, PHP_MINIMUM, '<'))
+		exit('<p>' . $notice . '</p>');
+}
+
+/**
+ * Make sure a database config file doesn't already exist.
+ * @since 1.4.0-beta_snap-02
+ */
+function checkDBConfig(): void {
+	$notice = 'A configuration file already exists. If you wish to continue setup, please delete the existing file.';
+	
+	if(file_exists(RS_CONFIG))
 		exit('<p>' . $notice . '</p>');
 }
 
@@ -49,6 +145,20 @@ function checkDBStatus(): void {
 	
 	if(!$rs_query->conn_status)
 		exit('<p>' . $notice . '</p>');
+}
+
+/*------------------------------------*\
+    MISCELLANEOUS
+\*------------------------------------*/
+
+/**
+ * Check whether the user is viewing a page on the admin dashboard.
+ * @since 1.0.6-beta
+ *
+ * @return bool
+ */
+function isAdmin(): bool {
+	return str_starts_with($_SERVER['REQUEST_URI'], '/admin/');
 }
 
 /**

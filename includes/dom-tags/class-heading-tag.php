@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class HeadingTag extends \DomTag implements DomTagInterface {
+class HeadingTag extends \DomTags implements DomTagInterface {
 	/**
 	 * The tag types.
 	 * @since 1.0.1

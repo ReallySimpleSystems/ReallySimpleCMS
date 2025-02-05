@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin posts page.
- * @since 1.4.0[a]
+ * @since 1.4.0-alpha
  */
 
 require_once __DIR__ . '/header.php';
@@ -18,8 +18,10 @@ if(isset($_GET['type'])) {
 		if(!postExists($id)) {
 			redirect('posts.php');
 		} else {
-			// Fetch the post's type from the database and set the type if it exists
-			$type = $rs_query->selectField('posts', 'type', array('id' => $id)) ?? 'post';
+			// Set the type if it exists in the database
+			$type = $rs_query->selectField('posts', 'p_type', array(
+				'p_id' => $id
+			)) ?? 'post';
 		}
 	}
 }

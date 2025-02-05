@@ -8,295 +8,115 @@
  * @package ReallySimpleCMS
  */
 
-// Adding logins
-if(version_compare(CMS_VERSION, '1.2.0-beta', '>=')) {
+// Prefixing database tables (this must run before the other scripts to avoid errors)
+if(version_compare(RS_VERSION, '1.4.0-beta_snap-02', '>=')) {
 	$schema = dbSchema();
 	
-	// Try to create the `login_attempts` table
-	if(!$rs_query->tableExists('login_attempts'))
-		$rs_query->doQuery($schema['login_attempts']);
+	$px = array(
+		'posts' => 'p_',
+		'postmeta' => 'pm_',
+		'comments' => 'c_',
+		'redirects' => 'r_',
+		'terms' => 't_',
+		'taxonomies' => 'ta_',
+		'term_relationships' => 'tr_',
+		'users' => 'u_',
+		'usermeta' => 'um_',
+		'user_roles' => 'ur_',
+		'user_privileges' => 'up_',
+		'user_relationships' => 'ue_',
+		'login_attempts' => 'la_',
+		'login_blacklist' => 'lb_',
+		'login_rules' => 'lr_',
+		'settings' => 's_'
+	);
 	
-	// Try to create the `login_blacklist` table
-	if(!$rs_query->tableExists('login_blacklist'))
-		$rs_query->doQuery($schema['login_blacklist']);
-	
-	// Try to create the `login_rules` table
-	if(!$rs_query->tableExists('login_rules'))
-		$rs_query->doQuery($schema['login_rules']);
-	
-	// Check whether the proper user privileges exist for logins
-	if($rs_query->select('user_privileges', 'COUNT(*)', array(
-		'name' => array('LIKE', '%_login_%')
-	)) !== 9) {
+	foreach($schema as $key => $value) {
+		$prefixed = false;
 		
-		// Check whether any non-default user roles exist
-		if($rs_query->select('user_roles', 'COUNT(*)', array('id' => array('NOT IN', 1, 2, 3, 4))) > 0) {
-			// Create a temporary `user_relationships` table
-			$rs_query->doQuery("CREATE TABLE user_relationships_temp (
-				id bigint(20) unsigned PRIMARY KEY auto_increment,
-				role bigint(20) unsigned NOT NULL default '0',
-				privilege bigint(20) unsigned NOT NULL default '0',
-				KEY role (role),
-				KEY privilege (privilege)
-			);");
+		if($rs_query->columnExists($key, $px[$key] . 'id'))
+			$prefixed = true;
+		
+		// Skip tables that are already updated
+		if($prefixed) continue;
+		
+		$temp_table = $key . '_temp';
+		
+		if(!$rs_query->tableExists($temp_table)) {
+			// Create a temp table
+			$rs_query->createTable($temp_table, $value);
 			
-			// Fetch the custom user roles' ids
-			$roles = $rs_query->select('user_roles', 'id', array('id' => array('NOT IN', 1, 2, 3, 4)));
+			$old_data = $rs_query->select($key);
 			
-			foreach($roles as $role) {
-				$relationships = $rs_query->select('user_relationships', '*', array(
-					'role' => $role['id']
-				));
-				
-				foreach($relationships as $relationship) {
-					$rs_query->insert('user_relationships_temp', array(
-						'role' => $relationship['role'],
-						'privilege' => $relationship['privilege']
-					));
-				}
-			}
-		}
-		
-		$rs_query->dropTables(array('user_privileges', 'user_relationships'));
-		$rs_query->doQuery($schema['user_privileges']);
-		$rs_query->doQuery($schema['user_relationships']);
-		
-		populateUserPrivileges();
-		
-		if($rs_query->tableExists('user_relationships_temp')) {
-			foreach($roles as $role) {
-				$relationships = $rs_query->select('user_relationships_temp', '*', array(
-					'role' => $role['id']
-				));
-				
-				foreach($relationships as $relationship) {
-					// Update the privilege ids for privileges that have been reordered
-					switch($relationship['privilege']) {
-						case 36:
-							$relationship['privilege'] = 45;
+			for($i = 0; $i < count($old_data); $i++) {
+				foreach($old_data[$i] as $dkey => $dval) {
+					// Update columns whose names have changed
+					switch($key) {
+						case 'posts':
+						case 'comments':
+							if($dkey === 'date') {
+								$dkey = 'created';
+								$old_data[$i][$dkey] = $dval;
+								unset($old_data[$i]['date']);
+							}
 							break;
-						case 37:
-							$relationship['privilege'] = 46;
+						case 'users':
+							if($dkey === 'security_key') {
+								$dkey = 'token';
+								$old_data[$i][$dkey] = $dval;
+								unset($old_data[$i]['security_key']);
+							}
 							break;
-						case 38:
-							$relationship['privilege'] = 47;
-							break;
-						case 39:
-							$relationship['privilege'] = 48;
-							break;
-						case 40:
-							$relationship['privilege'] = 49;
+						case 'postmeta':
+						case 'usermeta':
+							if($dkey === 'datakey') {
+								$dkey = 'key';
+								$old_data[$i][$dkey] = $dval;
+								unset($old_data[$i]['datakey']);
+							}
 							break;
 					}
 					
-					$rs_query->insert('user_relationships', array(
-						'role' => $relationship['role'],
-						'privilege' => $relationship['privilege']
-					));
+					// Prefix all of the old keys
+					$old_data[$i][$px[$key] . $dkey] = $old_data[$i][$dkey];
+					unset($old_data[$i][$dkey]);
 				}
+				
+				// Move the data to the temp table
+				$rs_query->insert($temp_table, $old_data[$i]);
 			}
 			
-			$rs_query->dropTable('user_relationships_temp');
-		}
-	}
-	
-	// Check whether the 'track_login_attempts' setting exists
-	if(!$rs_query->selectRow('settings', 'COUNT(*)', array('name' => 'track_login_attempts')) > 0)
-		$rs_query->insert('settings', array('name' => 'track_login_attempts', 'value' => 0));
-	
-	// Check whether the 'delete_old_login_attempts' setting exists
-	if(!$rs_query->selectRow('settings', 'COUNT(*)', array('name' => 'delete_old_login_attempts')) > 0)
-		$rs_query->insert('settings', array('name' => 'delete_old_login_attempts', 'value' => 0));
-	
-	// Select all indexes for the `comments` table
-	$indexes = $rs_query->showIndexes('comments');
-	
-	// Check whether the number of indexes is 4 (the primary key plus the other 3 indexes)
-	if(count($indexes) !== 4) {
-		// Create a temporary `comments` table
-		$rs_query->doQuery("CREATE TABLE comments_temp (
-			id bigint(20) unsigned PRIMARY KEY auto_increment,
-			post bigint(20) unsigned NOT NULL default '0',
-			author bigint(20) unsigned NOT NULL default '0',
-			date datetime default NULL,
-			content longtext NOT NULL default '',
-			upvotes bigint(20) NOT NULL default '0',
-			downvotes bigint(20) NOT NULL default '0',
-			status varchar(20) NOT NULL default 'pending',
-			parent bigint(20) unsigned NOT NULL default '0',
-			KEY post (post),
-			KEY author (author),
-			KEY parent (parent)
-		);");
-		
-		$comments = $rs_query->select('comments');
-		
-		foreach($comments as $comment) {
-			$rs_query->insert('comments_temp', array(
-				'post' => $comment['post'],
-				'author' => $comment['author'],
-				'date' => $comment['date'],
-				'content' => $comment['content'],
-				'upvotes' => $comment['upvotes'],
-				'downvotes' => $comment['downvotes'],
-				'status' => $comment['status'],
-				'parent' => $comment['parent']
-			));
-		}
-		
-		$rs_query->dropTable('comments');
-		$rs_query->doQuery("ALTER TABLE `comments_temp` RENAME TO `comments`;");
-	}
-}
-
-// Tweaking post dates
-if(version_compare(CMS_VERSION, '1.2.9-beta', '>=')) {
-	$posts = $rs_query->select('posts', array('id', 'date', 'modified', 'status'));
-	
-	foreach($posts as $post) {
-		if(is_null($post['modified'])) {
-			if(is_null($post['date'])) {
-				$rs_query->update('posts',
-					array('modified' => 'NOW()'),
-					array('id' => $post['id'])
-				);
-			} else {
-				$rs_query->update('posts',
-					array('modified' => $post['date']),
-					array('id' => $post['id'])
-				);
-			}
-		}
-		
-		if(in_array($post['status'], array('draft', 'trash'), true))
-			$rs_query->update('posts', array('date' => null), array('id' => $post['id']));
-	}
-}
-
-// Tweaking media metadata
-if(version_compare(CMS_VERSION, '1.3.5-beta', '>=')) {
-	if($rs_query->select('postmeta', 'COUNT(*)', array('datakey' => 'filename')) > 0) {
-		$mediaa = $rs_query->select('posts', array('id', 'date'), array('type' => 'media'));
-		
-		foreach($mediaa as $media) {
-			$year = formatDate($media['date'], 'Y');
-			
-			$meta = $rs_query->selectRow('postmeta', array('id', 'value'), array(
-				'post' => $media['id'],
-				'datakey' => 'filename'
-			));
-			
-			$rs_query->update('postmeta', array(
-				'datakey' => 'filepath',
-				'value' => slash($year) . $meta['value']
-			), array('id' => $meta['id']));
-			
-			if(!file_exists(slash(PATH . UPLOADS) . $year))
-				mkdir(slash(PATH . UPLOADS) . $year);
-			
-			// Move the file
-			$from = slash(PATH . UPLOADS) . $meta['value'];
-			$to = slash(PATH . UPLOADS) . slash($year) . $meta['value'];
-			if(!rename($from, $to)) exit('Unable to migrate uploaded files!');
-		}
-		
-		$posts = $rs_query->select('posts', array('id', 'content'), array('type' => array(
-			'NOT IN',
-			'nav_menu_item',
-			'media'
-		)));
-		
-		foreach($posts as $post) {
-			if(empty($post['content'])) continue;
-			
-			// Update media links in posts
-			if(str_contains($post['content'], '/content/uploads') && 
-				!preg_match('/\/content\/uploads\/(19|20)\d{2}/', $post['content'])) {
-					
-				$content = preg_replace('/\/content\/uploads/', '$0/' . $year, $post['content']);
-				$rs_query->update('posts', array('content' => $content), array('id' => $post['id']));
-			}
-		}
-	}
-}
-
-// Adding `display_name` and `dismissed_notices` usermeta to existing users
-if(version_compare(CMS_VERSION, '1.3.8-beta', '>=')) {
-	$users = $rs_query->select('users', array('id', 'username'));
-	
-	foreach($users as $user) {
-		$dname = $rs_query->selectRow('usermeta', 'COUNT(*)', array(
-			'user' => $user['id'],
-			'datakey' => 'display_name'
-		));
-		
-		if($dname === 0) {
-			$rs_query->insert('usermeta', array(
-				'user' => $user['id'],
-				'datakey' => 'display_name',
-				'value' => $user['username']
-			));
-		}
-		
-		$dismissed = $rs_query->selectRow('usermeta', 'COUNT(*)', array(
-			'user' => $user['id'],
-			'datakey' => 'dismissed_notices'
-		));
-		
-		if($dismissed === 0) {
-			$rs_query->insert('usermeta', array(
-				'user' => $user['id'],
-				'datakey' => 'dismissed_notices',
-				'value' => ''
-			));
-		}
-	}
-}
-
-// Adding `index_post` metadata to existing posts
-if(version_compare(CMS_VERSION, '1.3.9-beta', '>=')) {
-	$posts = $rs_query->select('posts', 'id');
-	
-	foreach($posts as $post) {
-		$index = $rs_query->selectRow('postmeta', 'COUNT(*)', array(
-			'post' => $post['id'],
-			'datakey' => 'index_post'
-		));
-		
-		if($index === 0) {
-			$rs_query->insert('postmeta', array(
-				'post' => $post['id'],
-				'datakey' => 'index_post',
-				'value' => getSetting('do_robots')
-			));
+			// Delete the old table and rename the temp one
+			$rs_query->dropTable($key);
+			$rs_query->doQuery("ALTER TABLE `" . $temp_table . "` RENAME TO `" . $key . "`;");
 		}
 	}
 }
 
 // Various tweaks
-if(version_compare(CMS_VERSION, '1.3.12-beta', '>=')) {
+if(version_compare(RS_VERSION, '1.3.12-beta', '>=')) {
 	// Changing `unapproved` comments to `pending`
-	$comments = $rs_query->select('comments', 'COUNT(status)', array(
-		'status' => 'unapproved'
+	$comments = $rs_query->select('comments', 'COUNT(c_status)', array(
+		'c_status' => 'unapproved'
 	));
 	
 	if($comments > 0) {
 		$rs_query->update('comments', array(
-			'status' => 'pending'
+			'c_status' => 'pending'
 		), array(
-			'status' => 'unapproved'
+			'c_status' => 'unapproved'
 		));
 	}
 	
 	// Adding `login_slug` setting
-	$settings = $rs_query->selectRow('settings', 'COUNT(name)', array(
-		'name' => 'login_slug'
+	$settings = $rs_query->selectRow('settings', 'COUNT(s_name)', array(
+		's_name' => 'login_slug'
 	));
 	
 	if($settings === 0) {
 		$rs_query->insert('settings', array(
-			'name' => 'login_slug',
-			'value' => ''
+			's_name' => 'login_slug',
+			's_value' => ''
 		));
 	}
 	
@@ -307,29 +127,29 @@ if(version_compare(CMS_VERSION, '1.3.12-beta', '>=')) {
 		$table = 'postmeta';
 		
 		// Add new columns
-		$rs_query->doQuery("ALTER TABLE `{$table}` ADD datakey varchar(255) NOT NULL;");
-		$rs_query->doQuery("ALTER TABLE `{$table}` ADD value_temp longtext NOT NULL default '';");
+		$rs_query->doQuery("ALTER TABLE `{$table}` ADD pm_key varchar(255) NOT NULL;");
+		$rs_query->doQuery("ALTER TABLE `{$table}` ADD value_temp longtext NOT NULL;");
 		
-		$postmeta = $rs_query->select($table, array('id', '_key', 'value'));
+		$postmeta = $rs_query->select($table, array('pm_id', '_key', 'pm_value'));
 		
 		// Move the data to the new columns
 		foreach($postmeta as $pmeta) {
 			$rs_query->update($table, array(
-				'datakey' => $pmeta['_key'],
-				'value_temp' => $pmeta['value']
+				'pm_key' => $pmeta['_key'],
+				'value_temp' => $pmeta['pm_value']
 			), array(
-				'id' => $pmeta['id']
+				'pm_id' => $pmeta['pm_id']
 			));
 		}
 		
 		// Replace the old index
 		$rs_query->doQuery("ALTER TABLE `{$table}` DROP INDEX _key;");
-		$rs_query->doQuery("CREATE INDEX datakey ON `{$table}` (datakey);");
+		$rs_query->doQuery("CREATE INDEX metakey ON `{$table}` (pm_key);");
 		
 		// Replace the old columns
 		$rs_query->doQuery("ALTER TABLE `{$table}` DROP COLUMN _key;");
-		$rs_query->doQuery("ALTER TABLE `{$table}` DROP COLUMN value;");
-		$rs_query->doQuery("ALTER TABLE `{$table}` CHANGE `value_temp` `value` longtext NOT NULL default '';");
+		$rs_query->doQuery("ALTER TABLE `{$table}` DROP COLUMN pm_value;");
+		$rs_query->doQuery("ALTER TABLE `{$table}` CHANGE `value_temp` `pm_value` longtext NOT NULL;");
 	}
 	
 	// `usermeta` table
@@ -337,29 +157,29 @@ if(version_compare(CMS_VERSION, '1.3.12-beta', '>=')) {
 		$table = 'usermeta';
 		
 		// Add new columns
-		$rs_query->doQuery("ALTER TABLE `{$table}` ADD datakey varchar(255) NOT NULL;");
-		$rs_query->doQuery("ALTER TABLE `{$table}` ADD value_temp longtext NOT NULL default '';");
+		$rs_query->doQuery("ALTER TABLE `{$table}` ADD um_key varchar(255) NOT NULL;");
+		$rs_query->doQuery("ALTER TABLE `{$table}` ADD value_temp longtext NOT NULL;");
 		
-		$usermeta = $rs_query->select($table, array('id', '_key', 'value'));
+		$usermeta = $rs_query->select($table, array('um_id', '_key', 'um_value'));
 		
 		// Move the data to the new columns
 		foreach($usermeta as $umeta) {
 			$rs_query->update($table, array(
-				'datakey' => $umeta['_key'],
-				'value_temp' => $umeta['value']
+				'um_key' => $umeta['_key'],
+				'value_temp' => $umeta['um_value']
 			), array(
-				'id' => $umeta['id']
+				'um_id' => $umeta['um_id']
 			));
 		}
 		
 		// Replace the old index
 		$rs_query->doQuery("ALTER TABLE `{$table}` DROP INDEX _key;");
-		$rs_query->doQuery("CREATE INDEX datakey ON `{$table}` (datakey);");
+		$rs_query->doQuery("CREATE INDEX metakey ON `{$table}` (um_key);");
 		
 		// Replace the old columns
 		$rs_query->doQuery("ALTER TABLE `{$table}` DROP COLUMN _key;");
-		$rs_query->doQuery("ALTER TABLE `{$table}` DROP COLUMN value;");
-		$rs_query->doQuery("ALTER TABLE `{$table}` CHANGE `value_temp` `value` longtext NOT NULL default '';");
+		$rs_query->doQuery("ALTER TABLE `{$table}` DROP COLUMN um_value;");
+		$rs_query->doQuery("ALTER TABLE `{$table}` CHANGE `value_temp` `um_value` longtext NOT NULL;");
 	}
 	
 	// `user_roles` table
@@ -367,9 +187,9 @@ if(version_compare(CMS_VERSION, '1.3.12-beta', '>=')) {
 		$table = 'user_roles';
 		
 		// Add new column
-		$rs_query->doQuery("ALTER TABLE `{$table}` ADD is_default tinyint(1) unsigned NOT NULL default '0';");
+		$rs_query->doQuery("ALTER TABLE `{$table}` ADD ur_is_default tinyint(1) unsigned NOT NULL default '0';");
 		
-		$user_roles = $rs_query->select($table, array('id', '_default'));
+		$user_roles = $rs_query->select($table, array('ur_id', '_default'));
 		
 		// Move the data to the new column
 		foreach($user_roles as $role) {
@@ -383,9 +203,9 @@ if(version_compare(CMS_VERSION, '1.3.12-beta', '>=')) {
 			}
 			
 			$rs_query->update($table, array(
-				'is_default' => $is_default
+				'ur_is_default' => $is_default
 			), array(
-				'id' => $role['id']
+				'ur_id' => $role['ur_id']
 			));
 		}
 		
@@ -394,36 +214,87 @@ if(version_compare(CMS_VERSION, '1.3.12-beta', '>=')) {
 	}
 }
 
+// Adding `index_post` metadata to existing posts
+if(version_compare(RS_VERSION, '1.3.9-beta', '>=')) {
+	$posts = $rs_query->select('posts', 'p_id', array(
+		'p_type' => array('NOT IN', 'nav_menu_item', 'widget')
+	));
+	
+	foreach($posts as $post) {
+		$index = $rs_query->selectRow('postmeta', 'COUNT(*)', array(
+			'pm_post' => $post['p_id'],
+			'pm_key' => 'index_post'
+		));
+		
+		if($index === 0) {
+			$rs_query->insert('postmeta', array(
+				'pm_post' => $post['p_id'],
+				'pm_key' => 'index_post',
+				'pm_value' => getSetting('do_robots')
+			));
+		}
+	}
+}
+
 // Update privileges
-if(version_compare(CMS_VERSION, '1.3.13-beta', '>=')) {
-	if($rs_query->selectRow('user_privileges', 'COUNT(*)', array('name' => 'can_update_core')) === 0) {
-		if($rs_query->selectRow('user_roles', 'COUNT(*)', array('id' => array('>', 4))) > 0) {
-			$roles = $rs_query->select('user_roles', '*', array(
-				'id' => array('>', 4)
+if(version_compare(RS_VERSION, '1.3.13-beta', '>=')) {
+	$tables = array('user_roles', 'user_relationships', 'user_privileges');
+	$schema = dbSchema();
+	
+	if($rs_query->selectRow($tables[2], 'COUNT(*)', array(
+		'up_name' => 'can_update_core'
+	)) === 0) {
+		// Check if we have custom roles
+		if($rs_query->selectRow($tables[0], 'COUNT(*)', array(
+			'ur_id' => array('>', 4)
+		)) > 0) {
+			// Fetch all the non-default data
+			$roles = $rs_query->select($tables[0], '*', array(
+				'ur_id' => array('>', 4)
 			));
+		} else {
+			$roles = array();
+		}
+		
+		// Fetch all the non-default data
+		$privileges = $rs_query->select($tables[2], '*', array(
+			'up_id' => array('>', 49)
+		));
+		
+		$relationships = $rs_query->select($tables[1], '*', array(
+			'ue_privilege' => array('>', 49)
+		));
+		
+		// Replace the data
+		foreach($tables as $table) {
+			$rs_query->dropTable($table);
+			$rs_query->createTable($table, $schema[$table]);
 			
-			$relationships = $rs_query->select('user_relationships', '*', array(
-				'role' => array('>', 4)
-			));
-			
-			$tables = array('user_privileges', 'user_relationships', 'user_roles');
-			
-			foreach($tables as $table)
-				populateTable($table);
-			
+			populateTable($table);
+		}
+		
+		// Add in the non-default data
+		if(!empty($roles)) {
 			foreach($roles as $role) {
-				$rs_query->insert('user_roles', array(
-					'name' => $role['name'],
-					'is_default' => $role['is_default']
+				$rs_query->insert($tables[0], array(
+					'ur_name' => $role['ur_name'],
+					'ur_is_default' => $role['ur_is_default']
 				));
 			}
-			
-			foreach($relationships as $relationship) {
-				$rs_query->insert('user_relationships', array(
-					'role' => $relationship['role'],
-					'privilege' => $relationship['privilege']
-				));
-			}
+		}
+		
+		foreach($privileges as $privilege) {
+			$rs_query->insert($tables[2], array(
+				'up_name' => $privilege['up_name'],
+				'up_is_default' => $privilege['up_is_default']
+			));
+		}
+		
+		foreach($relationships as $relationship) {
+			$rs_query->insert($tables[1], array(
+				'ue_role' => $relationship['ue_role'],
+				'ue_privilege' => $relationship['ue_privilege']
+			));
 		}
 	}
 }

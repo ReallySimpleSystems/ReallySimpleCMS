@@ -13,8 +13,207 @@
 - x.x.X (standard/minor release)
 - x.x.x.X (bug fix/emergency patch release)
 - x.x.x_snap-xx (snapshot release)
-- [a] | -alpha (Alpha version)
-- [b] | -beta (Beta version)
+- \*-alpha (Alpha version)
+- \*-beta (Beta version)
+
+## Version 1.4.0-beta_snap-02 (2025-02-05)
+
+- **WARNING!** This update contains many potentially breaking changes. Back up your database before updating.
+- General cleanup
+  - Optimized code in all core files
+  - Reorganized the database schema
+    - All database tables now have prefixed columns
+	- Existing databases will be updated automatically
+  - Added more documentation throughout and cleaned up unnecessary documentation
+  - Renamed various system constants to align with other ReallySimpleSystems projects
+  - Moved all setup-related files to a new `/setup` directory and overhauled the code
+  - Moved all CSS and JS files related to system setup out of the `/admin` subdirectory
+  - Organized and deprecated several items in the `Query` class (this is a major breaking change)
+  - Added more exit statuses to various admin pages and simplified how they are created
+  - Removed the `DOMTAGS_VERSION` constant from core code; it is now defined within the DOMtags library
+  - The `DEBUG_MODE` and `MAINT_MODE` constants are now defined in the default config file
+  - Added documentation of class variables and methods to all classes and functions files
+  - Replaced numerous instances of hardcoded HTML with DOMtags
+  - Optimized code in the database updater
+- Added support for a `homepage.php` template file in themes
+- Added an `is_default` column to the `user_privileges` table
+  - Default and custom privileges are now listed under different columns on the dashboard
+- Added two new possible labels for custom post types and taxonomies:
+  - `no_items` (displays on the list page when no records can be found in the database)
+  - `title_placeholder` (displays in the title field; post types only)
+- The `unregisterPostType` and `unregisterTaxonomy` functions no longer erase post and taxonomy data by default
+  - Post metadata is now cleared if the associated post is deleted in this way
+- Added sister projects to README and updated the copyright
+- The `populateTables` function has been moved to `global-functions.php`
+- Added `upvotes` and `downvotes` columns to the List Comments table
+- Media can now be replaced from the List Media page
+- The `Comment::getAuthor` function now returns 'Anonymous' instead of a dash when the author is blank
+- The admin List Themes page now has pagination (this is considered experimental for now)
+- Updated DOMtags to v1.1.4.2
+- Added "Developed by" credit to the admin about page
+- Added a `slug` column to the List Menus table
+- Updated admin footer copyright text
+- Added SQL debugging to more methods in the `Query` class
+- The Forgot Password form now tries to use the admin email to send email notifications to the user
+- Added `IF EXISTS` check to the `Query::dropTable` and `::dropTables` methods
+- New constants:
+  - `MODULES`, `RS_DEVELOPER`, `RS_LEAD_DEV`, `RS_PROJ_START`, `SETUP`
+- Renamed constants:
+  - `CMS_ENGINE` -> `RS_ENGINE`, `CMS_VERSION` -> `RS_VERSION`, `CRIT_FUNC` -> `RS_CRIT_FUNC`, `DB_CONFIG` -> `RS_CONFIG`, `DB_SCHEMA` -> `RS_SCHEMA`, `DEBUG_FUNC` -> `RS_DEBUG_FUNC`, `FUNC` -> `RS_FUNC`
+- Removed constants:
+  - `DOMTAGS_VERSION`, `QUERY_CLASS`
+- New functions:
+  - `global-functions.php` (`baseSetup`, `checkDBConfig`, `repopulateTable`)
+  - Admin `Comment` class (`exitNotice`, `pageHeading`)
+  - Admin `Login` class (`exitNotice`, `pageHeading`)
+  - Admin `Media` class (`exitNotice`, `pageHeading`)
+  - Admin `Menu` class (`exitNotice`, `pageHeading`)
+  - Admin `Post` class (`exitNotice`)
+  - Admin `Profile` class (`pageHeading`)
+  - Admin `Settings` class (`exitNotice`, `pageHeading`)
+  - Admin `Term` class (`exitNotice`, `pageHeading`)
+  - Admin `Theme` class (`exitNotice`, `pageHeading`)
+  - Admin `User` class (`pageHeading`)
+  - Admin `UserRole` class (`exitNotice`, `pageHeading`)
+  - Admin `Widget` class (`exitNotice`, `pageHeading`)
+  - `ApiFetch` class (`getDownload`)
+  - `Query` class (`createTable`)
+  - `global-functions.php` (`repopulateTable`)
+- Renamed functions:
+  - Admin `Comment` class (`validateData` -> `validateSubmission`)
+  - Admin `Login` class (`blacklistExits` -> `blacklistExists`, `validateBlacklistData` -> `validateBlacklistSubmission`, `validateRuleData` -> `validateRuleSubmission`)
+  - Admin `Media` class (`deleteMedia` -> `deleteRecordMedia`, `editMedia` -> `editRecordMedia`, `listMedia` -> `listRecordsMedia`, `replaceMedia` -> `replaceRecordMedia`, `uploadMedia` -> `uploadRecordMedia`, `validateData` -> `validateSubmission`)
+  - Admin `Menu` class (`validateMenuData` -> `validateMenuSubmission`, `validateMenuItemData` -> `validateMenuItemSubmission`)
+  - Admin `Profile` class (`validateData` -> `validateSubmission`)
+  - Admin `Settings` class (`validateSettingsData` -> `validateSubmission`)
+  - Admin `Term` class (`validateData` -> `validateSubmission`)
+  - Admin `Theme` class (`validateData` -> `validateSubmission`)
+  - Admin `User` class (`validateData` -> `validateSubmission`)
+  - Admin `Widget` class (`validateData` -> `validateSubmission`)
+  - `Login` class (`validateForgotPasswordData` -> `validateForgotPasswordSubmission`, `validateLoginData` -> `validateLoginSubmission`, `validateResetPasswordData` -> `validateResetPasswordSubmission`)
+- Deprecated functions:
+  - `Query` class (`errorMsg`)
+- Removed functions:
+  - Admin `Profile` class (`validatePasswordData`)
+  - Admin `User` class (`validatePasswordData`, `validateReassignContentData`)
+  - Admin `functions.php` (`formTag`, `tag`)
+  - `global-functions.php` (`trailingSlash`)
+
+**Bug fixes:**
+- Styles on the database setup screen are not properly loaded (they point to the old location)
+- The `Query` class is not properly namespaced in `setup.php` or `install.php`
+- The database setup fails because the `isAdmin` function isn't loaded in `critical-functions.php`
+- Custom user roles can neither be edited nor deleted
+- Post metadata doesn't update properly when a post is saved
+- Some references to `PDOException` in the `Query` class are not properly namespaced
+- Dashes are not being added to filenames of uploaded files
+- The `index_post` metadata is being added to non-content post types
+- Indexing for posts isn't set during installation
+- The update privileges script doesn't properly transfer privilege data
+- An error can occur in the `getOnlineUser` function if database tables are missing or have old column names (this can occur during database updates)
+
+**Modified files:**
+- 404.php (M)
+- README.md (M)
+- admin/about.php
+- admin/categories.php (M)
+- admin/comments.php
+- admin/header.php
+- admin/includes/ajax-upload.php (M)
+- admin/includes/ajax.php (M)
+- admin/includes/bulk-actions.php
+- admin/includes/class-comment.php
+- admin/includes/class-login.php
+- admin/includes/class-media.php
+- admin/includes/class-menu.php
+- admin/includes/class-notice.php
+- admin/includes/class-post.php
+- admin/includes/class-profile.php
+- admin/includes/class-settings.php
+- admin/includes/class-term.php
+- admin/includes/class-theme.php
+- admin/includes/class-user-role.php
+- admin/includes/class-user.php
+- admin/includes/class-widget.php
+- admin/includes/functions.php
+- admin/includes/interface-admin.php
+- admin/includes/load-media.php (M)
+- admin/includes/modal-delete.php (M)
+- admin/includes/modal-upload.php (M)
+- admin/logins.php
+- admin/media.php
+- admin/menus.php (M)
+- admin/posts.php
+- admin/profile.php (M)
+- admin/settings.php
+- admin/terms.php
+- admin/themes.php
+- admin/update.php (M)
+- admin/users.php
+- admin/widgets.php
+- content/admin-themes/forest.css (M)
+- content/admin-themes/harvest.css (M)
+- content/admin-themes/light.css (M)
+- content/admin-themes/ocean.css (M)
+- content/admin-themes/sunset.css (M)
+- content/themes/carbon/category.php (M)
+- content/themes/carbon/footer.php (M)
+- content/themes/carbon/functions.php (M)
+- content/themes/carbon/header.php (M)
+- content/themes/carbon/index.php (M)
+- content/themes/carbon/post.php (M)
+- content/themes/carbon/script.js (M)
+- content/themes/carbon/style.css (M)
+- content/themes/carbon/taxonomy.php (M)
+- includes/ajax.php (M)
+- includes/backward-compat.php (M)
+- includes/class-dom-tags.php
+- includes/constants.php
+- includes/critical-functions.php
+- includes/debug.php (M)
+- includes/dom-tags/\*
+- includes/domtags.php
+- includes/engine/class-api-fetch.php
+- includes/engine/class-comment.php
+- includes/engine/class-curl-fetch.php
+- includes/engine/class-login.php
+- includes/engine/class-menu.php
+- includes/engine/class-post.php
+- includes/engine/class-query.php
+- includes/engine/class-term.php
+- includes/fallback-theme.php (M)
+- includes/functions.php
+- includes/global-functions.php
+- includes/load-template.php (M)
+- includes/load-theme.php (M)
+- includes/maintenance.php
+- includes/polyfill-functions.php
+- includes/schema.php
+- includes/sitemap-index.php (M)
+- includes/sitemap-posts.php
+- includes/sitemap-terms.php
+- includes/theme-functions.php
+- includes/update-db.php
+- includes/update.php (M)
+- init.php
+- login.php
+- resources/css/admin/style.css
+- resources/css/admin/style.min.css
+- resources/css/button.css (M)
+- resources/css/button.min.css (M)
+- resources/css/setup.css (R)
+- resources/css/setup.min.css (R)
+- resources/css/style.css (M)
+- resources/css/style.min.css (M)
+- resources/js/admin/modal.js (M)
+- resources/js/admin/script.js
+- resources/js/script.js
+- resources/js/setup.js (R)
+- resources/js/setup.min.js (R)
+- setup/default-config.php (R)
+- setup/rsdb-config.php (R)
+- setup/rsdb-install.php (R)
+- setup/run-install.php
 
 ## Version 1.4.0-beta_snap-01 (2023-12-26)
 *Feature Update: Auto Update*

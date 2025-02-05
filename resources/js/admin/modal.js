@@ -1,9 +1,10 @@
 /*!
  * Scripts for admin modal windows.
- * @since 2.1.1[a]
+ * @since 2.1.1-alpha
+ *
+ * @package ReallySimpleCMS
  */
 jQuery(document).ready($ => {
-	// Turn on strict mode
 	'use strict';
 	
 	// Create a variable to hold the clicked modal launch button
@@ -11,7 +12,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Launch a modal window.
-	 * @since 2.1.1[a]
+	 * @since 2.1.1-alpha
 	 */
 	$('.modal-launch').on('click', function() {
 		// Set the clicked button to the button that was clicked
@@ -36,7 +37,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Close an open modal window.
-	 * @since 2.1.1[a]
+	 * @since 2.1.1-alpha
 	 */
 	$('#modal-close').on('click', function() {
 		modalClose();
@@ -44,7 +45,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Delete a specified item from the database.
-	 * @since 2.1.8[a]
+	 * @since 2.1.8-alpha
 	 */
 	$('.delete-item').on('click', function(e) {
 		e.preventDefault();
@@ -58,7 +59,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Switch the modal tabs.
-	 * @since 2.1.1[a]
+	 * @since 2.1.1-alpha
 	 */
 	$('.modal-header .tabber .tab').on('click', function() {
 		// Check whether the clicked tab is active
@@ -94,7 +95,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Submit the upload form.
-	 * @since 2.1.6[a]
+	 * @since 2.1.6-alpha
 	 */
 	$('#media-upload').on('submit', function(e) {
 		e.preventDefault();
@@ -120,7 +121,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Select a media item.
-	 * @since 2.1.2[a]
+	 * @since 2.1.2-alpha
 	 */
 	$(document).on('click', '.media-item', function() {
 		// Check whether the clicked item is already selected
@@ -161,7 +162,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Select and insert media (via upload or media library).
-	 * @since 2.1.3[a]
+	 * @since 2.1.3-alpha
 	 */
 	$('#media-select').on('click', function() {
 		let data = { id: 0, title: '', filepath: '', mime_type: '', alt_text: '', width: 0 };
@@ -246,7 +247,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Insert a media item into post content.
-	 * @since 2.1.10[a]
+	 * @since 2.1.10-alpha
 	 *
 	 * @param object container
 	 * @param object data
@@ -293,7 +294,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Close an open modal and perform cleanup.
-	 * @since 2.1.3[a]
+	 * @since 2.1.3-alpha
 	 */
 	function modalClose() {
 		$('body').removeClass('modal-open');

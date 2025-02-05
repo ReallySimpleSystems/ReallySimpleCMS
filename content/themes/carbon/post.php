@@ -1,4 +1,12 @@
 <?php
+/**
+ * Carbon theme - post template.
+ * @since 2.4.1-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
+ */
+
 // Stop execution if the file is accessed directly
 if(!defined('PATH')) exit('You do not have permission to access this directory.');
 
@@ -21,4 +29,5 @@ if(postHasFeaturedImage()): ?>
 		<?php getPostComments(); ?>
 	</section>
 </div>
-<?php getFooter(); ?>
+<?php
+getFooter();

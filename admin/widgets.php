@@ -1,21 +1,18 @@
 <?php
 /**
  * Admin widgets page.
- * @since 1.6.0[a]
+ * @since 1.6.0-alpha
  */
+
 require_once __DIR__ . '/header.php';
 
-// Fetch the widget's id
 $id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
 
-// Create a Widget object
-$rs_widget = new Widget($id);
+$rs_widget = new Widget($id, $action);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'create':
 			// Create a new widget

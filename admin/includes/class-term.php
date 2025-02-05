@@ -1,15 +1,49 @@
 <?php
 /**
  * Admin class used to implement the Term object.
- * @since 1.0.4[b]
+ * @since 1.0.4-beta
+ *
+ * @package ReallySimpleCMS
  *
  * Terms are data that interact with posts, such as categories. They can also interact with custom post types.
  * Terms can be created, modified, and deleted. They are stored in the 'terms' database table.
+ *
+ * ## VARIABLES ##
+ * - protected int $id
+ * - protected string $name
+ * - protected string $slug
+ * - protected int $taxonomy
+ * - private int $parent
+ * - private int $count
+ * - private array $tax_data
+ * - private array $type_data
+ * - protected string $action
+ * - protected array $paged
+ * - protected string $table
+ * - protected string $px
+ *
+ * ## METHODS ##
+ * - public __construct(int $id, string $action, array $tax_data)
+ * LISTS, FORMS, & ACTIONS:
+ * - public listRecords(): void
+ * - public createRecord(): void
+ * - public editRecord(): void
+ * - public deleteRecord(): void
+ * VALIDATION:
+ * - private validateSubmission(array $data): string
+ * MISCELLANEOUS:
+ * - public pageHeading(): void
+ * - private exitNotice(string $exit_status, int $status_code): string
+ * - private slugExists(string $slug): bool
+ * - private isDescendant(int $id, int $ancestor): bool
+ * - private getTaxonomy(int $id): string
+ * - private getParent(int $id): string
+ * - private getParentList(int $parent, int $id): string
  */
 class Term implements AdminInterface {
 	/**
 	 * The currently queried term's id.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access protected
 	 * @var int
@@ -18,7 +52,7 @@ class Term implements AdminInterface {
 	
 	/**
 	 * The currently queried term's name.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -27,7 +61,7 @@ class Term implements AdminInterface {
 	
 	/**
 	 * The currently queried term's slug.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -35,17 +69,17 @@ class Term implements AdminInterface {
 	protected $slug;
 	
 	/**
-	 * The currently queried term's taxonomy.
-	 * @since 1.0.5[b]
+	 * The currently queried term's taxonomy id.
+	 * @since 1.0.5-beta
 	 *
-	 * @access private
+	 * @access protected
 	 * @var int
 	 */
-	private $taxonomy;
+	protected $taxonomy;
 	
 	/**
 	 * The currently queried term's parent.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access private
 	 * @var int
@@ -53,8 +87,17 @@ class Term implements AdminInterface {
 	private $parent;
 	
 	/**
+	 * The currently queried term's post count.
+	 * @since 1.0.5-beta
+	 *
+	 * @access private
+	 * @var int
+	 */
+	private $count;
+	
+	/**
 	 * The currently queried term's taxonomy data.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access private
 	 * @var array
@@ -63,7 +106,7 @@ class Term implements AdminInterface {
 	
 	/**
 	 * The currently queried term's post type data.
-	 * @since 1.3.7[b]
+	 * @since 1.3.7-beta
 	 *
 	 * @access private
 	 * @var array
@@ -71,25 +114,74 @@ class Term implements AdminInterface {
 	private $type_data = array();
 	
 	/**
+	 * The current action.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access protected
+	 * @var string
+	 */
+	protected $action;
+	
+	/**
+	 * The pagination.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access protected
+	 * @var array
+	 */
+	protected $paged = array();
+	
+	/**
+	 * The associated database table.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access protected
+	 * @var string
+	 */
+	protected $table = 'terms';
+	
+	/**
+	 * The table prefix.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access protected
+	 * @var string
+	 */
+	protected $px = 't_';
+	
+	/**
 	 * Class constructor.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access public
-	 * @param int $id (optional) -- The term's id.
+	 * @param int $id -- The term's id.
+	 * @param string $action -- The current action.
 	 * @param array $tax_data (optional) -- The taxonomy data.
 	 */
-	public function __construct(int $id = 0, array $tax_data = array()) {
+	public function __construct(int $id, string $action, array $tax_data = array()) {
 		global $rs_query, $post_types;
 		
-		$cols = array_keys(get_object_vars($this));
-		$exclude = array('tax_data', 'type_data');
-		$cols = array_diff($cols, $exclude);
+		$this->action = $action;
 		
-		if($id !== 0) {
-			$term = $rs_query->selectRow('terms', $cols, array('id' => $id));
+		if($id > 0) {
+			$cols = array_keys(get_object_vars($this));
+			$exclude = array('tax_data', 'type_data', 'action', 'paged', 'table', 'px');
+			$cols = array_diff($cols, $exclude);
 			
-			// Set the class variable values
-			foreach($term as $key => $value) $this->$key = $term[$key];
+			$cols = array_map(function($col) {
+				return $this->px . $col;
+			}, $cols);
+			
+			$term = $rs_query->selectRow($this->table, $cols, array(
+				$this->px . 'id' => $id
+			));
+			
+			foreach($term as $key => $value) {
+				$col = substr($key, mb_strlen($this->px));
+				$this->$col = $term[$key];
+			}
+		} else {
+			$this->id = 0;
 		}
 		
 		$this->tax_data = $tax_data;
@@ -101,9 +193,13 @@ class Term implements AdminInterface {
 		}
 	}
 	
+	/*------------------------------------*\
+		LISTS, FORMS, & ACTIONS
+	\*------------------------------------*/
+	
 	/**
 	 * Construct a list of all terms in the database.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access public
 	 */
@@ -113,82 +209,67 @@ class Term implements AdminInterface {
 		// Query vars
 		$tax = $this->tax_data['name'];
 		$search = $_GET['search'] ?? null;
-		$paged = paginate((int)($_GET['paged'] ?? 1));
+		$this->paged = paginate((int)($_GET['paged'] ?? 1));
+		
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1><?php echo $this->tax_data['label']; ?></h1>
-			<?php
-			// Check whether the user has sufficient privileges to create terms of the current taxonomy
-			if(userHasPrivilege('can_create_' . str_replace(' ', '_',
-				$this->tax_data['labels']['name_lowercase']))) {
-					
-				echo actionLink('create', array(
-					'taxonomy' => ($tax === 'category' ? null : $tax),
-					'classes' => 'button',
-					'caption' => 'Create New'
-				));
-			}
-			
-			recordSearch(array(
-				'taxonomy' => ($tax === 'category' ? null : $tax)
-			));
-			adminInfo();
-			?>
-			<hr>
-			<?php
-			if(isset($_GET['exit_status']) && $_GET['exit_status'] === 'success') {
-				echo exitNotice('The ' . strtolower($this->tax_data['labels']['name_singular']) .
-					' was successfully deleted.');
-			}
-			
-			if(!is_null($search)) {
-				$count = $rs_query->select('terms', 'COUNT(*)', array(
-					'name' => array('LIKE', '%' . $search . '%'),
-					'taxonomy' => getTaxonomyId($this->tax_data['name'])
-				));
-			} else {
-				$count = $rs_query->select('terms', 'COUNT(*)', array(
-					'taxonomy' => getTaxonomyId($this->tax_data['name'])
-				));
-			}
-			
-			$paged['count'] = ceil($count / $paged['per_page']);
-			?>
-			<div class="entry-count">
-				<?php echo $count . ' ' . ($count === 1 ? 'entry' : 'entries'); ?>
-			</div>
-		</div>
 		<table class="data-table">
 			<thead>
 				<?php
-				$table_header_cols = array('Name', 'Slug', 'Parent', 'Count');
-				echo tableHeaderRow($table_header_cols);
+				$header_cols = array(
+					'name' => 'Name',
+					'slug' => 'Slug',
+					'parent' => 'Parent',
+					'count' => 'Count'
+				);
+				
+				echo tableHeaderRow($header_cols);
 				?>
 			</thead>
 			<tbody>
 				<?php
+				$order_by = $this->px . 'name';
+				$order = 'ASC';
+				
 				if(!is_null($search)) {
 					// Search results
-					$terms = $rs_query->select('terms', '*', array(
-						'name' => array('LIKE', '%' . $search . '%'),
-						'taxonomy' => getTaxonomyId($this->tax_data['name'])
-					), 'name', 'ASC', array($paged['start'], $paged['per_page']));
+					$terms = $rs_query->select($this->table, '*', array(
+						$this->px . 'name' => array('LIKE', '%' . $search . '%'),
+						$this->px . 'taxonomy' => getTaxonomyId($this->tax_data['name'])
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => array($this->paged['start'], $this->paged['per_page'])
+					));
 				} else {
 					// All results
-					$terms = $rs_query->select('terms', '*', array(
-						'taxonomy' => getTaxonomyId($this->tax_data['name'])
-					), 'name', 'ASC', array($paged['start'], $paged['per_page']));
+					$terms = $rs_query->select($this->table, '*', array(
+						$this->px . 'taxonomy' => getTaxonomyId($this->tax_data['name'])
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => array($this->paged['start'], $this->paged['per_page'])
+					));
 				}
 				
 				foreach($terms as $term) {
+					list($t_id, $t_name, $t_slug, $t_parent, $t_count) = array(
+						$term[$this->px . 'id'],
+						$term[$this->px . 'name'],
+						$term[$this->px . 'slug'],
+						$term[$this->px . 'parent'],
+						$term[$this->px . 'count']
+					);
+					
 					$tax_name = str_replace(' ', '_', $this->tax_data['labels']['name_lowercase']);
 					
+					// Action links
 					$actions = array(
 						// Edit
 						userHasPrivilege('can_edit_' . $tax_name
 						) ? actionLink('edit', array(
 							'caption' => 'Edit',
-							'id' => $term['id']
+							'id' => $t_id
 						)) : null,
 						// Delete
 						userHasPrivilege('can_delete_' . $tax_name
@@ -196,11 +277,13 @@ class Term implements AdminInterface {
 							'classes' => 'modal-launch delete-item',
 							'data_item' => strtolower($this->tax_data['labels']['name_singular']),
 							'caption' => 'Delete',
-							'id' => $term['id']
+							'id' => $t_id
 						)) : null,
 						// View
-						'<a href="' . getPermalink($this->tax_data['name'], $term['parent'], $term['slug']) .
-							'">View</a>'
+						domTag('a', array(
+							'href' => getPermalink($this->tax_data['name'], $t_parent, $t_slug),
+							'content' => 'View'
+						))
 					);
 					
 					// Filter out any empty actions
@@ -208,54 +291,52 @@ class Term implements AdminInterface {
 					
 					echo tableRow(
 						// Name
-						tdCell('<strong>' . $term['name'] . '</strong><div class="actions">' .
-							implode(' &bull; ', $actions) . '</div>', 'name'),
+						tdCell(domTag('strong', array(
+							'content' => $t_name
+						)) . domTag('div', array(
+							'class' => 'actions',
+							'content' => implode(' &bull; ', $actions)
+						)), 'name'),
 						// Slug
-						tdCell($term['slug'], 'slug'),
+						tdCell($t_slug, 'slug'),
 						// Parent
-						tdCell($this->getParent($term['parent']), 'parent'),
+						tdCell($this->getParent($t_parent), 'parent'),
 						// Count
 						tdCell((empty($this->tax_data['post_type']) ||
-							$this->tax_data['post_type'] !== $this->type_data['name'] ? $term['count'] :
-							'<a href="' . ADMIN . '/posts.php?' . ($this->tax_data['post_type'] !== 'post' ?
-							'type=' . $this->tax_data['post_type'] . '&' : '') . 'term=' . $term['slug'] .
-							'">' . $term['count'] . '</a>'), 'count')
+							$this->tax_data['post_type'] !== $this->type_data['name'] ? $t_count :
+							domTag('a', array(
+								'href' => ADMIN . '/posts.php?' . ($this->tax_data['post_type'] !== 'post' ?
+									'type=' . $this->tax_data['post_type'] . '&' : '') . 'term=' . $t_slug,
+								'content' => $t_count
+							))
+						), 'count')
 					);
 				}
 				
-				if(empty($terms)) {
-					echo tableRow(
-						tdCell('There are no ' . $this->tax_data['labels']['name_lowercase'] .
-							' to display.', '', count($table_header_cols))
-					);
-				}
+				if(empty($terms))
+					echo tableRow(tdCell($this->tax_data['labels']['no_items'], '', count($header_cols)));
 				?>
 			</tbody>
 			<tfoot>
-				<?php echo tableHeaderRow($table_header_cols); ?>
+				<?php echo tableHeaderRow($header_cols); ?>
 			</tfoot>
 		</table>
 		<?php
 		// Set up page navigation
-		echo pagerNav($paged['current'], $paged['count']);
+		echo pagerNav($this->paged['current'], $this->paged['count']);
 		
         include_once PATH . ADMIN . INC . '/modal-delete.php';
 	}
 	
 	/**
 	 * Create a new term.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access public
 	 */
 	public function createRecord(): void {
-		// Validate the form data and return any messages
-		$message = isset($_POST['submit']) ? $this->validateData($_POST) : '';
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1><?php echo $this->tax_data['labels']['create_item']; ?></h1>
-			<?php echo $message; ?>
-		</div>
 		<div class="data-form-wrap clear">
 			<form class="data-form" action="" method="post" autocomplete="off">
 				<table class="form-table">
@@ -266,7 +347,8 @@ class Term implements AdminInterface {
 						'id' => 'name-field',
 						'class' => 'text-input required invalid init',
 						'name' => 'name',
-						'value' => ($_POST['name'] ?? '')
+						'value' => ($_POST['name'] ?? ''),
+						'autocomplete' => 'off'
 					));
 					
 					// Slug
@@ -281,6 +363,7 @@ class Term implements AdminInterface {
 					// Parent
 					echo formRow('Parent', array(
 						'tag' => 'select',
+						'id' => 'parent-field',
 						'class' => 'select-input',
 						'name' => 'parent',
 						'content' => domTag('option', array(
@@ -290,7 +373,10 @@ class Term implements AdminInterface {
 					));
 					
 					// Separator
-					echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+					echo formRow('', array(
+						'tag' => 'hr',
+						'class' => 'separator'
+					));
 					
 					// Submit button
 					echo formRow('', array(
@@ -309,7 +395,7 @@ class Term implements AdminInterface {
 	
 	/**
 	 * Edit an existing term.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access public
 	 */
@@ -328,13 +414,8 @@ class Term implements AdminInterface {
 			} elseif($this->getTaxonomy($this->taxonomy) === 'nav_menu') {
 				redirect('menus.php?id=' . $this->id . '&action=edit');
 			} else {
-				// Validate the form data and return any messages
-				$message = isset($_POST['submit']) ? $this->validateData($_POST, $this->id) : '';
+				$this->pageHeading();
 				?>
-				<div class="heading-wrap">
-					<h1><?php echo $this->tax_data['labels']['edit_item']; ?></h1>
-					<?php echo $message; ?>
-				</div>
 				<div class="data-form-wrap clear">
 					<form class="data-form" action="" method="post" autocomplete="off">
 						<table class="form-table">
@@ -345,7 +426,8 @@ class Term implements AdminInterface {
 								'id' => 'name-field',
 								'class' => 'text-input required invalid init',
 								'name' => 'name',
-								'value' => $this->name
+								'value' => $this->name,
+								'autocomplete' => 'off'
 							));
 							
 							// Slug
@@ -360,6 +442,7 @@ class Term implements AdminInterface {
 							// Parent
 							echo formRow('Parent', array(
 								'tag' => 'select',
+								'id' => 'parent-field',
 								'class' => 'select-input',
 								'name' => 'parent',
 								'content' => domTag('option', array(
@@ -369,7 +452,10 @@ class Term implements AdminInterface {
 							));
 							
 							// Separator
-							echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+							echo formRow('', array(
+								'tag' => 'hr',
+								'class' => 'separator'
+							));
 							
 							// Submit button
 							echo formRow('', array(
@@ -390,7 +476,7 @@ class Term implements AdminInterface {
 	
 	/**
 	 * Delete an existing term.
-	 * @since 1.0.5[b]
+	 * @since 1.0.5-beta
 	 *
 	 * @access public
 	 */
@@ -400,86 +486,216 @@ class Term implements AdminInterface {
 		if(empty($this->id) || $this->id <= 0) {
 			redirect('categories.php');
 		} else {
-			$rs_query->delete('terms', array('id' => $this->id, 'taxonomy' => $this->taxonomy));
-			$rs_query->delete('term_relationships', array('term' => $this->id));
+			$rs_query->delete($this->table, array(
+				$this->px . 'id' => $this->id,
+				$this->px . 'taxonomy' => $this->taxonomy
+			));
 			
-			redirect($this->tax_data['menu_link'] . '?exit_status=success');
+			$rs_query->delete('term_relationships', array(
+				'tr_term' => $this->id
+			));
+			
+			redirect($this->tax_data['menu_link'] . ($this->getTaxonomy($this->taxonomy) !== 'category' ? '&' : '?') .
+				'exit_status=del_success');
 		}
 	}
 	
+	/*------------------------------------*\
+		VALIDATION
+	\*------------------------------------*/
+	
 	/**
 	 * Validate the form data.
-	 * @since 1.5.2[a]
+	 * @since 1.5.2-alpha
 	 *
 	 * @access private
 	 * @param array $data -- The submission data.
-	 * @param int $id (optional) -- The term's id.
 	 * @return string
 	 */
-	private function validateData(array $data, int $id = 0): string {
+	private function validateSubmission(array $data): string {
 		global $rs_query;
 		
-		if(empty($data['name']) || empty($data['slug']))
+		if(empty($data['name']) || empty($data['slug'])) {
 			return exitNotice('REQ', -1);
+			exit;
+		}
 		
 		$slug = sanitize($data['slug']);
 		
-		if($this->slugExists($slug, $id))
+		if($this->slugExists($slug))
 			$slug = getUniqueTermSlug($slug);
 		
-		if($id === 0) {
-			// New term
-			$insert_id = $rs_query->insert('terms', array(
-				'name' => $data['name'],
-				'slug' => $slug,
-				'taxonomy' => getTaxonomyId($this->tax_data['name']),
-				'parent' => $data['parent']
+		switch($this->action) {
+			case 'create':
+				$insert_id = $rs_query->insert($this->table, array(
+					$this->px . 'name' => $data['name'],
+					$this->px . 'slug' => $slug,
+					$this->px . 'taxonomy' => getTaxonomyId($this->tax_data['name']),
+					$this->px . 'parent' => $data['parent']
+				));
+				
+				redirect(ADMIN_URI . '?id=' . $insert_id . '&action=edit&exit_status=create_success');
+				break;
+			case 'edit':
+				$rs_query->update($this->table, array(
+					'name' => $data['name'],
+					'slug' => $slug,
+					'parent' => $data['parent']
+				), array(
+					'id' => $this->id
+				));
+				
+				// Update the class variables
+				foreach($data as $key => $value) $this->$key = $value;
+				
+				redirect(ADMIN_URI . '?id=' . $this->id . '&action=edit&exit_status=edit_success');
+				break;
+		}
+	}
+	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
+	/**
+	 * Construct the page heading.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access public
+	 */
+	public function pageHeading(): void {
+		global $rs_query;
+		
+		switch($this->action) {
+			case 'create':
+				$title = $this->tax_data['labels']['create_item'];
+				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST) : '';
+				break;
+			case 'edit':
+				$title = $this->tax_data['labels']['edit_item'] . ': { ' . domTag('em', array(
+					'content' => $this->name
+				)) . ' }';
+				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST, $this->id) : '';
+				break;
+			default:
+				$title = $this->tax_data['label'];
+				$tax = $this->tax_data['name'];
+				$search = $_GET['search'] ?? null;
+		}
+		?>
+		<div class="heading-wrap">
+			<?php
+			// Page title
+			echo domTag('h1', array(
+				'content' => $title
 			));
 			
-			redirect(ADMIN_URI . '?id=' . $insert_id . '&action=edit');
-		} else {
-			// Existing term
-			$rs_query->update('terms', array(
-				'name' => $data['name'],
-				'slug' => $slug,
-				'parent' => $data['parent']
-			), array('id' => $id));
-			
-			// Update the class variables
-			foreach($data as $key => $value) $this->$key = $value;
-			
-			return exitNotice($this->tax_data['labels']['name_singular'] . ' updated! <a href="' .
-				$this->tax_data['menu_link'] . '">Return to list</a>?');
-		}
+			if(!empty($this->action)) {
+				// Status messages
+				echo $message;
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
+			} else {
+				// Create button
+				if(userHasPrivilege('can_create_' . str_replace(' ', '_', $this->tax_data['labels']['name_lowercase']))) {
+					echo actionLink('create', array(
+						'taxonomy' => ($tax === 'category' ? null : $tax),
+						'classes' => 'button',
+						'caption' => 'Create New'
+					));
+				}
+				
+				// Search
+				recordSearch(array(
+					'taxonomy' => ($tax === 'category' ? null : $tax)
+				));
+				
+				// Info
+				adminInfo();
+				
+				echo domTag('hr');
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
+				
+				// Record count
+				if(!is_null($search)) {
+					$count = $rs_query->select($this->table, 'COUNT(*)', array(
+						$this->px . 'name' => array('LIKE', '%' . $search . '%'),
+						$this->px . 'taxonomy' => getTaxonomyId($this->tax_data['name'])
+					));
+				} else {
+					$count = $rs_query->select($this->table, 'COUNT(*)', array(
+						$this->px . 'taxonomy' => getTaxonomyId($this->tax_data['name'])
+					));
+				}
+				
+				echo domTag('div', array(
+					'class' => 'entry-count',
+					'content' => $count . ' ' . ($count === 1 ? 'entry' : 'entries')
+				));
+				
+				$this->paged['count'] = ceil($count / $this->paged['per_page']);
+			}
+			?>
+		</div>
+		<?php
+	}
+	
+	/**
+	 * Generate an exit notice.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @param string $exit_status -- The exit status.
+	 * @param int $status_code (optional) -- The type of notice to display.
+	 * @return string
+	 */
+	private function exitNotice(string $exit_status, int $status_code = 1): string {
+		$taxonomy = $this->tax_data['labels']['name_singular'];
+		
+		return exitNotice(match($exit_status) {
+			'create_success' => 'The ' . strtolower($taxonomy) . ' was successfully created. ' . domTag('a', array(
+				'href' => $this->tax_data['menu_link'],
+				'content' => 'Return to list'
+			)) . '?',
+			'edit_success' => $taxonomy . ' updated! ' . domTag('a', array(
+				'href' => $this->tax_data['menu_link'],
+				'content' => 'Return to list'
+			)) . '?',
+			'del_success' => 'The ' . strtolower($taxonomy) . ' was successfully deleted.',
+			default => 'The action was completed successfully.'
+		}, $status_code);
 	}
 	
 	/**
 	 * Check whether a slug exists in the database.
-	 * @since 1.5.2[a]
+	 * @since 1.5.2-alpha
 	 *
 	 * @access private
 	 * @param string $slug -- The term's slug.
-	 * @param int $id -- The term's id.
 	 * @return bool
 	 */
-	private function slugExists(string $slug, int $id): bool {
+	private function slugExists(string $slug): bool {
 		global $rs_query;
 		
-		if($id === 0) {
-			return $rs_query->selectRow('terms', 'COUNT(slug)', array(
-				'slug' => $slug
+		if($this->id === 0) {
+			return $rs_query->selectRow($this->table, 'COUNT(' . $this->px . 'slug)', array(
+				$this->px . 'slug' => $slug
 			)) > 0;
 		} else {
-			return $rs_query->selectRow('terms', 'COUNT(slug)', array(
-				'slug' => $slug,
-				'id' => array('<>', $id)
+			return $rs_query->selectRow($this->table, 'COUNT(' . $this->px . 'slug)', array(
+				$this->px . 'slug' => $slug,
+				$this->px . 'id' => array('<>', $this->id)
 			)) > 0;
 		}
 	}
 	
 	/**
 	 * Check whether a term is a descendant of another term.
-	 * @since 1.5.0[a]
+	 * @since 1.5.0-alpha
 	 *
 	 * @access private
 	 * @param int $id -- The term's id.
@@ -490,7 +706,10 @@ class Term implements AdminInterface {
 		global $rs_query;
 		
 		do {
-			$parent = $rs_query->selectField('terms', 'parent', array('id' => $id));
+			$parent = $rs_query->selectField($this->table, $this->px . 'parent', array(
+				$this->px . 'id' => $id
+			));
+			
 			$id = (int)$parent;
 			
 			if($id === $ancestor) return true;
@@ -500,8 +719,8 @@ class Term implements AdminInterface {
 	}
 	
 	/**
-	 * Fetch a term's taxonomy.
-	 * @since 1.0.5[b]
+	 * Fetch a term's taxonomy name.
+	 * @since 1.0.5-beta
 	 *
 	 * @access private
 	 * @param int $id -- The term's id.
@@ -510,12 +729,14 @@ class Term implements AdminInterface {
 	private function getTaxonomy(int $id): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('taxonomies', 'name', array('id' => $id));
+		return $rs_query->selectField('taxonomies', 'ta_name', array(
+			'ta_id' => $id
+		));
 	}
 	
 	/**
 	 * Fetch a term's parent.
-	 * @since 1.5.0[a]
+	 * @since 1.5.0-alpha
 	 *
 	 * @access private
 	 * @param int $id -- The term's id.
@@ -524,14 +745,16 @@ class Term implements AdminInterface {
 	private function getParent(int $id): string {
 		global $rs_query;
 		
-		$parent = $rs_query->selectField('terms', 'name', array('id' => $id));
+		$parent = $rs_query->selectField($this->table, $this->px . 'name', array(
+			$this->px . 'id' => $id
+		));
 		
 		return empty($parent) ? '&mdash;' : $parent;
 	}
 	
 	/**
 	 * Construct a list of parents.
-	 * @since 1.5.0[a]
+	 * @since 1.5.0-alpha
 	 *
 	 * @access private
 	 * @param int $parent (optional) -- The term's parent.
@@ -542,23 +765,28 @@ class Term implements AdminInterface {
 		global $rs_query;
 		
 		$list = '';
-		$terms = $rs_query->select('terms', array('id', 'name'), array(
-			'taxonomy' => getTaxonomyId($this->tax_data['name'])
+		$terms = $rs_query->select($this->table, array($this->px . 'id', $this->px . 'name'), array(
+			$this->px . 'taxonomy' => getTaxonomyId($this->tax_data['name'])
 		));
 		
 		foreach($terms as $term) {
+			list($t_id, $t_name) = array(
+				$term[$this->px . 'id'],
+				$term[$this->px . 'name']
+			);
+			
 			if($id !== 0) {
 				// Skip the current term
-				if($term['id'] === $id) continue;
+				if($t_id === $id) continue;
 				
 				// Skip all descendant terms
-				if($this->isDescendant($term['id'], $id)) continue;
+				if($this->isDescendant($t_id, $id)) continue;
 			}
 			
 			$list .= domTag('option', array(
-				'value' => $term['id'],
-				'selected' => ($term['id'] === $parent),
-				'content' => $term['name']
+				'value' => $t_id,
+				'selected' => ($t_id === $parent),
+				'content' => $t_name
 			));
 		}
 		

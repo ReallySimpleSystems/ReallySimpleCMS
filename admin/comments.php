@@ -1,21 +1,18 @@
 <?php
 /**
  * Admin comments page.
- * @since 1.1.0[b]{ss-01}
+ * @since 1.1.0-beta_snap-01
  */
+
 require_once __DIR__ . '/header.php';
 
-// Fetch the comment's id
 $id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
 
-// Create a Comment object
-$rs_comment = new Comment($id);
+$rs_comment = new Comment($id, $action);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'edit':
 			// Edit an existing comment

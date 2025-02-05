@@ -6,6 +6,22 @@
  *
  * @package ReallySimpleCMS
  * @subpackage Engine
+ *
+ * ## VARIABLES ##
+ * - private string $slug
+ * - private string $table
+ * - private string $px
+ *
+ * ## METHODS ##
+ * - public __construct(string $slug)
+ * GETTER METHODS:
+ * - public getTermId(): int
+ * - public getTermName(): string
+ * - public getTermSlug(int $id): string
+ * - public getTermTaxonomy(): string
+ * - public getTermParent(): int
+ * MISCELLANEOUS:
+ * - public getTermUrl(): string
  */
 namespace Engine;
 
@@ -18,6 +34,24 @@ class Term {
 	 * @var string
 	 */
 	private $slug;
+	
+	/**
+	 * The associated database table.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $table = 'terms';
+	
+	/**
+	 * The table prefix.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $px = 't_';
 	
 	/**
 	 * Class constructor. Sets the default queried term slug.
@@ -60,6 +94,10 @@ class Term {
 		}
 	}
 	
+	/*------------------------------------*\
+		GETTER METHODS
+	\*------------------------------------*/
+	
 	/**
 	 * Fetch the term's id.
 	 * @since 2.4.0-alpha
@@ -70,7 +108,9 @@ class Term {
 	public function getTermId(): int {
 		global $rs_query;
 		
-		return (int)$rs_query->selectField('terms', 'id', array('slug' => $this->slug));
+		return (int)$rs_query->selectField($this->table, $this->px . 'id', array(
+			$this->px . 'slug' => $this->slug
+		));
 	}
 	
 	/**
@@ -83,7 +123,9 @@ class Term {
 	public function getTermName(): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('terms', 'name', array('slug' => $this->slug));
+		return $rs_query->selectField($this->table, $this->px . 'name', array(
+			$this->px . 'slug' => $this->slug
+		));
     }
 	
 	/**
@@ -97,7 +139,9 @@ class Term {
     public function getTermSlug(int $id): string {
 		global $rs_query;
 		
-		return $rs_query->selectField('terms', 'slug', array('id' => $id));
+		return $rs_query->selectField($this->table, $this->px . 'slug', array(
+			$this->px . 'id' => $id
+		));
     }
 	
 	/**
@@ -110,9 +154,13 @@ class Term {
 	public function getTermTaxonomy(): string {
 		global $rs_query;
 		
-		$taxonomy = $rs_query->selectField('terms', 'taxonomy', array('slug' => $this->slug));
+		$taxonomy = $rs_query->selectField($this->table, $this->px . 'taxonomy', array(
+			$this->px . 'slug' => $this->slug
+		));
 		
-		return $rs_query->selectField('taxonomies', 'name', array('id' => $taxonomy));
+		return $rs_query->selectField('taxonomies', 'ta_name', array(
+			'ta_id' => $taxonomy
+		));
 	}
 	
 	/**
@@ -125,8 +173,14 @@ class Term {
 	public function getTermParent(): int {
 		global $rs_query;
 		
-		return (int)$rs_query->selectField('terms', 'parent', array('slug' => $this->slug));
+		return (int)$rs_query->selectField($this->table, $this->px . 'parent', array(
+			$this->px . 'slug' => $this->slug
+		));
     }
+	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
 	
 	/**
 	 * Fetch the term's full URL.

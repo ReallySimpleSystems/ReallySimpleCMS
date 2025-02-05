@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class FieldsetTag extends \DomTag implements DomTagInterface {
+class FieldsetTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0

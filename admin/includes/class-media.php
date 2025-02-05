@@ -1,95 +1,97 @@
 <?php
 /**
  * Admin class used to implement the Media object. Inherits from the Post class.
- * @since 2.1.0[a]
+ * @since 2.1.0-alpha
+ *
+ * @package ReallySimpleCMS
  *
  * Media includes images, videos, and documents. These can be used anywhere on the front end of the site.
- * Media can be uploaded, modified, and deleted. Media are stored in the 'posts' table as the 'media' post type.
+ * Media can be uploaded, modified, and deleted. Media are stored in the `posts` table as the `media` post type.
+ *
+ * ## VARIABLES ##
+ * See `Post` class for a list of inherited vars
+ * - private string $post_type
+ *
+ * ## METHODS ##
+ * See `Post` class for a list of inherited methods
+ * - public __construct(int $id, string $action)
+ * LISTS, FORMS, & ACTIONS:
+ * - public listRecordsMedia(): void
+ * - public uploadRecordMedia(): void
+ * - public editRecordMedia(): void
+ * - public replaceRecordMedia(): void
+ * - public deleteRecordMedia(): void
+ * VALIDATION:
+ * - private validateSubmission(array $data): string
+ * MISCELLANEOUS:
+ * - public pageHeading(): void
+ * - private exitNotice(string $exit_status, int $status_code): string
  */
 class Media extends Post {
 	/**
+	 * The currently queried media's post type.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $post_type = 'media';
+	
+	/**
 	 * Class constructor.
-	 * @since 1.1.1[b]
+	 * @since 1.1.1-beta
 	 *
 	 * @access public
-	 * @param int $id (optional) -- The media's id.
+	 * @param int $id -- The media's id.
+	 * @param string $action -- The current action.
 	 */
-	public function __construct(int $id = 0) {
+	public function __construct(int $id, string $action) {
 		global $rs_query;
 		
-		$cols = array_keys(get_object_vars($this));
+		$this->action = $action;
 		
-		if($id !== 0) {
-			$media = $rs_query->selectRow('posts', $cols, array('id' => $id, 'type' => 'media'));
+		if($id > 0) {
+			$cols = array_keys(get_object_vars($this));
+			$exclude = array('action', 'paged', 'table', 'px', 'post_type');
+			$cols = array_diff($cols, $exclude);
 			
-			// Set the class variable values
-			foreach($media as $key => $value) $this->$key = $media[$key];
+			$cols = array_map(function($col) {
+				return $this->px . $col;
+			}, $cols);
+			
+			$media = $rs_query->selectRow($this->table, $cols, array(
+				$this->px . 'id' => $id,
+				$this->px . 'type' => $this->post_type
+			));
+			
+			foreach($media as $key => $value) {
+				$col = substr($key, mb_strlen($this->px));
+				$this->$col = $media[$key];
+			}
+		} else {
+			$this->id = 0;
 		}
 	}
 	
+	/*------------------------------------*\
+		LISTS, FORMS, & ACTIONS
+	\*------------------------------------*/
+	
 	/**
 	 * Construct a list of all media in the database.
-	 * @since 2.1.0[a]
+	 * @since 2.1.0-alpha
 	 *
 	 * @access public
 	 */
-	public function listMedia(): void {
+	public function listRecordsMedia(): void {
 		global $rs_query;
 		
 		// Query vars
 		$search = $_GET['search'] ?? null;
-		$paged = paginate((int)($_GET['paged'] ?? 1));
+		$this->paged = paginate((int)($_GET['paged'] ?? 1));
+		
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Media</h1>
-			<?php
-			// Check whether the user has sufficient privileges to upload media
-			if(userHasPrivilege('can_upload_media'))
-				echo actionLink('upload', array('classes' => 'button', 'caption' => 'Upload New'));
-			
-			recordSearch();
-			adminInfo();
-			?>
-			<hr>
-			<?php
-			if(isset($_GET['exit_status'])) {
-				if($_GET['exit_status'] === 'success') {
-					echo exitNotice('The media was successfully deleted.');
-				} elseif($_GET['exit_status'] === 'failure') {
-					if(isset($_GET['conflicts'])) {
-						// Create an array with the conflicts
-						$conflicts = explode(':', $_GET['conflicts']);
-						
-						// Check whether the conflict is with the users table
-						if(in_array('users', $conflicts, true))
-							$message[] = 'That media is currently a <strong><em>user\'s avatar</em></strong>. If you wish to delete it, unlink it from the user first.';
-						
-						// Check whether the conflict is with the posts table
-						if(in_array('posts', $conflicts, true))
-							$message[] = 'That media is currently a <strong><em>post\'s featured image</em></strong>. If you wish to delete it, unlink it from the post first.';
-						
-						echo exitNotice(implode('<br>', $message), -1);
-					} else {
-						echo exitNotice('The media could not be deleted!', -1);
-					}
-				}
-			}
-			
-			if(!is_null($search)) {
-				$count = $rs_query->select('posts', 'COUNT(*)', array(
-					'title' => array('LIKE', '%' . $search . '%'),
-					'type' => 'media'
-				));
-			} else {
-				$count = $rs_query->select('posts', 'COUNT(*)', array('type' => 'media'));
-			}
-			
-			$paged['count'] = ceil($count / $paged['per_page']);
-			?>
-			<div class="entry-count">
-				<?php echo $count . ' ' . ($count === 1 ? 'entry' : 'entries'); ?>
-			</div>
-		</div>
 		<table class="data-table">
 			<thead>
 				<?php
@@ -108,38 +110,70 @@ class Media extends Post {
 			</thead>
 			<tbody>
 				<?php
+				$order_by = $this->px . 'created';
+				$order = 'DESC';
+				
 				if(!is_null($search)) {
 					// Search results
-					$mediaa = $rs_query->select('posts', '*', array(
-						'title' => array('LIKE', '%' . $search . '%'),
-						'type' => 'media'
-					), 'date', 'DESC', array($paged['start'], $paged['per_page']));
+					$mediaa = $rs_query->select($this->table, '*', array(
+						$this->px . 'title' => array('LIKE', '%' . $search . '%'),
+						$this->px . 'type' => $this->post_type
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => array($this->paged['start'], $this->paged['per_page'])
+					));
 				} else {
 					// All results
-					$mediaa = $rs_query->select('posts', '*',
-						array('type' => 'media'), 'date', 'DESC',
-						array($paged['start'], $paged['per_page'])
-					);
+					$mediaa = $rs_query->select($this->table, '*', array(
+						$this->px . 'type' => $this->post_type
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => array($this->paged['start'], $this->paged['per_page'])
+					));
 				}
 				
 				foreach($mediaa as $media) {
-					$meta = $this->getPostMeta($media['id']);
+					list($m_id, $m_title, $m_author, $m_created,
+						$m_status, $m_slug, $m_parent, $m_type
+					) = array(
+						$media[$this->px . 'id'],
+						$media[$this->px . 'title'],
+						$media[$this->px . 'author'],
+						$media[$this->px . 'created'],
+						$media[$this->px . 'id'],
+						$media[$this->px . 'id'],
+						$media[$this->px . 'id'],
+						$media[$this->px . 'id']
+					);
 					
+					$meta = $this->getPostMeta($m_id);
+					
+					// Action links
 					$actions = array(
 						// Edit
 						userHasPrivilege('can_edit_media') ? actionLink('edit', array(
 							'caption' => 'Edit',
-							'id' => $media['id']
+							'id' => $m_id
+						)) : null,
+						// Replace
+						userHasPrivilege('can_edit_media') ? actionLink('replace', array(
+							'caption' => 'Replace',
+							'id' => $m_id
 						)) : null,
 						// Delete
 						userHasPrivilege('can_delete_media') ? actionLink('delete', array(
 							'classes' => 'modal-launch delete-item',
 							'data_item' => 'media',
 							'caption' => 'Delete',
-							'id' => $media['id']
+							'id' => $m_id
 						)) : null,
 						// View
-						mediaLink($media['id'], array('link_text' => 'View', 'newtab' => 1))
+						mediaLink($m_id, array(
+							'link_text' => 'View',
+							'newtab' => 1
+						))
 					);
 					
 					// Filter out any empty actions
@@ -166,15 +200,20 @@ class Media extends Post {
 					
 					echo tableRow(
 						// Thumbnail
-						tdCell(getMedia($media['id']), 'thumbnail'),
+						tdCell(getMedia($m_id), 'thumbnail'),
 						// File
-						tdCell('<strong>' . $media['title'] . '</strong><br><em>' . $path['basename'] .
-							'</em><div class="actions">' . implode(' &bull; ', $actions) . '</div>',
-						'file'),
+						tdCell(domTag('strong', array(
+							'content' => $m_title
+						)) . domTag('br') . domTag('em', array(
+							'content' => $path['basename']
+						)) . domTag('div', array(
+							'class' => 'actions',
+							'content' => implode(' &bull; ', $actions)
+						)), 'file'),
 						// Author
-						tdCell($this->getAuthor($media['author']), 'author'),
+						tdCell($this->getAuthor($m_author), 'author'),
 						// Upload date
-						tdCell(formatDate($media['date'], 'd M Y @ g:i A'), 'upload-date'),
+						tdCell(formatDate($m_created, 'd M Y @ g:i A'), 'upload-date'),
 						// Size
 						tdCell($size ?? '0 B', 'size'),
 						// Dimensions
@@ -194,30 +233,20 @@ class Media extends Post {
 		</table>
 		<?php
 		// Set up page navigation
-		echo pagerNav($paged['current'], $paged['count']);
+		echo pagerNav($this->paged['current'], $this->paged['count']);
 		
         include_once PATH . ADMIN . INC . '/modal-delete.php';
 	}
 	
 	/**
 	 * Upload some media.
-	 * @since 2.1.0[a]
+	 * @since 2.1.0-alpha
 	 *
 	 * @access public
 	 */
-	public function uploadMedia(): void {
-		if(isset($_POST['submit'])) {
-			// Merge the $_POST and $_FILES arrays
-			$data = array_merge($_POST, $_FILES);
-		
-			// Validate the form data and return any messages
-			$message = $this->validateData($data, $_GET['action']);
-		}
+	public function uploadRecordMedia(): void {
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Upload Media</h1>
-			<?php echo $message ?? ''; ?>
-		</div>
 		<div class="data-form-wrap clear">
 			<form class="data-form" action="" method="post" autocomplete="off" enctype="multipart/form-data">
 				<table class="form-table">
@@ -225,6 +254,7 @@ class Media extends Post {
 					// Title
 					echo formRow(array('Title', true), array(
 						'tag' => 'input',
+						'id' => 'title-field',
 						'class' => 'text-input required invalid init',
 						'name' => 'title',
 						'value' => ($_POST['title'] ?? '')
@@ -234,7 +264,7 @@ class Media extends Post {
 					echo formRow(array('File', true), array(
 						'tag' => 'input',
 						'type' => 'file',
-						'id' => 'file-upl',
+						'id' => 'file-upload-field',
 						'class' => 'file-input required invalid init',
 						'name' => 'file'
 					));
@@ -242,6 +272,7 @@ class Media extends Post {
 					// Alt text
 					echo formRow('Alt Text', array(
 						'tag' => 'input',
+						'id' => 'alt-text-field',
 						'class' => 'text-input',
 						'name' => 'alt_text',
 						'value' => ($_POST['alt_text'] ?? '')
@@ -250,6 +281,7 @@ class Media extends Post {
 					// Description
 					echo formRow('Description', array(
 						'tag' => 'textarea',
+						'id' => 'description-field',
 						'class' => 'textarea-input',
 						'name' => 'description',
 						'cols' => 30,
@@ -258,7 +290,10 @@ class Media extends Post {
 					));
 					
 					// Separator
-					echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+					echo formRow('', array(
+						'tag' => 'hr',
+						'class' => 'separator'
+					));
 					
 					// Submit button
 					echo formRow('', array(
@@ -277,29 +312,20 @@ class Media extends Post {
 	
 	/**
 	 * Edit some media.
-	 * @since 2.1.0[a]
+	 * @since 2.1.0-alpha
 	 *
 	 * @access public
 	 */
-	public function editMedia(): void {
+	public function editRecordMedia(): void {
 		global $rs_query;
 		
 		if(empty($this->id) || $this->id <= 0) {
 			redirect(ADMIN_URI);
 		} else {
-			// Validate the form data and return any messages
-			$message = isset($_POST['submit']) ? $this->validateData(
-				$_POST,
-				$_GET['action'],
-				$this->id
-			) : '';
+			$this->pageHeading();
 			
 			$meta = $this->getPostMeta($this->id);
 			?>
-			<div class="heading-wrap">
-				<h1>Edit Media</h1>
-				<?php echo $message; ?>
-			</div>
 			<div class="data-form-wrap clear">
 				<form class="data-form" action="" method="post" autocomplete="off">
 					<table class="form-table">
@@ -308,7 +334,9 @@ class Media extends Post {
 						echo formRow('Thumbnail', array(
 							'tag' => 'div',
 							'class' => 'thumb-wrap',
-							'content' => getMedia($this->id, array('class' => 'media-thumb'))
+							'content' => getMedia($this->id, array(
+								'class' => 'media-thumb'
+							))
 						));
 						
 						// Title
@@ -338,7 +366,10 @@ class Media extends Post {
 						));
 						
 						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+						echo formRow('', array(
+							'tag' => 'hr',
+							'class' => 'separator'
+						));
 						
 						// Submit button
 						echo formRow('', array(
@@ -363,29 +394,20 @@ class Media extends Post {
 	
 	/**
 	 * Replace some media.
-	 * @since 1.2.3[b]
+	 * @since 1.2.3-beta
 	 *
 	 * @access public
 	 */
-	public function replaceMedia(): void {
+	public function replaceRecordMedia(): void {
 		global $rs_query;
 		
 		if(empty($this->id) || $this->id <= 0) {
 			redirect(ADMIN_URI);
 		} else {
-			if(isset($_POST['submit'])) {
-				$data = array_merge($_POST, $_FILES);
-				
-				// Validate the form data and return any messages
-				$message = $this->validateData($data, $_GET['action'], $this->id);
-			}
+			$this->pageHeading();
 			
 			$meta = $this->getPostMeta($this->id);
 			?>
-			<div class="heading-wrap">
-				<h1>Replace Media</h1>
-				<?php echo $message ?? ''; ?>
-			</div>
 			<div class="data-form-wrap clear">
 				<form class="data-form" action="" method="post" autocomplete="off" enctype="multipart/form-data">
 					<table class="form-table">
@@ -394,7 +416,9 @@ class Media extends Post {
 						echo formRow('Thumbnail', array(
 							'tag' => 'div',
 							'class' => 'thumb-wrap',
-							'content' => getMedia($this->id, array('class' => 'media-thumb'))
+							'content' => getMedia($this->id, array(
+								'class' => 'media-thumb'
+							))
 						));
 						
 						// Title
@@ -429,7 +453,10 @@ class Media extends Post {
 						));
 						
 						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+						echo formRow('', array(
+							'tag' => 'hr',
+							'class' => 'separator'
+						));
 						
 						// Submit button
 						echo formRow('', array(
@@ -449,41 +476,39 @@ class Media extends Post {
 	
 	/**
 	 * Delete some media.
-	 * @since 2.1.6[a]
+	 * @since 2.1.6-alpha
 	 *
 	 * @access public
 	 */
-	public function deleteMedia(): void {
+	public function deleteRecordMedia(): void {
 		global $rs_query;
 		
 		// Create an empty array to hold conflicts
 		$conflicts = array();
 		
-		// Fetch the number of times the media is used as an avatar from the database
+		// Check if the media is used as an avatar
 		$count = $rs_query->select('usermeta', 'COUNT(*)', array(
-			'datakey' => 'avatar',
-			'value' => $this->id
+			'um_key' => 'avatar',
+			'um_value' => $this->id
 		));
 		
-		// Check whether the count is greater than zero
 		if($count > 0) $conflicts[] = 'users';
 		
-		// Fetch the number of times the media is used as a featured image from the database
+		// Check if the media is used as a post featured image
 		$count = $rs_query->select('postmeta', 'COUNT(*)', array(
-			'datakey' => 'feat_image',
-			'value' => $this->id
+			'pm_key' => 'feat_image',
+			'pm_value' => $this->id
 		));
 		
-		// Check whether the count is greater than zero
 		if($count > 0) $conflicts[] = 'posts';
 		
 		// Check whether there are any conflicts and redirect to the "List Media" page with an appropriate exit status if so
 		if(!empty($conflicts))
-			redirect(ADMIN_URI . '?exit_status=failure&conflicts=' . implode(':', $conflicts));
+			redirect(ADMIN_URI . '?exit_status=del_failure&conflicts=' . implode(':', $conflicts));
 		
-		$filename = $rs_query->selectField('postmeta', 'value', array(
-			'post' => $this->id,
-			'datakey' => 'filepath'
+		$filename = $rs_query->selectField('postmeta', 'pm_value', array(
+			'pm_post' => $this->id,
+			'pm_key' => 'filepath'
 		));
 		
 		// If the file exists, delete it
@@ -492,37 +517,48 @@ class Media extends Post {
 			
 			if(file_exists($file_path)) unlink($file_path);
 			
-			$rs_query->delete('posts', array('id' => $this->id));
-			$rs_query->delete('postmeta', array('post' => $this->id));
+			$rs_query->delete($this->table, array(
+				$this->px . 'id' => $this->id
+			));
 			
-			redirect(ADMIN_URI . '?exit_status=success');
+			$rs_query->delete('postmeta', array(
+				'pm_post' => $this->id
+			));
+			
+			redirect(ADMIN_URI . '?exit_status=del_success');
 		} else {
-			redirect(ADMIN_URI . '?exit_status=failure');
+			redirect(ADMIN_URI . '?exit_status=del_failure');
 		}
 	}
 	
+	/*------------------------------------*\
+		VALIDATION
+	\*------------------------------------*/
+	
 	/**
 	 * Validate the form data.
-	 * @since 2.1.0[a]
+	 * @since 2.1.0-alpha
 	 *
 	 * @access private
 	 * @param array $data -- The submission data.
-	 * @param string $action -- The current action.
-	 * @param int $id (optional) -- The media's id.
 	 * @return string
 	 */
-	private function validateData(array $data, string $action, int $id = 0): string {
+	private function validateSubmission(array $data): string {
 		global $rs_query, $session;
 		
-		if(empty($data['title']))
+		if(empty($data['title'])) {
 			return exitNotice('REQ', -1);
+			exit;
+		}
 		
 		$basepath = PATH . UPLOADS;
 		
-		switch($action) {
+		switch($this->action) {
 			case 'upload':
-				if(empty($data['file']['name']))
+				if(empty($data['file']['name'])) {
 					return exitNotice('A file must be selected for upload!', -1);
+					exit;
+				}
 				
 				$accepted_mime = array(
 					'image/jpeg',
@@ -535,8 +571,10 @@ class Media extends Post {
 					'text/plain'
 				);
 				
-				if(!in_array($data['file']['type'], $accepted_mime, true))
+				if(!in_array($data['file']['type'], $accepted_mime, true)) {
 					return exitNotice('The file could not be uploaded.', -1);
+					exit;
+				}
 				
 				if(!file_exists($basepath)) mkdir($basepath);
 				
@@ -546,9 +584,7 @@ class Media extends Post {
 					mkdir(slash($basepath) . $year);
 				
 				$file = pathinfo($data['file']['name']);
-				$filename = str_replace(array('  ', ' ', '_'), '-',
-					sanitize($file['filename'], '/[^\w-]/')
-				);
+				$filename = sanitize(str_replace(array('  ', ' ', '_'), '-', $file['filename']), '/[^\w-]/');
 				
 				$slug = getUniquePostSlug($filename);
 				$filename = getUniqueFilename($filename . '.' . $file['extension']);
@@ -561,14 +597,14 @@ class Media extends Post {
 				);
 				
 				// Insert the new media into the database
-				$insert_id = $rs_query->insert('posts', array(
-					'title' => $data['title'],
-					'author' => $session['id'],
-					'date' => 'NOW()',
-					'modified' => 'NOW()',
-					'content' => $data['description'],
-					'slug' => $slug,
-					'type' => 'media'
+				$insert_id = $rs_query->insert($this->table, array(
+					$this->px . 'title' => $data['title'],
+					$this->px . 'author' => $session['id'],
+					$this->px . 'created' => 'NOW()',
+					$this->px . 'modified' => 'NOW()',
+					$this->px . 'content' => $data['description'],
+					$this->px . 'slug' => $slug,
+					$this->px . 'type' => $this->post_type
 				));
 				
 				$mediameta = array(
@@ -579,40 +615,46 @@ class Media extends Post {
 				
 				foreach($mediameta as $key => $value) {
 					$rs_query->insert('postmeta', array(
-						'post' => $insert_id,
-						'datakey' => $key,
-						'value' => $value
+						'pm_post' => $insert_id,
+						'pm_key' => $key,
+						'pm_value' => $value
 					));
 				}
 				
-				redirect(ADMIN_URI . '?id=' . $insert_id . '&action=edit');
+				redirect(ADMIN_URI . '?id=' . $insert_id . '&action=edit&exit_status=upl_success');
 				break;
 			case 'edit':
-				$rs_query->update('posts', array(
-					'title' => $data['title'],
-					'modified' => 'NOW()',
-					'content' => $data['description']
-				), array('id' => $id));
+				$rs_query->update($this->table, array(
+					$this->px . 'title' => $data['title'],
+					$this->px . 'modified' => 'NOW()',
+					$this->px . 'content' => $data['description']
+				), array(
+					$this->px . 'id' => $this->id
+				));
 				
-				$mediameta = array('alt_text' => $data['alt_text']);
+				$mediameta = array(
+					'alt_text' => $data['alt_text']
+				);
 				
 				foreach($mediameta as $key => $value)
-					$rs_query->update('postmeta', array('value' => $value), array(
-						'post' => $id,
-						'datakey' => $key
+					$rs_query->update('postmeta', array(
+						'pm_value' => $value
+					), array(
+						'pm_post' => $this->id,
+						'pm_key' => $key
 					));
 				
-				// Update the class variables
 				foreach($data as $key => $value) $this->$key = $value;
 				
-				// Update the content class variable
 				$this->content = $data['description'];
 				
-				return exitNotice('Media updated! <a href="' . ADMIN_URI . '">Return to list</a>?');
+				redirect(ADMIN_URI . '?id=' . $this->id . '&action=edit&exit_status=edit_success');
 				break;
 			case 'replace':
-				if(empty($data['file']['name']))
+				if(empty($data['file']['name'])) {
 					return exitNotice('A file must be selected for upload!', -1);
+					exit;
+				}
 				
 				$accepted_mime = array(
 					'image/jpeg',
@@ -625,10 +667,12 @@ class Media extends Post {
 					'text/plain'
 				);
 				
-				if(!in_array($data['file']['type'], $accepted_mime, true))
+				if(!in_array($data['file']['type'], $accepted_mime, true)) {
 					return exitNotice('The file could not be uploaded.', -1);
+					exit;
+				}
 				
-				$meta = $this->getPostMeta($id);
+				$meta = $this->getPostMeta($this->id);
 				
 				// Delete the old file
 				unlink(slash($basepath) . $meta['filepath']);
@@ -641,9 +685,7 @@ class Media extends Post {
 						mkdir(slash($basepath) . $year);
 					
 					$file = pathinfo($data['file']['name']);
-					$filename = str_replace(array('  ', ' ', '_'), '-',
-						sanitize($file['filename'], '/[^\w-]/')
-					);
+					$filename = sanitize(str_replace(array('  ', ' ', '_'), '-', $file['filename']), '/[^\w-]/');
 					
 					// Check whether the new filename is the same as the old one
 					if(slash($year) . $filename . '.' .
@@ -663,31 +705,29 @@ class Media extends Post {
 						slash($basepath) . $filepath
 					);
 					
-					// Update the media in the database
-					$rs_query->update('posts', array(
-						'title' => $data['title'],
-						'date' => 'NOW()',
-						'modified' => 'NOW()',
-						'slug' => $slug
-					), array('id' => $id));
+					$rs_query->update($this->table, array(
+						$this->px . 'title' => $data['title'],
+						$this->px . 'created' => 'NOW()',
+						$this->px . 'modified' => 'NOW()',
+						$this->px . 'slug' => $slug
+					), array(
+						$this->px . 'id' => $this->id
+					));
 				} else {
-					$year = formatDate($rs_query->selectField('posts', 'date', array('id' => $id)), 'Y');
+					$year = formatDate($rs_query->selectField($this->table, $this->px . 'created', array(
+						$this->px . 'id' => $this->id
+					)), 'Y');
 					
 					// Split the filename into separate parts
 					$file = pathinfo($data['file']['name']);
 					
 					// Check whether the extension of the new file matches the existing one
 					if(str_contains($meta['filepath'], $file['extension'])) {
-						// If so, keep the filename and extension the same
 						$filepath = $meta['filepath'];
 					} else {
-						// Otherwise,
-						// Split the old filename into separate parts
 						$old_filename = pathinfo($meta['filepath']);
 						
-						// Update the extension
-						$filepath = slash($year) . $old_filename['filename'] . '.' .
-							$file['extension'];
+						$filepath = slash($year) . $old_filename['filename'] . '.' . $file['extension'];
 					}
 					
 					// Move the uploaded file to the uploads directory
@@ -696,11 +736,12 @@ class Media extends Post {
 						slash($basepath) . $filepath
 					);
 					
-					// Update the media in the database
-					$rs_query->update('posts', array(
-						'title' => $data['title'],
-						'modified' => 'NOW()'
-					), array('id' => $id));
+					$rs_query->update($this->table, array(
+						$this->px . 'title' => $data['title'],
+						$this->px . 'modified' => 'NOW()'
+					), array(
+						$this->px . 'id' => $this->id
+					));
 				}
 				
 				$mediameta = array(
@@ -709,17 +750,182 @@ class Media extends Post {
 				);
 				
 				foreach($mediameta as $key => $value) {
-					$rs_query->update('postmeta', array('value' => $value), array(
-						'post' => $id,
-						'datakey' => $key
+					$rs_query->update('postmeta', array(
+						'pm_value' => $value
+					), array(
+						'pm_post' => $this->id,
+						'pm_key' => $key
 					));
 				}
 				
-				// Update the class variables
 				foreach($data as $key => $value) $this->$key = $value;
 				
-				return exitNotice('Media replaced! <a href="' . ADMIN_URI . '">Return to list</a>?');
+				redirect(ADMIN_URI . '?id=' . $this->id . '&action=edit&exit_status=repl_success');
 				break;
 		}
+	}
+	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
+	/**
+	 * Construct the page heading.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access public
+	 */
+	public function pageHeading(): void {
+		$meta = $this->getPostMeta($this->id);
+		
+		switch($this->action) {
+			case 'upload':
+				$title = 'Upload Media';
+				
+				if(isset($_POST['submit'])) {
+					$data = array_merge($_POST, $_FILES);
+					$message = $this->validateSubmission($data);
+				} else {
+					$message = '';
+				}
+				break;
+			case 'edit':
+				$title = 'Edit Media: { ' . domTag('em', array(
+					'content' => substr($meta['filepath'], strpos($meta['filepath'], '/') + 1)
+				)) . ' }';
+				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST) : '';
+				break;
+			case 'replace':
+				$title = 'Replace Media: { ' . domTag('em', array(
+					'content' => substr($meta['filepath'], strpos($meta['filepath'], '/') + 1)
+				)) . ' }';
+				
+				if(isset($_POST['submit'])) {
+					$data = array_merge($_POST, $_FILES);
+					$message = $this->validateSubmission($data);
+				} else {
+					$message = '';
+				}
+				break;
+			default:
+				$title = 'Media';
+				$search = $_GET['search'] ?? null;
+		}
+		?>
+		<div class="heading-wrap">
+			<?php
+			// Page title
+			echo domTag('h1', array(
+				'content' => $title
+			));
+			
+			if(!empty($this->action)) {
+				// Status messages
+				echo $message;
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
+			} else {
+				// Upload button
+				if(userHasPrivilege('can_upload_media')) {
+					echo actionLink('upload', array(
+						'classes' => 'button',
+						'caption' => 'Upload New'
+					));
+				}
+				
+				// Search
+				recordSearch();
+				
+				// Info
+				adminInfo();
+				
+				echo domTag('hr');
+				
+				// Exit notices
+				if(isset($_GET['exit_status'])) {
+					if($_GET['exit_status'] === 'del_failure')
+						$status_code = -1;
+					
+					if(isset($status_code)) {
+						if(isset($_GET['conflicts'])) {
+							$conflicts = explode(':', $_GET['conflicts']);
+							$conf = array();
+							
+							if(in_array('users', $conflicts, true))
+								$conf[] = '_avatar';
+							
+							if(in_array('posts', $conflicts, true))
+								$conf[] = '_featimg';
+							
+							$conf = implode('', $conf);
+						}
+						
+						echo $this->exitNotice($_GET['exit_status'] . ($conf ?? ''), $status_code);
+					} else {
+						echo $this->exitNotice($_GET['exit_status']);
+					}
+				}
+				
+				// Record count
+				if(!is_null($search))
+					$count = $this->getPostCount($this->post_type, '', $search);
+				else
+					$count = $this->getPostCount($this->post_type);
+				
+				echo domTag('div', array(
+					'class' => 'entry-count',
+					'content' => $count . ' ' . ($count === 1 ? 'entry' : 'entries')
+				));
+				
+				$this->paged['count'] = ceil($count / $this->paged['per_page']);
+			}
+			?>
+		</div>
+		<?php
+	}
+	
+	/**
+	 * Generate an exit notice.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @param string $exit_status -- The exit status.
+	 * @param int $status_code (optional) -- The type of notice to display.
+	 * @return string
+	 */
+	private function exitNotice(string $exit_status, int $status_code = 1): string {
+		return exitNotice(match($exit_status) {
+			'upl_success' => 'The media was successfully uploaded. ' . domTag('a', array(
+				'href' => ADMIN_URI,
+				'content' => 'Return to list'
+			)) . '?',
+			'edit_success' => 'Media updated! ' . domTag('a', array(
+				'href' => ADMIN_URI,
+				'content' => 'Return to list'
+			)) . '?',
+			'repl_success' => 'Media replaced! ' . domTag('a', array(
+				'href' => ADMIN_URI,
+				'content' => 'Return to list'
+			)) . '?',
+			'del_success' => 'The media was successfully deleted.',
+			'del_failure' => 'The media could not be deleted!',
+				'del_failure_avatar' => 'That media is currently a ' . domTag('strong', array(
+					'content' => domTag('em', array(
+						'content' => 'user\'s avatar'
+					))
+				)) . '. If you wish to delete it, unlink it from the user first.',
+				'del_failure_featimg' => 'That media is currently a ' . domTag('strong', array(
+					'content' => domTag('em', array(
+						'content' => 'post\'s featured image'
+					))
+				)) . '. If you wish to delete it, unlink it from the post first.',
+				'del_failure_avatar_featimg' => 'That media is currently in use in ' . domTag('strong', array(
+					'content' => domTag('em', array(
+						'content' => 'multiple places'
+					))
+				)) . '. If you wish to delete it, unlink it from the user and/or post first.',
+			default => 'The action was completed successfully.'
+		}, $status_code);
 	}
 }

@@ -12,8 +12,8 @@ require_once PATH . INC . '/backward-compat.php';
 $rs_api_fetch = new \Engine\ApiFetch;
 
 /* var_dump($rs_api_fetch->getVersion());
-var_dump(CMS_VERSION);
+var_dump(RS_VERSION);
 
-var_dump(version_compare(CMS_VERSION, $rs_api_fetch->getVersion(), '<')); */
+var_dump(version_compare(RS_VERSION, $rs_api_fetch->getVersion(), '<')); */
 
 # if do_update then UPDATE

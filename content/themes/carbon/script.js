@@ -1,9 +1,11 @@
-/**
+/*!
  * Script file for the Carbon theme.
- * @since 2.2.2[a]
+ * @since 2.2.2-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
  */
 jQuery(document).ready($ => {
-	// Turn on strict mode
 	'use strict';
 	
 	/*------------------------------*\
@@ -12,7 +14,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Make the header sticky on page scroll.
-	 * @since 2.2.2[a]
+	 * @since 2.2.2-alpha
 	 */
 	(() => {
 		let scroll = getCurrentScroll();
@@ -42,7 +44,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Make the header and nav menu mobile responsive.
-	 * @since 2.2.1[a]
+	 * @since 2.2.1-alpha
 	 */
 	(() => {
 		let new_width = 0;
@@ -63,9 +65,7 @@ jQuery(document).ready($ => {
 			old_width = new_width;
 		});
 		
-		// Convert the menu to mobile view
 		function doMobile() {
-			// Append toggle buttons to any menu items that have children
 			$('.menu-item-has-children').append('<span class="submenu-toggle"><i class="fa-solid fa-chevron-down"></i></span>');
 			
 			$('.nav-menu-toggle').on('click', function() {
@@ -116,7 +116,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Reply to a comment on a comment feed.
-	 * @since 1.1.0[b]{ss-05}
+	 * @since 1.1.0-beta_snap-05
 	 */
 	$('body').off('click', '.comment .actions .reply');
 	$('body').on('click', '.comment .actions .reply', function(e) {
@@ -134,7 +134,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Scroll to a parent comment.
-	 * @since 1.1.0[b]{ss-05}
+	 * @since 1.1.0-beta_snap-05
 	 */
 	$('body').on('click', '.comment .meta .replyto a', function(e) {
 		e.preventDefault();
@@ -148,7 +148,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Scroll to a linked comment.
-	 * @since 1.1.0[b]
+	 * @since 1.1.0-beta
 	 */
 	$(window).on('hashchange', function() {
 		let anchor = window.location.hash;

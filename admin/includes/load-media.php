@@ -1,7 +1,9 @@
 <?php
 /**
  * Load the media library in the upload modal.
- * @since 2.1.2[a]
+ * @since 2.1.2-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
 // Only initialize the base files and functions

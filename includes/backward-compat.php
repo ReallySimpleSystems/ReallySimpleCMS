@@ -7,8 +7,8 @@
  */
 
 // Update config constants
-if(version_compare(CMS_VERSION, '1.3.10-beta', '>=')) {
-	$config_file = file(DB_CONFIG);
+if(version_compare(RS_VERSION, '1.3.10-beta', '>=')) {
+	$config_file = file(RS_CONFIG);
 	$has_charset = $has_collate = false;
 	
 	$match_charset = preg_grep('/DB_CHARSET/', $config_file);
@@ -48,10 +48,8 @@ if(version_compare(CMS_VERSION, '1.3.10-beta', '>=')) {
 		
 		unset($line);
 		
-		// Open the file stream
-		$handle = fopen(DB_CONFIG, 'w');
+		$handle = fopen(RS_CONFIG, 'w');
 		
-		// Write to the file
 		if($handle !== false) {
 			foreach($config_file as $line) fwrite($handle, $line);
 			

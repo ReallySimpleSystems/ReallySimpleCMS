@@ -5,18 +5,23 @@
  *
  * @package ReallySimpleCMS
  *
- * LOADING ORDER:
- * - constants.php -- The defined constants.
- * - critical-functions.php [CRIT_FUNC] -- Critical functions required for the system to run.
- * - config.php [DB_CONFIG] -- The database config.
- * - debug.php [DEBUG_FUNC] -- Debugging functions.
+ * SYSTEM INITIALIZATION:
+ *
+ * ## PHASE 1 - Critical setup ##
+ * - constants.php -- System-defined constants.
+ * - critical-functions.php [RS_CRIT_FUNC] -- Functions required for the system to run.
+ *
+ * ## PHASE 2 - Base setup ##
+ * - config.php [RS_CONFIG] -- The database config.
+ * - debug.php [RS_DEBUG_FUNC] -- Debugging functions.
  * - global-functions.php [GLOBAL_FUNC] -- Global functions (available to front and back end).
  * - class-query.php -- The Query class. Interacts with the database.
- * - schema.php [DB_SCHEMA] -- The database schema.
+ * - schema.php [RS_SCHEMA] -- The database schema.
  * - maintenance.php (optional) -- This file is only loaded if the system is in maintenance mode.
- * ## The following only load if BASE_INIT is undefined or false. ##
+ *
+ * ## PHASE 3 - Theme setup ##
  * - update.php -- The system updater.
- * - functions.php [FUNC] -- The primary functions file.
+ * - functions.php [RS_FUNC] -- The primary functions file.
  * - theme-functions.php -- Theme-specific functions.
  * - load-theme.php -- The theme loader.
  * - sitemap-index.php -- The sitemap index generator.
@@ -24,39 +29,9 @@
  */
 
 require_once __DIR__ . '/includes/constants.php';
-require_once CRIT_FUNC;
+require_once RS_CRIT_FUNC;
 
-checkPHPVersion();
-
-// Set up a new config file if it's missing
-if(!file_exists(DB_CONFIG)) redirect(ADMIN . '/setup.php');
-
-require_once DB_CONFIG;
-require_once DEBUG_FUNC;
-require_once GLOBAL_FUNC;
-
-$rs_query = new \Engine\Query;
-checkDBStatus();
-
-require_once DB_SCHEMA;
-
-$schema = dbSchema();
-$tables = $rs_query->showTables();
-
-// Check whether the database is installed
-if(empty($tables)) redirect(ADMIN . '/install.php');
-
-// Ensure all required tables exist
-foreach($schema as $key => $value) {
-	if(!$rs_query->tableExists($key)) {
-		$rs_query->doQuery($schema[$key]);
-		populateTable($key);
-	}
-}
-
-// Fetch the user's session data if they're logged in
-if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session']))
-	$session = getOnlineUser($_COOKIE['session']);
+baseSetup();
 
 // Maintenance mode checks
 if((defined('MAINT_MODE') && MAINT_MODE) &&
@@ -74,7 +49,7 @@ if((defined('MAINT_MODE') && MAINT_MODE) &&
 		if(file_exists(PATH . INC . '/update.php') && isset($session))
 			require_once PATH . INC . '/update.php';
 		
-		require_once FUNC;
+		require_once RS_FUNC;
 		
 		if(isLogin()) {
 			// We're logging in

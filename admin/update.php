@@ -10,14 +10,15 @@ require_once __DIR__ . '/header.php';
 ?>
 <article class="content">
 	<section class="heading-wrap">
-		<h1>Update <?php echo CMS_ENGINE; ?></h1>
+		<h1>Update <?php echo RS_ENGINE; ?></h1>
 	</section>
 	<section>
 		<?php
-		if(version_compare(CMS_VERSION, $rs_api_fetch->getVersion(), '<')) {
+		if(version_compare(RS_VERSION, $rs_api_fetch->getVersion(), '<')) {
+			// Update available
 			echo domTag('p', array(
-				'content' => 'An update is available for ' . CMS_ENGINE . '. You\'re running ' . domTag('strong', array(
-					'content' => CMS_VERSION
+				'content' => 'An update is available for ' . RS_ENGINE . '. You\'re running ' . domTag('strong', array(
+					'content' => RS_VERSION
 				)) . ', and the latest version is ' . domTag('strong', array(
 					'content' => $rs_api_fetch->getVersion()
 				)) . '.'
@@ -37,8 +38,9 @@ require_once __DIR__ . '/header.php';
 				))
 			));
 		} else {
+			// Everything is up to date
 			echo domTag('p', array(
-				'content' => CMS_ENGINE . ' is up to date.'
+				'content' => RS_ENGINE . ' is up to date.'
 			));
 		}
 		?>

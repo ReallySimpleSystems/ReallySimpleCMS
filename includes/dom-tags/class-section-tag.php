@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class SectionTag extends \DomTag implements DomTagInterface {
+class SectionTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.1

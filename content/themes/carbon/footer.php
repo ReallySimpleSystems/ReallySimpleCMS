@@ -1,3 +1,12 @@
+<?php
+/**
+ * Carbon theme - footer template.
+ * @since 1.5.5-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
+ */
+?>
 			<div id="scroll-top">
 				<i class="fa-solid fa-chevron-up"></i>
 			</div>

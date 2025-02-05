@@ -1,10 +1,18 @@
 <?php
 /**
- * Link to the ReallySimpleCMS API.
+ * Link to the ReallySimpleSystems API.
  * @since 1.4.0-beta_snap-01
  *
  * @package ReallySimpleCMS
  * @subpackage Engine
+ *
+ * ## VARIABLES ##
+ * - private string $endpoint
+ *
+ * ## METHODS ##
+ * - public __construct(string $project)
+ * - public getVersion(): string
+ * - public getDownload(): string
  */
 namespace Engine;
 
@@ -16,29 +24,38 @@ class ApiFetch extends CurlFetch {
 	 * @access private
 	 * @var string
 	 */
-	private $endpoint = 'https://rscms.jacefincham.com/api/';
+	private $endpoint;
 	
 	/**
 	 * Class constructor.
 	 * @since 1.4.0-beta_snap-01
 	 *
 	 * @access public
+	 * @param string $project -- The project to query.
 	 */
-	public function __construct() {
+	public function __construct(string $project = 'rscms') {
+		$this->endpoint = 'https://api.jacefincham.com/' . slash($project);
+		
 		parent::__construct($this->endpoint);
 	}
 	
 	/**
-	 * Fetch the CMS version.
+	 * Fetch the software version.
 	 * @since 1.4.0-beta_snap-01
 	 *
 	 * @access public
 	 */
 	public function getVersion(): string {
-		$params = array(
-			'action' => 'version'
-		);
-		
-		return $this->curlGet($params);
+		return $this->curlGet('version');
+	}
+	
+	/**
+	 * Fetch the download file.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access public
+	 */
+	public function getDownload(): string {
+		return $this->curlGet('download');
 	}
 }

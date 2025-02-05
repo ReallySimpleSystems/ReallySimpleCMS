@@ -6,8 +6,8 @@
  * @package ReallySimpleCMS
  */
 
-// Determine whether the site is in debug mode
 $debug = false;
+
 if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
 ?>
 <!DOCTYPE html>
@@ -39,6 +39,6 @@ if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
 				<?php endif; ?>
 			</article>
 		</div>
-		<p class="copyright">&copy; <?php echo date('Y'); ?> <?php echo CMS_ENGINE; ?>. All rights reserved.</p>
+		<p class="copyright">&copy; <?php echo date('Y'); ?> <?php echo RS_ENGINE; ?>. All rights reserved.</p>
 	</body>
 </html>

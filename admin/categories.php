@@ -1,21 +1,18 @@
 <?php
 /**
  * Admin categories page.
- * @since 1.5.0[a]
+ * @since 1.5.0-alpha
  */
+
 require_once __DIR__ . '/header.php';
 
-// Fetch the category's id
 $id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
 
-// Create a Term object
-$rs_category = new Term($id, $taxonomies['category']);
+$rs_category = new Term($id, $action, $taxonomies['category']);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'create':
 			// Create a new category

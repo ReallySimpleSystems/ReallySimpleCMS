@@ -1,15 +1,56 @@
 <?php
 /**
  * Admin class used to implement the Login object.
- * @since 1.2.0[b]{ss-01}
+ * @since 1.2.0-beta_snap-01
+ *
+ * @package ReallySimpleCMS
  *
  * Logins are attempts by registered users to gain access to the admin dashboard via the Log In page.
  * Users must enter their username, password, and a captcha properly to successfully log in.
+ *
+ * ## VARIABLES ##
+ * - private int $id
+ * - private string $login
+ * - private string $ip_address
+ * - private string $name
+ * - private int $duration
+ * - private string $reason
+ * - private string $type
+ * - private int $attempts
+ * - private string $action
+ * - private array $paged
+ * - private string $page
+ * - private array $tables
+ * - private array $px
+ *
+ * ## METHODS ##
+ * - public __construct(int $id, string $action, string $page)
+ * LISTS, FORMS, & ACTIONS:
+ * - public loginAttempts(): void
+ * - public blacklistLogin(): void
+ * - public blacklistIPAddress(): void
+ * - public loginBlacklist(): void
+ * - public createBlacklist(): void
+ * - public editBlacklist(): void
+ * - public whitelistLoginIP(): void
+ * - public loginRules(): void
+ * - public createRule(): void
+ * - public editRule(): void
+ * - public deleteRule(): void
+ * VALIDATION:
+ * - private validateBlacklistSubmission(array $data): string
+ * - private validateRuleSubmission(array $data): string
+ * MISCELLANEOUS:
+ * - public pageHeading(): void
+ * - private exitNotice(string $exit_status, int $status_code): string
+ * - private blacklistExists(string $name): bool
+ * - private formatDuration(int $seconds): string
+ * - private getLoginCount(string $status, string $search): int
  */
 class Login {
 	/**
 	 * The currently queried login attempt, blacklisted login, or login rule's id.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access private
 	 * @var int
@@ -18,7 +59,7 @@ class Login {
 	
 	/**
 	 * The currently queried login attempt's login (username or email).
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access private
 	 * @var string
@@ -27,7 +68,7 @@ class Login {
 	
 	/**
 	 * The currently queried login attempt's IP address.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access private
 	 * @var string
@@ -36,7 +77,7 @@ class Login {
 	
 	/**
 	 * The currently queried blacklisted login's name.
-	 * @since 1.2.0[b]{ss-02}
+	 * @since 1.2.0-beta_snap-02
 	 *
 	 * @access private
 	 * @var string
@@ -45,7 +86,7 @@ class Login {
 	
 	/**
 	 * The currently queried blacklisted login or login rule's duration.
-	 * @since 1.2.0[b]{ss-02}
+	 * @since 1.2.0-beta_snap-02
 	 *
 	 * @access private
 	 * @var int
@@ -54,7 +95,7 @@ class Login {
 	
 	/**
 	 * The currently queried blacklisted login's reason.
-	 * @since 1.2.0[b]{ss-02}
+	 * @since 1.2.0-beta_snap-02
 	 *
 	 * @access private
 	 * @var string
@@ -63,7 +104,7 @@ class Login {
 	
 	/**
 	 * The currently queried login rule's type.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access private
 	 * @var string
@@ -72,7 +113,7 @@ class Login {
 	
 	/**
 	 * The currently queried login rule's attempts.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access private
 	 * @var int
@@ -80,71 +121,156 @@ class Login {
 	private $attempts;
 	
 	/**
+	 * The current action.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $action;
+	
+	/**
+	 * The pagination.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $paged = array();
+	
+	/**
+	 * The current login settings page.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $page;
+	
+	/**
+	 * The associated database tables.
+	 * 0 => `login_attempts`, 1 => `login_blacklist`, 2 => `login_rules`
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $tables = array('login_attempts', 'login_blacklist', 'login_rules');
+	
+	/**
+	 * The table prefixes.
+	 * 0 => `la_`, 1 => `lb_`, 2 => `lr_`
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $px = array('la_', 'lb_', 'lr_');
+	
+	/**
 	 * Class constructor.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access public
-	 * @param string $page -- The admin page.
 	 * @param int $id -- The login's id.
+	 * @param string $action -- The current action.
+	 * @param string $page -- The current login settings page.
 	 */
-	public function __construct(string $page, int $id) {
+	public function __construct(int $id, string $action, string $page) {
 		global $rs_query;
 		
+		$this->action = $action;
+		$this->page = $page;
+		
 		if(getSetting('delete_old_login_attempts')) {
-			$login_attempts = $rs_query->select('login_attempts', array('id', 'date'));
+			$login_attempts = $rs_query->select($this->tables[0], array(
+				$this->px[0] . 'id',
+				$this->px[0] . 'date'
+			));
 			
 			foreach($login_attempts as $login_attempt) {
-				$time = new DateTime();
+				$time = new \DateTime();
 				
 				// Subtract 30 days from the current date
-				$time->sub(new DateInterval('P30D'));
+				$time->sub(new \DateInterval('P30D'));
 				
 				$threshold = $time->format('Y-m-d H:i:s');
 				
 				// Delete the login attempt if it's expired
-				if($threshold > $login_attempt['date'])
-					$rs_query->delete('login_attempts', array('id' => $login_attempt['id']));
+				if($threshold > $login_attempt[$this->px[0] . 'date']) {
+					$rs_query->delete($this->tables[0], array(
+						$this->px[0] . 'id' => $login_attempt[$this->px[0] . 'id']
+					));
+				}
 			}
 		}
 		
-		if($id !== 0) {
-			// Create an array of columns to fetch from the database
+		if($id > 0) {
 			$cols = array_keys(get_object_vars($this));
+			$exclude_all = array('action', 'paged', 'page', 'tables', 'px');
+			$cols = array_diff($cols, $exclude_all);
 			
-			if($page === 'blacklist') {
-				// Exclude columns from the `login_attempts` and `login_rules` tables
+			if($this->page === 'blacklist') {
 				$exclude = array('login', 'ip_address', 'type', 'attempts');
-				
 				$cols = array_diff($cols, $exclude);
-				$blacklisted_login = $rs_query->selectRow('login_blacklist', $cols, array('id' => $id));
 				
-				// Set the class variable values
-				foreach($blacklisted_login as $key => $value) $this->$key = $blacklisted_login[$key];
-			} elseif($page === 'rules') {
-				// Exclude columns from the `login_attempts` and `login_blacklist` tables
+				$cols = array_map(function($col) {
+					return $this->px[1] . $col;
+				}, $cols);
+				
+				$blacklisted_login = $rs_query->selectRow($this->tables[1], $cols, array(
+					$this->px[1] . 'id' => $id
+				));
+				
+				foreach($blacklisted_login as $key => $value) {
+					$col = substr($key, mb_strlen($this->px[1]));
+					$this->$col = $blacklisted_login[$key];
+				}
+			} elseif($this->page === 'rules') {
 				$exclude = array('login', 'ip_address', 'name', 'reason');
-				
 				$cols = array_diff($cols, $exclude);
-				$login_rule = $rs_query->selectRow('login_rules', $cols, array('id' => $id));
 				
-				// Set the class variable values
-				foreach($login_rule as $key => $value) $this->$key = $login_rule[$key];
+				$cols = array_map(function($col) {
+					return $this->px[2] . $col;
+				}, $cols);
+				
+				$login_rule = $rs_query->selectRow($this->tables[2], $cols, array(
+					$this->px[2] . 'id' => $id
+				));
+				
+				foreach($login_rule as $key => $value) {
+					$col = substr($key, mb_strlen($this->px[2]));
+					$this->$col = $login_rule[$key];
+				}
 			} else {
-				// Exclude columns from the `login_blacklist` and `login_rules` tables
 				$exclude = array('name', 'duration', 'reason', 'type', 'attempts');
-				
 				$cols = array_diff($cols, $exclude);
-				$login_attempt = $rs_query->selectRow('login_attempts', $cols, array('id' => $id));
 				
-				// Set the class variable values
-				foreach($login_attempt as $key => $value) $this->$key = $login_attempt[$key];
+				$cols = array_map(function($col) {
+					return $this->px[0] . $col;
+				}, $cols);
+				
+				$login_attempt = $rs_query->selectRow($this->tables[0], $cols, array(
+					$this->px[0] . 'id' => $id
+				));
+				
+				foreach($login_attempt as $key => $value) {
+					$col = substr($key, mb_strlen($this->px[0]));
+					$this->$col = $login_attempt[$key];
+				}
 			}
+		} else {
+			$this->id = 0;
 		}
 	}
 	
+	/*------------------------------------*\
+		LISTS, FORMS, & ACTIONS
+	\*------------------------------------*/
+	
 	/**
 	 * Construct a list of all login attempts in the database.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access public
 	 */
@@ -154,128 +280,93 @@ class Login {
 		// Query vars
 		$status = $_GET['status'] ?? 'all';
 		$search = $_GET['search'] ?? null;
-		$paged = paginate((int)($_GET['paged'] ?? 1));
+		$this->paged = paginate((int)($_GET['paged'] ?? 1));
+		
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Login Attempts</h1>
-			<?php
-			recordSearch(array(
-				'status' => $status
-			));
-			adminInfo();
-			?>
-			<hr>
-			<?php
-			// Notices
-			if(!getSetting('track_login_attempts'))
-				echo notice('Login tracking is currently disabled. You can enable it on the <a href="' . ADMIN . '/settings.php">settings page</a>.', 2, false, true);
-			
-			if(isset($_GET['exit_status']) && $_GET['exit_status'] === 'success' && isset($_GET['blacklist'])) {
-				// Check whether a login or an IP address was blacklisted and display the appropriate message
-				if($_GET['blacklist'] === 'login')
-					echo exitNotice('The login was successfully blacklisted.');
-				elseif($_GET['blacklist'] === 'ip_address')
-					echo exitNotice('The IP address was successfully blacklisted.');
-			}
-			?>
-			<ul class="status-nav">
-				<?php
-				$keys = array('all', 'success', 'failure');
-				$count = array();
-				
-				foreach($keys as $key) {
-					if($key === 'all') {
-						if(!is_null($search) && $key === $status)
-							$count[$key] = $this->getLoginCount('', $search);
-						else
-							$count[$key] = $this->getLoginCount();
-					} else {
-						if(!is_null($search) && $key === $status)
-							$count[$key] = $this->getLoginCount($key, $search);
-						else
-							$count[$key] = $this->getLoginCount($key);
-					}
-				}
-				
-				foreach($count as $key => $value) {
-					?>
-					<li>
-						<a href="<?php echo ADMIN_URI . ($key === 'all' ? '' : '?status=' . $key);
-						?>"><?php echo ucfirst($key); ?> <span class="count">(<?php echo $value; ?>)</span></a>
-					</li>
-					<?php
-					if($key !== array_key_last($count)) {
-						?> &bull; <?php
-					}
-				}
-				?>
-			</ul>
-			<?php $paged['count'] = ceil($count[$status] / $paged['per_page']); ?>
-			<div class="entry-count">
-				<?php echo $count[$status] . ' ' . ($count[$status] === 1 ? 'entry' : 'entries'); ?>
-			</div>
-		</div>
 		<table class="data-table">
 			<thead>
 				<?php
-				$table_header_cols = array('Login', 'IP Address', 'Date', 'Status');
+				$header_cols = array(
+					'login' => 'Login',
+					'ip-address' => 'IP Address',
+					'date' => 'Date',
+					'status' => 'Status'
+				);
 				
-				echo tableHeaderRow($table_header_cols);
+				echo tableHeaderRow($header_cols);
 				?>
 			</thead>
 			<tbody>
 				<?php
+				$order_by = $this->px[0] . 'date';
+				$order = 'DESC';
+				
 				if($status === 'all') {
 					if(!is_null($search)) {
-						$login_attempts = $rs_query->select('login_attempts', '*', array(
-							'login' => array('LIKE', '%' . $search . '%')
-						), 'date', 'DESC', array(
-							$paged['start'],
-							$paged['per_page']
+						$login_attempts = $rs_query->select($this->tables[0], '*', array(
+							$this->px[0] . 'login' => array('LIKE', '%' . $search . '%')
+						), array(
+							'order_by' => $order_by,
+							'order' => $order,
+							'limit' => array($this->paged['start'], $this->paged['per_page'])
 						));
 					} else {
-						$login_attempts = $rs_query->select('login_attempts', '*',
-							array(), 'date', 'DESC', array(
-								$paged['start'],
-								$paged['per_page']
-							)
-						);
+						$login_attempts = $rs_query->select($this->tables[0], '*', array(), array(
+							'order_by' => $order_by,
+							'order' => $order,
+							'limit' => array($this->paged['start'], $this->paged['per_page'])
+						));
 					}
 				} else {
 					if(!is_null($search)) {
-						$login_attempts = $rs_query->select('login_attempts', '*', array(
-							'login' => array('LIKE', '%' . $search . '%'),
-							'status' => $status
-						), 'date', 'DESC', array(
-							$paged['start'],
-							$paged['per_page']
+						$login_attempts = $rs_query->select($this->tables[0], '*', array(
+							$this->px[0] . 'login' => array('LIKE', '%' . $search . '%'),
+							$this->px[0] . 'status' => $status
+						), array(
+							'order_by' => $order_by,
+							'order' => $order,
+							'limit' => array($this->paged['start'], $this->paged['per_page'])
 						));
 					} else {
-						$login_attempts = $rs_query->select('login_attempts', '*', array(
-							'status' => $status
-						), 'date', 'DESC', array(
-							$paged['start'],
-							$paged['per_page']
+						$login_attempts = $rs_query->select($this->tables[0], '*', array(
+							$this->px[0] . 'status' => $status
+						), array(
+							'order_by' => $order_by,
+							'order' => $order,
+							'limit' => array($this->paged['start'], $this->paged['per_page'])
 						));
 					}
 				}
 				
 				foreach($login_attempts as $login_attempt) {
+					list($la_id, $la_login, $la_ip_address, $la_date, $la_status) = array(
+						$login_attempt[$this->px[0] . 'id'],
+						$login_attempt[$this->px[0] . 'login'],
+						$login_attempt[$this->px[0] . 'ip_address'],
+						$login_attempt[$this->px[0] . 'date'],
+						$login_attempt[$this->px[0] . 'status']
+					);
+					
 					// Check whether the login or IP address is blacklisted
-					$blacklisted = $rs_query->select('login_blacklist', 'COUNT(name)', array(
-						'name' => array('IN', $login_attempt['login'], $login_attempt['ip_address'])
+					$blacklisted = $rs_query->select($this->tables[1], 'COUNT(' . $this->px[1] . 'name)', array(
+						$this->px[1] . 'name' => array(
+							'IN',
+							$la_login,
+							$la_ip_address
+						)
 					)) > 0;
 					
 					$actions = array(
 						// Blacklist login
 						userHasPrivilege('can_create_login_blacklist') ? actionLink('blacklist_login', array(
 							'caption' => 'Blacklist Login',
-							'id' => $login_attempt['id']
+							'id' => $la_id
 						)) : null,
 						// Blacklist IP
 						userHasPrivilege('can_create_login_blacklist') ? actionLink('blacklist_ip', array(
 							'caption' => 'Blacklist IP',
-							'id' => $login_attempt['id']
+							'id' => $la_id
 						)) : null
 					);
 					
@@ -284,34 +375,39 @@ class Login {
 					
 					echo tableRow(
 						// Login
-						tdCell('<strong>' . $login_attempt['login'] . '</strong>' . ($blacklisted ?
-							' &mdash; <em>blacklisted</em>' : '') . '<div class="actions">' .
-							implode(' &bull; ', $actions) . '</div>', 'login'),
+						tdCell(domTag('strong', array(
+							'content' => $la_login
+						)) . ($blacklisted ? ' &mdash; ' . domTag('em', array(
+							'content' => 'blacklisted'
+						)) : '') . domTag('div', array(
+							'class' => 'actions',
+							'content' => implode(' &bull; ', $actions)
+						)), 'login'),
 						// IP address
-						tdCell($login_attempt['ip_address'], 'ip-address'),
+						tdCell($la_ip_address, 'ip-address'),
 						// Date
-						tdCell(formatDate($login_attempt['date'], 'd M Y @ g:i A'), 'date'),
+						tdCell(formatDate($la_date, 'd M Y @ g:i A'), 'date'),
 						// Status
-						tdCell(ucfirst($login_attempt['status']), 'status')
+						tdCell(ucfirst($la_status), 'status')
 					);
 				}
 				
 				if(empty($login_attempts))
-					echo tableRow(tdCell('There are no login attempts to display.', '', count($table_header_cols)));
+					echo tableRow(tdCell('There are no login attempts to display.', '', count($header_cols)));
 				?>
 			</tbody>
 			<tfoot>
-				<?php echo tableHeaderRow($table_header_cols); ?>
+				<?php echo tableHeaderRow($header_cols); ?>
 			</tfoot>
 		</table>
 		<?php
 		// Set up page navigation
-		echo pagerNav($paged['current'], $paged['count']);
+		echo pagerNav($this->paged['current'], $this->paged['count']);
 	}
 	
 	/**
 	 * Blacklist a user's login.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access public
 	 */
@@ -321,13 +417,8 @@ class Login {
 		if(empty($this->id) || $this->id <= 0) {
 			redirect(ADMIN_URI);
 		} else {
-			// Validate the form data and return any messages
-			$message = isset($_POST['submit']) ? $this->validateBlacklistData($_POST, 'login') : '';
+			$this->pageHeading();
 			?>
-			<div class="heading-wrap">
-				<h1>Blacklist Login</h1>
-				<?php echo $message; ?>
-			</div>
 			<div class="data-form-wrap clear">
 				<form class="data-form" action="" method="post" autocomplete="off">
 					<table class="form-table">
@@ -340,12 +431,10 @@ class Login {
 							'value' => $this->login
 						));
 						
-						// Name
-						echo formRow('Name', array('tag' => 'span', 'content' => $this->login));
-						
 						// Duration
 						echo formRow(array('Duration (seconds)', true), array(
 							'tag' => 'input',
+							'id' => 'duration-field',
 							'class' => 'text-input required invalid init',
 							'name' => 'duration',
 							'maxlength' => 15,
@@ -355,6 +444,7 @@ class Login {
 						// Reason
 						echo formRow(array('Reason', true), array(
 							'tag' => 'textarea',
+							'id' => 'reason-field',
 							'class' => 'textarea-input required invalid init',
 							'name' => 'reason',
 							'cols' => 30,
@@ -363,7 +453,10 @@ class Login {
 						));
 						
 						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+						echo formRow('', array(
+							'tag' => 'hr',
+							'class' => 'separator'
+						));
 						
 						// Submit button
 						echo formRow('', array(
@@ -383,7 +476,7 @@ class Login {
 	
 	/**
 	 * Blacklist a user's IP address.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access public
 	 */
@@ -393,13 +486,8 @@ class Login {
 		if(empty($this->id) || $this->id <= 0) {
 			redirect(ADMIN_URI);
 		} else {
-			// Validate the form data and return any messages
-			$message = isset($_POST['submit']) ? $this->validateBlacklistData($_POST, 'ip_address') : '';
+			$this->pageHeading();
 			?>
-			<div class="heading-wrap">
-				<h1>Blacklist IP Address</h1>
-				<?php echo $message; ?>
-			</div>
 			<div class="data-form-wrap clear">
 				<form class="data-form" action="" method="post" autocomplete="off">
 					<table class="form-table">
@@ -412,12 +500,10 @@ class Login {
 							'value' => $this->ip_address
 						));
 						
-						// Name
-						echo formRow('Name', array('tag' => 'span', 'content' => $this->ip_address));
-						
 						// Duration
 						echo formRow(array('Duration (seconds)', true), array(
 							'tag' => 'input',
+							'id' => 'duration-field',
 							'class' => 'text-input required invalid init',
 							'name' => 'duration',
 							'maxlength' => 15,
@@ -427,6 +513,7 @@ class Login {
 						// Reason
 						echo formRow(array('Reason', true), array(
 							'tag' => 'textarea',
+							'id' => 'reason-field',
 							'class' => 'textarea-input required invalid init',
 							'name' => 'reason',
 							'cols' => 30,
@@ -435,7 +522,10 @@ class Login {
 						));
 						
 						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+						echo formRow('', array(
+							'tag' => 'hr',
+							'class' => 'separator'
+						));
 						
 						// Submit button
 						echo formRow('', array(
@@ -455,7 +545,7 @@ class Login {
 	
 	/**
 	 * Construct a list of all blacklisted logins in the database.
-	 * @since 1.2.0[b]{ss-01}
+	 * @since 1.2.0-beta_snap-01
 	 *
 	 * @access public
 	 */
@@ -465,89 +555,78 @@ class Login {
 		// Query vars
 		$page = $_GET['page'] ?? '';
 		$search = $_GET['search'] ?? null;
-		$paged = paginate((int)($_GET['paged'] ?? 1));
+		$this->paged = paginate((int)($_GET['paged'] ?? 1));
+		
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Login Blacklist</h1>
-			<?php
-			// Check whether the user has sufficient privileges to create a login blacklist
-			if(userHasPrivilege('can_create_login_blacklist')) {
-				echo actionLink('create', array(
-					'classes' => 'button',
-					'caption' => 'Create New',
-					'page' => 'blacklist'
-				));
-			}
-			
-			recordSearch(array(
-				'page' => $page
-			));
-			adminInfo();
-			?>
-			<hr>
-			<?php
-			if(isset($_GET['exit_status']) && $_GET['exit_status'] === 'success')
-				echo exitNotice('The login or IP address was successfully whitelisted.');
-			
-			if(!is_null($search)) {
-				$count = $rs_query->select('login_blacklist', 'COUNT(*)', array(
-					'name' => array('LIKE', '%' . $search . '%')
-				));
-			} else {
-				$count = $rs_query->select('login_blacklist', 'COUNT(*)');
-			}
-			
-			$paged['count'] = ceil($count / $paged['per_page']);
-			?>
-			<div class="entry-count">
-				<?php echo $count . ' ' . ($count === 1 ? 'entry' : 'entries'); ?>
-			</div>
-		</div>
 		<table class="data-table">
 			<thead>
 				<?php
-				$table_header_cols = array('Name', 'Attempts', 'Blacklisted', 'Expires', 'Reason');
+				$header_cols = array(
+					'name' => 'Name',
+					'attempts' => 'Attempts',
+					'blacklisted' => 'Blacklisted',
+					'expiration' => 'Expires',
+					'reason' => 'Reason'
+				);
 				
-				echo tableHeaderRow($table_header_cols);
+				echo tableHeaderRow($header_cols);
 				?>
 			</thead>
 			<tbody>
 				<?php
+				$order_by = $this->px[1] . 'blacklisted';
+				$order = 'DESC';
+				
 				if(!is_null($search)) {
-					$blacklisted_logins = $rs_query->select('login_blacklist', '*', array(
-						'name' => array('LIKE', '%' . $search . '%')
-					), 'blacklisted', 'DESC', array(
-						$paged['start'],
-						$paged['per_page']
+					// Search results
+					$blacklisted_logins = $rs_query->select($this->tables[1], '*', array(
+						$this->px[1] . 'name' => array('LIKE', '%' . $search . '%')
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => array($this->paged['start'], $this->paged['per_page'])
 					));
 				} else {
-					$blacklisted_logins = $rs_query->select('login_blacklist', '*',
-						array(), 'blacklisted', 'DESC', array(
-							$paged['start'],
-							$paged['per_page']
-						)
-					);
+					// All results
+					$blacklisted_logins = $rs_query->select($this->tables[1], '*', array(), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => array($this->paged['start'], $this->paged['per_page'])
+					));
 				}
 				
 				foreach($blacklisted_logins as $blacklisted_login) {
-					$time = new DateTime($blacklisted_login['blacklisted']);
-					$time->add(new DateInterval('PT' . $blacklisted_login['duration'] . 'S'));
+					list($lb_id, $lb_name, $lb_attempts, $lb_blacklisted,
+						$lb_duration, $lb_reason
+					) = array(
+						$blacklisted_login[$this->px[1] . 'id'],
+						$blacklisted_login[$this->px[1] . 'name'],
+						$blacklisted_login[$this->px[1] . 'attempts'],
+						$blacklisted_login[$this->px[1] . 'blacklisted'],
+						$blacklisted_login[$this->px[1] . 'duration'],
+						$blacklisted_login[$this->px[1] . 'reason']
+					);
+					
+					$time = new \DateTime($lb_blacklisted);
+					$time->add(new \DateInterval('PT' . $lb_duration . 'S'));
 					$expiration = $time->format('Y-m-d H:i:s');
 					
 					// Check whether the blacklist has expired
-					if(date('Y-m-d H:i:s') >= $expiration && $blacklisted_login['duration'] !== 0) {
-						$rs_query->delete('login_blacklist', array('name' => $blacklisted_login['name']));
+					if(date('Y-m-d H:i:s') >= $expiration && $lb_duration !== 0) {
+						$rs_query->delete($this->tables[1], array(
+							$this->px[1] . 'name' => $lb_name
+						));
 						
-						$bl_logins = $rs_query->select('login_blacklist', '*',
-							array(), 'blacklisted', 'DESC', array(
-								$paged['start'],
-								$paged['per_page']
-							)
-						);
+						$bl_logins = $rs_query->select($this->tables[1], '*', array(), array(
+							'order_by' => $order_by,
+							'order' => $order,
+							'limit' => array($this->paged['start'], $this->paged['per_page'])
+						));
 						
 						if(empty($bl_logins)) {
 							echo tableRow(tdCell('There are no blacklisted logins to display.', '',
-								count($table_header_cols)
+								count($header_cols)
 							));
 							break;
 						} else {
@@ -561,13 +640,13 @@ class Login {
 						userHasPrivilege('can_edit_login_blacklist') ? actionLink('edit', array(
 							'caption' => 'Edit',
 							'page' => 'blacklist',
-							'id' => $blacklisted_login['id']
+							'id' => $lb_id
 						)) : null,
 						// Whitelist
 						userHasPrivilege('can_delete_login_blacklist') ? actionLink('whitelist', array(
 							'caption' => 'Whitelist',
 							'page' => 'blacklist',
-							'id' => $blacklisted_login['id']
+							'id' => $lb_id
 						)) : null
 					);
 					
@@ -576,50 +655,48 @@ class Login {
 					
 					echo tableRow(
 						// Name
-						tdCell('<strong>' . $blacklisted_login['name'] . '</strong><div class="actions">' .
-							implode(' &bull; ', $actions) . '</div>', 'name'),
+						tdCell(domTag('strong', array(
+							'content' => $lb_name
+						)) . domTag('div', array(
+							'class' => 'actions',
+							'content' => implode(' &bull; ', $actions)
+						)), 'name'),
 						// Attempts
-						tdCell($blacklisted_login['attempts'], 'attempts'),
+						tdCell($lb_attempts, 'attempts'),
 						// Blacklisted
-						tdCell(formatDate($blacklisted_login['blacklisted'], 'd M Y @ g:i A'), 'blacklisted'),
+						tdCell(formatDate($lb_blacklisted, 'd M Y @ g:i A'), 'blacklisted'),
 						// Expiration
-						tdCell($blacklisted_login['duration'] === 0 ? 'Indefinite' :
-							formatDate($expiration, 'd M Y @ g:i A'), 'expiration'),
+						tdCell($lb_duration === 0 ? 'Indefinite' : formatDate($expiration, 'd M Y @ g:i A'), 'expiration'),
 						// Reason
-						tdCell($blacklisted_login['reason'], 'reason')
+						tdCell($lb_reason, 'reason')
 					);
 				}
 				
 				if(empty($blacklisted_logins)) {
 					echo tableRow(tdCell('There are no blacklisted logins to display.', '',
-						count($table_header_cols)
+						count($header_cols)
 					));
 				}
 				?>
 			</tbody>
 			<tfoot>
-				<?php echo tableHeaderRow($table_header_cols); ?>
+				<?php echo tableHeaderRow($header_cols); ?>
 			</tfoot>
 		</table>
 		<?php
 		// Set up page navigation
-		echo pagerNav($paged['current'], $paged['count']);
+		echo pagerNav($this->paged['current'], $this->paged['count']);
 	}
 	
 	/**
 	 * Create a blacklisted login.
-	 * @since 1.2.0[b]{ss-03}
+	 * @since 1.2.0-beta_snap-03
 	 *
 	 * @access public
 	 */
 	public function createBlacklist(): void {
-		// Validate the form data and return any messages
-		$message = isset($_POST['submit']) ? $this->validateBlacklistData($_POST, 'create') : '';
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Create Login Blacklist</h1>
-			<?php echo $message; ?>
-		</div>
 		<div class="data-form-wrap clear">
 			<form class="data-form" action="" method="post" autocomplete="off">
 				<table class="form-table">
@@ -627,14 +704,17 @@ class Login {
 					// Name
 					echo formRow(array('Name', true), array(
 						'tag' => 'input',
+						'id' => 'name-field',
 						'class' => 'text-input required invalid init',
 						'name' => 'name',
-						'value' => ($_POST['name'] ?? '')
+						'value' => ($_POST['name'] ?? ''),
+						'autocomplete' => 'off'
 					));
 					
 					// Duration
 					echo formRow(array('Duration (seconds)', true), array(
 						'tag' => 'input',
+						'id' => 'duration-field',
 						'class' => 'text-input required invalid init',
 						'name' => 'duration',
 						'maxlength' => 15,
@@ -644,6 +724,7 @@ class Login {
 					// Reason
 					echo formRow(array('Reason', true), array(
 						'tag' => 'textarea',
+						'id' => 'reason-field',
 						'class' => 'textarea-input required invalid init',
 						'name' => 'reason',
 						'cols' => 30,
@@ -652,7 +733,10 @@ class Login {
 					));
 					
 					// Separator
-					echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+					echo formRow('', array(
+						'tag' => 'hr',
+						'class' => 'separator'
+					));
 					
 					// Submit button
 					echo formRow('', array(
@@ -671,7 +755,7 @@ class Login {
 	
 	/**
 	 * Edit a blacklisted login.
-	 * @since 1.2.0[b]{ss-02}
+	 * @since 1.2.0-beta_snap-02
 	 *
 	 * @access public
 	 */
@@ -679,15 +763,10 @@ class Login {
 		global $rs_query;
 		
 		if(empty($this->id) || $this->id <= 0) {
-			redirect(ADMIN_URI . '?page=blacklist');
+			redirect(ADMIN_URI . '?page=' . $this->page);
 		} else {
-			// Validate the form data and return any messages
-			$message = isset($_POST['submit']) ? $this->validateBlacklistData($_POST, 'edit') : '';
+			$this->pageHeading();
 			?>
-			<div class="heading-wrap">
-				<h1>Edit Login Blacklist</h1>
-				<?php echo $message; ?>
-			</div>
 			<div class="data-form-wrap clear">
 				<form class="data-form" action="" method="post" autocomplete="off">
 					<table class="form-table">
@@ -700,15 +779,10 @@ class Login {
 							'value' => $this->name
 						));
 						
-						// Name
-						echo formRow('Name', array(
-							'tag' => 'span',
-							'content' => $this->name
-						));
-						
 						// Duration
 						echo formRow(array('Duration (seconds)', true), array(
 							'tag' => 'input',
+							'id' => 'duration-field',
 							'class' => 'text-input required invalid init',
 							'name' => 'duration',
 							'maxlength' => 15,
@@ -718,6 +792,7 @@ class Login {
 						// Reason
 						echo formRow(array('Reason', true), array(
 							'tag' => 'textarea',
+							'id' => 'reason-field',
 							'class' => 'textarea-input required invalid init',
 							'name' => 'reason',
 							'cols' => 30,
@@ -726,7 +801,10 @@ class Login {
 						));
 						
 						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+						echo formRow('', array(
+							'tag' => 'hr',
+							'class' => 'separator'
+						));
 						
 						// Submit button
 						echo formRow('', array(
@@ -745,152 +823,8 @@ class Login {
 	}
 	
 	/**
-	 * Validate the "Blacklist Login/Blacklist IP Address/Edit Blacklist" form data.
-	 * @since 1.2.0[b]{ss-01}
-	 *
-	 * @access private
-	 * @param array $data -- The submission data.
-	 * @param string $action -- The current action.
-	 * @return string
-	 */
-	private function validateBlacklistData(array $data, string $action): string {
-		global $rs_query, $session;
-		
-		if((empty($data['duration']) && $data['duration'] != 0) || empty($data['reason']))
-			return exitNotice('REQ', -1);
-		
-		if($data['name'] === $session['username'] || $data['name'] === $_SERVER['REMOTE_ADDR'])
-			return exitNotice('You cannot blacklist yourself!', -1);
-		
-		if($action !== 'edit' && $this->blacklistExits($data['name'])) {
-			return exitNotice('This ' . ($action === 'login' ? 'login ' : 'IP address') .
-				' is already blacklisted!', -1);
-		}
-		
-		// Check which action has been submitted
-		switch($action) {
-			case 'login':
-				$attempts = $rs_query->select('login_attempts', 'COUNT(*)', array(
-					'login' => $data['name']
-				));
-				
-				$rs_query->insert('login_blacklist', array(
-					'name' => $data['name'],
-					'attempts' => $attempts,
-					'blacklisted' => 'NOW()',
-					'duration' => $data['duration'],
-					'reason' => $data['reason']
-				));
-				
-				$session = $rs_query->selectField('users', 'session', array(
-					'logic' => 'OR',
-					'username' => $data['name'],
-					'email' => $data['name']
-				));
-				
-				// Log the user out if they're logged in
-				if(!is_null($session)) {
-					$rs_query->update('users', array('session' => null), array(
-						'session' => $session
-					));
-					
-					if($_COOKIE['session'] === $session)
-						setcookie('session', '', 1, '/');
-				}
-				
-				redirect(ADMIN_URI . '?exit_status=success&blacklist=login');
-				break;
-			case 'ip_address':
-				$attempts = $rs_query->select('login_attempts', 'COUNT(*)', array(
-					'ip_address' => $data['name']
-				));
-				
-				$rs_query->insert('login_blacklist', array(
-					'name' => $data['name'],
-					'attempts' => $attempts,
-					'blacklisted' => 'NOW()',
-					'duration' => $data['duration'],
-					'reason' => $data['reason']
-				));
-				
-				$logins = $rs_query->select('login_attempts', array('DISTINCT', 'login'), array(
-					'ip_address' => $data['name']
-				));
-				
-				foreach($logins as $login) {
-					$session = $rs_query->selectRow('users', 'session', array(
-						'logic' => 'OR',
-						'username' => $login['login'],
-						'email' => $login['login']
-					));
-					
-					// Log the user out if they're logged in
-					if(!is_null($session)) {
-						$rs_query->update('users', array('session' => null), array(
-							'session' => $session
-						));
-						
-						if($_COOKIE['session'] === $session)
-							setcookie('session', '', 1, '/');
-					}
-				}
-				
-				redirect(ADMIN_URI . '?exit_status=success&blacklist=ip_address');
-				break;
-			case 'create':
-				if(empty($data['name']))
-					return exitNotice('REQ', -1);
-				
-				$attempts = $rs_query->select('login_attempts', 'COUNT(*)', array(
-					'logic' => 'OR',
-					'login' => $data['name'],
-					'ip_address' => $data['name']
-				));
-				
-				$rs_query->insert('login_blacklist', array(
-					'name' => $data['name'],
-					'attempts' => $attempts,
-					'blacklisted' => 'NOW()',
-					'duration' => $data['duration'],
-					'reason' => $data['reason']
-				));
-				
-				$session = $rs_query->selectField('users', 'session', array(
-					'logic' => 'OR',
-					'username' => $data['name'],
-					'email' => $data['name']
-				));
-				
-				// Log the user out if they're logged in
-				if(!is_null($session)) {
-					$rs_query->update('users', array('session' => null), array(
-						'session' => $session
-					));
-					
-					if($_COOKIE['session'] === $session)
-						setcookie('session', '', 1, '/');
-				}
-				
-				redirect(ADMIN_URI . '?page=blacklist');
-				break;
-			case 'edit':
-				$rs_query->update('login_blacklist', array(
-					'duration' => $data['duration'],
-					'reason' => $data['reason']
-				), array('name' => $data['name']));
-				
-				// Update the class variables
-				foreach($data as $key => $value) $this->$key = $value;
-				
-				return exitNotice('Blacklist updated! <a href="' . ADMIN_URI .
-					'?page=blacklist">Return to list</a>?');
-				break;
-		}
-	}
-	
-	/**
 	 * Whitelist a blacklisted login or IP address.
-	 * @since 1.2.0[b]{ss-02}
+	 * @since 1.2.0-beta_snap-02
 	 *
 	 * @access public
 	 */
@@ -898,31 +832,19 @@ class Login {
 		global $rs_query;
 		
 		if(empty($this->id) || $this->id <= 0) {
-			redirect(ADMIN_URI . '?page=blacklist');
+			redirect(ADMIN_URI . '?page=' . $this->page);
 		} else {
-			$rs_query->delete('login_blacklist', array('id' => $this->id));
+			$rs_query->delete($this->tables[1], array(
+				$this->px[1] . 'id' => $this->id
+			));
 			
-			redirect(ADMIN_URI . '?page=blacklist&exit_status=success');
+			redirect(ADMIN_URI . '?page=' . $this->page . '&exit_status=wl_success');
 		}
 	}
 	
 	/**
-	 * Check whether a blacklist already exists in the database.
-	 * @since 1.2.0[b]{ss-02}
-	 *
-	 * @access private
-	 * @param string $name -- The blacklist's name.
-	 * @return bool
-	 */
-	private function blacklistExits(string $name): bool {
-		global $rs_query;
-		
-		return $rs_query->selectRow('login_blacklist', 'COUNT(name)', array('name' => $name)) > 0;
-	}
-	
-	/**
 	 * Construct a list of all login rules in the database.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access public
 	 */
@@ -930,58 +852,45 @@ class Login {
 		global $rs_query;
 		
 		// Query vars
-		$paged = paginate((int)($_GET['paged'] ?? 1));
+		$this->paged = paginate((int)($_GET['paged'] ?? 1));
+		
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Login Rules</h1>
-			<?php
-			// Check whether the user has sufficient privileges to create login rules
-			if(userHasPrivilege('can_create_login_rules')) {
-				echo actionLink('create', array(
-					'classes' => 'button',
-					'caption' => 'Create New',
-					'page' => 'rules'
-				));
-			}
-			
-			adminInfo();
-			?>
-			<hr>
-			<?php
-			if(isset($_GET['exit_status']) && $_GET['exit_status'] === 'success')
-				echo exitNotice('The rule was successfully deleted.');
-			
-			$count = $rs_query->select('login_rules', 'COUNT(*)');
-			$paged['count'] = ceil($count / $paged['per_page']);
-			?>
-			<div class="entry-count">
-				<?php echo $count . ' ' . ($count === 1 ? 'entry' : 'entries'); ?>
-			</div>
-		</div>
 		<table class="data-table">
 			<thead>
 				<?php
-				$table_header_cols = array('Rule');
+				$header_cols = array(
+					'rule' => 'Rule'
+				);
 				
-				echo tableHeaderRow($table_header_cols);
+				echo tableHeaderRow($header_cols);
 				?>
 			</thead>
 			<tbody>
 				<?php
-				$login_rules = $rs_query->select('login_rules', '*',
-					array(), 'attempts', 'ASC', array(
-						$paged['start'],
-						$paged['per_page']
-					)
-				);
+				$order_by = $this->px[2] . 'attempts';
+				$order = 'ASC';
+				
+				$login_rules = $rs_query->select($this->tables[2], '*', array(), array(
+					'order_by' => $order_by,
+					'order' => $order,
+					'limit' => array($this->paged['start'], $this->paged['per_page'])
+				));
 				
 				foreach($login_rules as $login_rule) {
+					list($lr_id, $lr_type, $lr_attempts, $lr_duration) = array(
+						$login_rule[$this->px[2] . 'id'],
+						$login_rule[$this->px[2] . 'type'],
+						$login_rule[$this->px[2] . 'attempts'],
+						$login_rule[$this->px[2] . 'duration']
+					);
+					
 					$actions = array(
 						// Edit
 						userHasPrivilege('can_edit_login_rules') ? actionLink('edit', array(
 							'caption' => 'Edit',
 							'page' => 'rules',
-							'id' => $login_rule['id']
+							'id' => $lr_id
 						)) : null,
 						// Delete
 						userHasPrivilege('can_delete_login_rules') ? actionLink('delete', array(
@@ -989,7 +898,7 @@ class Login {
 							'data_item' => 'login rule',
 							'caption' => 'Delete',
 							'page' => 'rules',
-							'id' => $login_rule['id']
+							'id' => $lr_id
 						)) : null
 					);
 					
@@ -997,44 +906,43 @@ class Login {
 					$actions = array_filter($actions);
 					
 					echo tableRow(
-						tdCell('If failed login attempts exceed <strong>' . $login_rule['attempts'] .
-							'</strong>, blacklist the <strong>' . ($login_rule['type'] === 'ip_address' ?
-							'IP address' : $login_rule['type']) . '</strong> ' .
-							($login_rule['duration'] !== 0 ? 'for ' : '') . '<strong>' .
-							$this->formatDuration($login_rule['duration']) .
-							'</strong>.<div class="actions">' . implode(' &bull; ', $actions) . '</div>')
+						tdCell('If failed login attempts exceed ' . domTag('strong', array(
+							'content' => $lr_attempts
+						)) . ', blacklist the ' . domTag('strong', array(
+							'content' => ($lr_type === 'ip_address' ? 'IP address' : $lr_type)
+						)) . ' ' . ($lr_duration !== 0 ? 'for ' : '') . domTag('strong', array(
+							'content' => $this->formatDuration($lr_duration)
+						)) . '.' . domTag('div', array(
+							'class' => 'actions',
+							'content' => implode(' &bull; ', $actions)
+						)), 'rule')
 					);
 				}
 				
 				if(empty($login_rules))
-					echo tableRow(tdCell('There are no login rules to display.', '', count($table_header_cols)));
+					echo tableRow(tdCell('There are no login rules to display.', '', count($header_cols)));
 				?>
 			</tbody>
 			<tfoot>
-				<?php echo tableHeaderRow($table_header_cols); ?>
+				<?php echo tableHeaderRow($header_cols); ?>
 			</tfoot>
 		</table>
 		<?php
 		// Set up page navigation
-		echo pagerNav($paged['current'], $paged['count']);
+		echo pagerNav($this->paged['current'], $this->paged['count']);
 		
         include_once PATH . ADMIN . INC . '/modal-delete.php';
 	}
 	
 	/**
 	 * Create a login rule.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access public
 	 */
 	public function createRule(): void {
-		// Validate the form data and return any messages
-		$message = isset($_POST['submit']) ? $this->validateRuleData($_POST) : '';
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<h1>Create Login Rule</h1>
-			<?php echo $message; ?>
-		</div>
 		<div class="data-form-wrap clear">
 			<form class="data-form" action="" method="post" autocomplete="off">
 				<table class="form-table">
@@ -1042,6 +950,7 @@ class Login {
 					// Type
 					echo formRow('Type', array(
 						'tag' => 'select',
+						'id' => 'type-field',
 						'class' => 'select-input',
 						'name' => 'type',
 						'content' => domTag('option', array(
@@ -1056,6 +965,7 @@ class Login {
 					// Attempts
 					echo formRow(array('Attempts', true), array(
 						'tag' => 'input',
+						'id' => 'attempts-field',
 						'class' => 'text-input required invalid init',
 						'name' => 'attempts',
 						'maxlength' => 6,
@@ -1065,6 +975,7 @@ class Login {
 					// Duration
 					echo formRow(array('Duration (seconds)', true), array(
 						'tag' => 'input',
+						'id' => 'duration-field',
 						'class' => 'text-input required invalid init',
 						'name' => 'duration',
 						'maxlength' => 15,
@@ -1072,7 +983,10 @@ class Login {
 					));
 					
 					// Separator
-					echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+					echo formRow('', array(
+						'tag' => 'hr',
+						'class' => 'separator'
+					));
 					
 					// Submit button
 					echo formRow('', array(
@@ -1091,7 +1005,7 @@ class Login {
 	
 	/**
 	 * Edit a login rule.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access public
 	 */
@@ -1099,15 +1013,10 @@ class Login {
 		global $rs_query;
 		
 		if(empty($this->id) || $this->id <= 0) {
-			redirect(ADMIN_URI . '?page=rules');
+			redirect(ADMIN_URI . '?page=' . $this->page);
 		} else {
-			// Validate the form data and return any messages
-			$message = isset($_POST['submit']) ? $this->validateRuleData($_POST, $this->id) : '';
+			$this->pageHeading();
 			?>
-			<div class="heading-wrap">
-				<h1>Edit Login Rule</h1>
-				<?php echo $message; ?>
-			</div>
 			<div class="data-form-wrap clear">
 				<form class="data-form" action="" method="post" autocomplete="off">
 					<table class="form-table">
@@ -1115,12 +1024,12 @@ class Login {
 						// Type
 						echo formRow('Type', array(
 							'tag' => 'select',
+							'id' => 'type-field',
 							'class' => 'select-input',
 							'name' => 'type',
 							'content' => domTag('option', array(
 								'value' => $this->type,
-								'content' => ($this->type === 'ip_address' ?
-									'IP Address' : ucfirst($this->type))
+								'content' => ($this->type === 'ip_address' ? 'IP Address' : ucfirst($this->type))
 							)) . ($this->type === 'login' ?
 								domTag('option', array(
 									'value' => 'ip_address',
@@ -1136,6 +1045,7 @@ class Login {
 						// Attempts
 						echo formRow(array('Attempts', true), array(
 							'tag' => 'input',
+							'id' => 'attempts-field',
 							'class' => 'text-input required invalid init',
 							'name' => 'attempts',
 							'maxlength' => 6,
@@ -1145,6 +1055,7 @@ class Login {
 						// Duration
 						echo formRow(array('Duration (seconds)', true), array(
 							'tag' => 'input',
+							'id' => 'duration-field',
 							'class' => 'text-input required invalid init',
 							'name' => 'duration',
 							'maxlength' => 15,
@@ -1152,7 +1063,10 @@ class Login {
 						));
 						
 						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
+						echo formRow('', array(
+							'tag' => 'hr',
+							'class' => 'separator'
+						));
 						
 						// Submit button
 						echo formRow('', array(
@@ -1172,7 +1086,7 @@ class Login {
 	
 	/**
 	 * Delete a login rule.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access public
 	 */
@@ -1180,59 +1094,490 @@ class Login {
 		global $rs_query;
 		
 		if(empty($this->id) || $this->id <= 0) {
-			redirect(ADMIN_URI . '?page=rules');
+			redirect(ADMIN_URI . '?page=' . $this->page);
 		} else {
-			$rs_query->delete('login_rules', array('id' => $this->id));
+			$rs_query->delete($this->tables[2], array(
+				$this->px[2] . 'id' => $this->id
+			));
 			
-			redirect(ADMIN_URI . '?page=rules&exit_status=success');
+			redirect(ADMIN_URI . '?page=' . $this->page . '&exit_status=rule_del_success');
+		}
+	}
+	
+	/*------------------------------------*\
+		VALIDATION
+	\*------------------------------------*/
+	
+	/**
+	 * Validate the "Blacklist Login/Blacklist IP Address/Edit Blacklist" form data.
+	 * @since 1.2.0-beta_snap-01
+	 *
+	 * @access private
+	 * @param array $data -- The submission data.
+	 * @return string
+	 */
+	private function validateBlacklistSubmission(array $data): string {
+		global $rs_query, $session;
+		
+		if((empty($data['duration']) && $data['duration'] != 0) || empty($data['reason'])) {
+			return exitNotice('REQ', -1);
+			exit;
+		}
+		
+		if($data['name'] === $session['username'] || $data['name'] === $_SERVER['REMOTE_ADDR']) {
+			return exitNotice('You cannot blacklist yourself!', -1);
+			exit;
+		}
+		
+		if($this->action !== 'edit' && $this->blacklistExists($data['name'])) {
+			return exitNotice('This ' . ($this->action === 'login' ? 'login ' : 'IP address') .
+				' is already blacklisted!', -1);
+			exit;
+		}
+		
+		switch($this->action) {
+			case 'blacklist_login':
+				$attempts = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+					$this->px[0] . 'login' => $data['name']
+				));
+				
+				$rs_query->insert($this->tables[1], array(
+					$this->px[1] . 'name' => $data['name'],
+					$this->px[1] . 'attempts' => $attempts,
+					$this->px[1] . 'blacklisted' => 'NOW()',
+					$this->px[1] . 'duration' => $data['duration'],
+					$this->px[1] . 'reason' => $data['reason']
+				));
+				
+				$session = $rs_query->selectField('users', 'u_session', array(
+					'logic' => 'OR',
+					'u_username' => $data['name'],
+					'u_email' => $data['name']
+				));
+				
+				// Log the user out if they're logged in
+				if(!is_null($session)) {
+					$rs_query->update('users', array(
+						'u_session' => null
+					), array(
+						'u_session' => $session
+					));
+					
+					if($_COOKIE['session'] === $session)
+						setcookie('session', '', 1, '/');
+				}
+				
+				redirect(ADMIN_URI . '?exit_status=bl_success&blacklist=login');
+				break;
+			case 'blacklist_ip':
+				$attempts = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+					$this->px[0] . 'ip_address' => $data['name']
+				));
+				
+				$rs_query->insert($this->tables[1], array(
+					$this->px[1] . 'name' => $data['name'],
+					$this->px[1] . 'attempts' => $attempts,
+					$this->px[1] . 'blacklisted' => 'NOW()',
+					$this->px[1] . 'duration' => $data['duration'],
+					$this->px[1] . 'reason' => $data['reason']
+				));
+				
+				$logins = $rs_query->select($this->tables[0], array('DISTINCT', $this->px[0] . 'login'), array(
+					$this->px[0] . 'ip_address' => $data['name']
+				));
+				
+				foreach($logins as $login) {
+					$session = $rs_query->selectRow('users', 'u_session', array(
+						'logic' => 'OR',
+						'u_username' => $login['login'],
+						'u_email' => $login['login']
+					));
+					
+					// Log the user out if they're logged in
+					if(!is_null($session)) {
+						$rs_query->update('users', array(
+							'u_session' => null
+						), array(
+							'u_session' => $session
+						));
+						
+						if($_COOKIE['session'] === $session)
+							setcookie('session', '', 1, '/');
+					}
+				}
+				
+				redirect(ADMIN_URI . '?exit_status=bl_success&blacklist=ip_address');
+				break;
+			case 'create':
+				if(empty($data['name'])) {
+					return exitNotice('REQ', -1);
+					exit;
+				}
+				
+				$attempts = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+					'logic' => 'OR',
+					$this->px[0] . 'login' => $data['name'],
+					$this->px[0] . 'ip_address' => $data['name']
+				));
+				
+				$insert_id = $rs_query->insert($this->tables[1], array(
+					$this->px[1] . 'name' => $data['name'],
+					$this->px[1] . 'attempts' => $attempts,
+					$this->px[1] . 'blacklisted' => 'NOW()',
+					$this->px[1] . 'duration' => $data['duration'],
+					$this->px[1] . 'reason' => $data['reason']
+				));
+				
+				$session = $rs_query->selectField('users', 'u_session', array(
+					'logic' => 'OR',
+					'u_username' => $data['name'],
+					'u_email' => $data['name']
+				));
+				
+				// Log the user out if they're logged in
+				if(!is_null($session)) {
+					$rs_query->update('users', array(
+						'u_session' => null
+					), array(
+						'u_session' => $session
+					));
+					
+					if($_COOKIE['session'] === $session)
+						setcookie('session', '', 1, '/');
+				}
+				
+				redirect(ADMIN_URI . '?page=' . $this->page . '&id=' . $insert_id . '&action=edit&exit_status=bl_create_success');
+				break;
+			case 'edit':
+				$rs_query->update($this->tables[1], array(
+					$this->px[1] . 'duration' => $data['duration'],
+					$this->px[1] . 'reason' => $data['reason']
+				), array(
+					$this->px[1] . 'name' => $data['name']
+				));
+				
+				foreach($data as $key => $value) $this->$key = $value;
+				
+				redirect(ADMIN_URI . '?page=' . $this->page . '&id=' . $this->id . '&action=edit&exit_status=bl_edit_success');
+				break;
 		}
 	}
 	
 	/**
 	 * Validate the login rules form data.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access private
 	 * @param array $data -- The submission data.
-	 * @param int $id (optional) -- The login rule's id.
 	 * @return string
 	 */
-	private function validateRuleData(array $data, int $id = 0): string {
+	private function validateRuleSubmission(array $data): string {
 		global $rs_query;
 		
-		if(empty($data['attempts']) || (empty($data['duration']) && $data['duration'] != 0))
+		if(empty($data['attempts']) || (empty($data['duration']) && $data['duration'] != 0)) {
 			return exitNotice('REQ', -1);
+			exit;
+		}
 		
 		if($data['type'] !== 'login' && $data['type'] !== 'ip_address')
 			$data['type'] = 'login';
 		
-		if($id === 0) {
-			// New rule
-			$insert_id = $rs_query->insert('login_rules', array(
-				'type' => $data['type'],
-				'attempts' => $data['attempts'],
-				'duration' => $data['duration']
+		switch($this->action) {
+			case 'create':
+				$insert_id = $rs_query->insert($this->tables[2], array(
+					$this->px[2] . 'type' => $data['type'],
+					$this->px[2] . 'attempts' => $data['attempts'],
+					$this->px[2] . 'duration' => $data['duration']
+				));
+				
+				redirect(ADMIN_URI . '?page=' . $this->page . '&id=' . $insert_id . '&action=edit&exit_status=rule_create_success');
+				break;
+			case 'edit':
+				$rs_query->update($this->tables[2], array(
+					$this->px[2] . 'type' => $data['type'],
+					$this->px[2] . 'attempts' => $data['attempts'],
+					$this->px[2] . 'duration' => $data['duration']
+				), array(
+					$this->px[2] . 'id' => $this->id
+				));
+				
+				foreach($data as $key => $value) $this->$key = $value;
+				
+				redirect(ADMIN_URI . '?page=' . $this->page . '&id=' . $this->id . '&action=edit&exit_status=rule_edit_success');
+		}
+	}
+	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
+	/**
+	 * Construct the page heading.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access public
+	 */
+	public function pageHeading(): void {
+		global $rs_query;
+		
+		switch($this->page) {
+			case 'blacklist':
+				switch($this->action) {
+					case 'create':
+						$title = 'Create Login Blacklist';
+						$message = isset($_POST['submit']) ? $this->validateBlacklistSubmission($_POST) : '';
+						break;
+					case 'edit':
+						$title = 'Edit Login Blacklist: { ' . domTag('em', array(
+							'content' => $this->name
+						)) . ' }';
+						$message = isset($_POST['submit']) ? $this->validateBlacklistSubmission($_POST) : '';
+						break;
+					default:
+						$title = 'Login Blacklist';
+						$search = $_GET['search'] ?? null;
+				}
+				break;
+			case 'rules':
+				switch($this->action) {
+					case 'create':
+						$title = 'Create Login Rule';
+						$message = isset($_POST['submit']) ? $this->validateRuleSubmission($_POST) : '';
+						break;
+					case 'edit':
+						$title = 'Edit Login Rule: { ' . domTag('em', array(
+							'content' => $this->type
+						)) . ' }';
+						$message = isset($_POST['submit']) ? $this->validateRuleSubmission($_POST) : '';
+						break;
+					default:
+						$title = 'Login Rules';
+				}
+				break;
+			default:
+				switch($this->action) {
+					case 'blacklist_login':
+						$title = 'Blacklist Login: { ' . domTag('em', array(
+							'content' => $this->login
+						)) . ' }';
+						$message = isset($_POST['submit']) ? $this->validateBlacklistSubmission($_POST) : '';
+						break;
+					case 'blacklist_ip':
+						$title = 'Blacklist IP Address: { ' . domTag('em', array(
+							'content' => $this->ip_address
+						)) . ' }';
+						$message = isset($_POST['submit']) ? $this->validateBlacklistSubmission($_POST) : '';
+						break;
+					default:
+						$title = 'Login Attempts';
+						$status = $_GET['status'] ?? 'all';
+						$search = $_GET['search'] ?? null;
+				}
+		}
+		?>
+		<div class="heading-wrap">
+			<?php
+			// Page title
+			echo domTag('h1', array(
+				'content' => $title
 			));
 			
-			redirect(ADMIN_URI . '?page=rules&id=' . $insert_id . '&action=edit');
-		} else {
-			// Existing rule
-			$rs_query->update('login_rules', array(
-				'type' => $data['type'],
-				'attempts' => $data['attempts'],
-				'duration' => $data['duration']
-			), array('id' => $id));
-			
-			// Update the class variables
-			foreach($data as $key => $value) $this->$key = $value;
-			
-			return exitNotice('Rule updated! <a href="' . ADMIN_URI . '?page=rules">Return to list</a>?');
-		}
+			if(!empty($this->action)) {
+				// Status messages
+				echo $message;
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
+			} else {
+				// Create button
+				if($this->page === 'blacklist' && userHasPrivilege('can_create_login_blacklist')) {
+					echo actionLink('create', array(
+						'classes' => 'button',
+						'caption' => 'Create New',
+						'page' => $this->page
+					));
+				}
+				
+				if($this->page === 'rules' && userHasPrivilege('can_create_login_rules')) {
+					echo actionLink('create', array(
+						'classes' => 'button',
+						'caption' => 'Create New',
+						'page' => $this->page
+					));
+				}
+				
+				// Search
+				switch($this->page) {
+					case 'blacklist':
+						recordSearch(array(
+							'page' => $this->page
+						));
+						break;
+					case 'rules':
+						// No search
+						break;
+					default:
+						recordSearch(array(
+							'status' => $status
+						));
+				}
+				
+				// Info
+				adminInfo();
+				
+				echo domTag('hr');
+				
+				// Notices
+				if(!getSetting('track_login_attempts')) {
+					echo notice('Login tracking is currently disabled. You can enable it on the ' . domTag('a', array(
+						'href' => ADMIN . '/settings.php',
+						'content' => 'settings page'
+					)) . '.', 2, false, true);
+				}
+				
+				// Exit notices
+				if(isset($_GET['exit_status'])) {
+					if(isset($_GET['blacklist']))
+						echo $this->exitNotice('bl_' . $_GET['blacklist'] . '_success');
+					else
+						echo $this->exitNotice($_GET['exit_status']);
+				}
+				
+				switch($this->page) {
+					case 'blacklist':
+						if(!is_null($search)) {
+							$count = $rs_query->select($this->tables[1], 'COUNT(*)', array(
+								$this->px[1] . 'name' => array('LIKE', '%' . $search . '%')
+							));
+						} else {
+							$count = $rs_query->select($this->tables[1], 'COUNT(*)');
+						}
+						
+						// Record count
+						echo domTag('div', array(
+							'class' => 'entry-count',
+							'content' => $count . ' ' . ($count === 1 ? 'entry' : 'entries')
+						));
+						
+						$this->paged['count'] = ceil($count / $this->paged['per_page']);
+						break;
+					case 'rules':
+						$count = $rs_query->select($this->tables[2], 'COUNT(*)');
+						
+						// Record count
+						echo domTag('div', array(
+							'class' => 'entry-count status',
+							'content' => $count . ' ' . ($count === 1 ? 'entry' : 'entries')
+						));
+						
+						$this->paged['count'] = ceil($count / $this->paged['per_page']);
+						break;
+					default:
+						?>
+						<ul class="status-nav">
+							<?php
+							$keys = array('all', 'success', 'failure');
+							$count = array();
+							
+							foreach($keys as $key) {
+								if($key === 'all') {
+									if(!is_null($search) && $key === $status)
+										$count[$key] = $this->getLoginCount('', $search);
+									else
+										$count[$key] = $this->getLoginCount();
+								} else {
+									if(!is_null($search) && $key === $status)
+										$count[$key] = $this->getLoginCount($key, $search);
+									else
+										$count[$key] = $this->getLoginCount($key);
+								}
+							}
+							
+							// Statuses
+							foreach($count as $key => $value) {
+								echo domTag('li', array(
+									'content' => domTag('a', array(
+										'href' => ADMIN_URI . ($key === 'all' ? '' : '?status=' . $key),
+										'content' => ucfirst($key) . ' ' . domTag('span', array(
+											'class' => 'count',
+											'content' => '(' . $value . ')'
+										))
+									))
+								));
+								
+								if($key !== array_key_last($count)) echo ' &bull; ';
+							}
+							?>
+						</ul>
+						<?php
+						// Record count
+						echo domTag('div', array(
+							'class' => 'entry-count status',
+							'content' => $count[$status] . ' ' . ($count[$status] === 1 ? 'entry' : 'entries')
+						));
+						
+						$this->paged['count'] = ceil($count[$status] / $this->paged['per_page']);
+				}
+			}
+			?>
+		</div>
+		<?php
+	}
+	
+	/**
+	 * Generate an exit notice.
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @param string $exit_status -- The exit status.
+	 * @param int $status_code (optional) -- The type of notice to display.
+	 * @return string
+	 */
+	private function exitNotice(string $exit_status, int $status_code = 1): string {
+		return exitNotice(match($exit_status) {
+			'bl_login_success' => 'The login was successfully blacklisted.',
+			'bl_ip_address_success' => 'The IP address was successfully blacklisted.',
+			'bl_create_success' => 'The blacklist was successfully created. ' . domTag('a', array(
+				'href' => ADMIN_URI . '?page=' . $this->page,
+				'content' => 'Return to list'
+			)) . '?',
+			'bl_edit_success' => 'Blacklist updated! ' . domTag('a', array(
+				'href' => ADMIN_URI . '?page=' . $this->page,
+				'content' => 'Return to list'
+			)) . '?',
+			'wl_success' => 'The login or IP address was successfully whitelisted.',
+			'rule_create_success' => 'The login rule was successfully created. ' . domTag('a', array(
+				'href' => ADMIN_URI . '?page=' . $this->page,
+				'content' => 'Return to list'
+			)) . '?',
+			'rule_edit_success' => 'Rule updated! ' . domTag('a', array(
+				'href' => ADMIN_URI . '?page=' . $this->page,
+				'content' => 'Return to list'
+			)) . '?',
+			'rule_del_success' => 'The rule was successfully deleted.',
+			default => 'The action was completed successfully.'
+		}, $status_code);
+	}
+	
+	/**
+	 * Check whether a blacklist already exists in the database.
+	 * @since 1.2.0-beta_snap-02
+	 *
+	 * @access private
+	 * @param string $name -- The blacklist's name.
+	 * @return bool
+	 */
+	private function blacklistExists(string $name): bool {
+		global $rs_query;
+		
+		return $rs_query->selectRow($this->tables[1], 'COUNT(' . $this->px[1] . 'name)', array(
+			$this->px[1] . 'name' => $name
+		)) > 0;
 	}
 	
 	/**
 	 * Format a duration in seconds to something more readable.
-	 * @since 1.2.0[b]{ss-05}
+	 * @since 1.2.0-beta_snap-05
 	 *
 	 * @access private
 	 * @param int $seconds -- The number of seconds.
@@ -1268,7 +1613,7 @@ class Login {
 	
 	/**
 	 * Fetch the login attempt count based on a specific status.
-	 * @since 1.3.2[b]
+	 * @since 1.3.2-beta
 	 *
 	 * @access private
 	 * @param string $status (optional) -- The login's status.
@@ -1280,20 +1625,22 @@ class Login {
 		
 		if(empty($status)) {
 			if(!empty($search)) {
-				return $rs_query->select('login_attempts', 'COUNT(*)', array(
-					'login' => array('LIKE', '%' . $search . '%')
+				return $rs_query->select($this->tables[0], 'COUNT(*)', array(
+					$this->px[0] . 'login' => array('LIKE', '%' . $search . '%')
 				));
 			} else {
-				return $rs_query->select('login_attempts', 'COUNT(*)');
+				return $rs_query->select($this->tables[0], 'COUNT(*)');
 			}
 		} else {
 			if(!empty($search)) {
-				return $rs_query->select('login_attempts', 'COUNT(*)', array(
-					'login' => array('LIKE', '%' . $search . '%'),
-					'status' => $status
+				return $rs_query->select($this->tables[0], 'COUNT(*)', array(
+					$this->px[0] . 'login' => array('LIKE', '%' . $search . '%'),
+					$this->px[0] . 'status' => $status
 				));
 			} else {
-				return $rs_query->select('login_attempts', 'COUNT(*)', array('status' => $status));
+				return $rs_query->select($this->tables[0], 'COUNT(*)', array(
+					$this->px[0] . 'status' => $status
+				));
 			}
 		}
 	}

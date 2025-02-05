@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class AnchorTag extends \DomTag implements DomTagInterface {
+class AnchorTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0

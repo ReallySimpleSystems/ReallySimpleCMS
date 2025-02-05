@@ -1,10 +1,13 @@
-/**
+/*!
  * Admin dashboard Harvest theme.
- * @since 2.1.9[a]
+ * @since 2.1.9-alpha
  * @version 1.7
+ *
+ * @package ReallySimpleCMS
  */
 
 :root {
+	
 	/* Background colors */
 	
 	--global--bg-color: #2f0f06;

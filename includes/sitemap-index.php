@@ -20,28 +20,22 @@ if(is_writable(PATH)) {
 	$robots_file_path = PATH . '/robots.txt';
 	$handle = opendir(PATH);
 	
-	while(($entry = readdir($handle)) !== false) {
-		// Check whether the current entry is a sitemap and assign it to the sitemaps array if so
+	while(($entry = readdir($handle)) !== false)
 		if(str_starts_with($entry, 'sitemap-')) $sitemaps[] = $entry;
-	}
 	
 	foreach($sitemaps as $sitemap) {
 		// Fetch the sitemap's name from the filename
 		$name = substr($sitemap, strpos($sitemap, '-') + 1, strpos($sitemap, '.') - strpos($sitemap, '-') - 1);
 		
-		// Check whether the current sitemap is of a registered post type or taxonomy and delete it if not
 		if(!in_array($name, $public_post_types, true) && !in_array($name, $public_taxonomies, true))
-			unlink(trailingSlash(PATH) . $sitemap);
+			unlink(slash(PATH) . $sitemap);
 	}
 	
 	if(file_exists($sitemap_file_path)) {
 		$file = simplexml_load_file($sitemap_file_path);
-		
-		// Fetch the number of sitemaps in the index
 		$count = count($file->sitemap);
 	}
 	
-	// Check whether the sitemap index already exists and whether the sitemap count matches the count in the root directory
 	if(!file_exists($sitemap_file_path) || file_exists($sitemap_file_path) && $count !== count($sitemaps)) {
 		$handle = fopen($sitemap_file_path, 'w');
 		
@@ -51,8 +45,9 @@ if(is_writable(PATH)) {
 		
 		foreach($sitemaps as $sitemap) {
 			fwrite($handle, '<sitemap>' . chr(10) . '<loc>' .
-				(!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . trailingSlash($_SERVER['HTTP_HOST']) .
-				$sitemap . '</loc>' . chr(10) . '</sitemap>');
+				(!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . slash($_SERVER['HTTP_HOST']) .
+				$sitemap . '</loc>' . chr(10) . '</sitemap>'
+			);
 		}
 		
 		fwrite($handle, '</sitemapindex>');

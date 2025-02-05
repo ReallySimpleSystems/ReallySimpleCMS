@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class OptionTag extends \DomTag implements DomTagInterface {
+class OptionTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0

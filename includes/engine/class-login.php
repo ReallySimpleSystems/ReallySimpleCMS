@@ -6,6 +6,40 @@
  *
  * @package ReallySimpleCMS
  * @subpackage Engine
+ *
+ * ## CONSTANTS ##
+ * - private int PW_LENGTH
+ *
+ * ## VARIABLES ##
+ * - private bool $https
+ * - private string $ip_address
+ * - private string $login_uri
+ * - private array $tables
+ * - private array $px
+ *
+ * ## METHODS ##
+ * - public __construct()
+ * FORMS & ACTIONS:
+ * - public logInForm(): void
+ * - public forgotPasswordForm(): void
+ * - public resetPasswordForm(): void
+ * - public userLogout(string $session): void
+ * VALIDATION:
+ * - private validateLoginSubmission(array $data): string
+ * - private validateForgotPasswordSubmission(array $data): string
+ * - private validateResetPasswordSubmission(array $data): string
+ * MISCELLANEOUS:
+ * - private sessionExists(string $session): bool
+ * - private emailExists(string $email): bool
+ * - private usernameExists(string $username): bool
+ * - private isValidPassword(string $login, string $password): bool
+ * - private isValidCaptcha(string $captcha): bool
+ * - private isValidCookie(string $login, string $key): bool
+ * - private isBlacklisted(string $login): bool
+ * - private shouldBlacklist(string $ip_address, string $login): void
+ * - private getBlacklistDuration(string $name): int
+ * - private sanitizeData(string $data, ?string $filter): string
+ * - private statusMsg(string $text, bool $success): string
  */
 namespace Engine;
 
@@ -47,6 +81,26 @@ class Login {
 	private $login_uri;
 	
 	/**
+	 * The associated database tables.
+	 * 0 => `login_attempts`, 1 => `login_blacklist`, 2 => `login_rules`
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $tables = array('login_attempts', 'login_blacklist', 'login_rules');
+	
+	/**
+	 * The table prefixes.
+	 * 0 => `la_`, 1 => `lb_`, 2 => `lr_`
+	 * @since 1.4.0-beta_snap-02
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $px = array('la_', 'lb_', 'lr_');
+	
+	/**
 	 * Class constructor.
 	 * @since 1.1.4-beta
 	 *
@@ -64,6 +118,10 @@ class Login {
 			$this->login_uri = '/login.php';
 	}
 	
+	/*------------------------------------*\
+		FORMS & ACTIONS
+	\*------------------------------------*/
+	
 	/**
 	 * Construct the "Log In" form.
 	 * @since 2.0.3-alpha
@@ -79,476 +137,103 @@ class Login {
 		if(isset($_GET['pw_reset']) && $_GET['pw_reset'] === 'confirm')
 			echo $this->statusMsg('Your password has been successfully reset.', true);
 		
-		// Validate the form data and display any error messages
-		echo isset($_POST['submit']) ? $this->validateLoginData($_POST) : '';
+		// Validate the form data
+		echo isset($_POST['submit']) ? $this->validateLoginSubmission($_POST) : '';
 		?>
 		<form class="data-form" action="" method="post">
-			<p class="login-field">
-				<label for="login">Username or Email<br><input type="text" name="login" autofocus></label>
-			</p>
-			<p class="password-field">
-				<label for="password">Password<br><input type="password" name="password"></label><button type="button" id="password-toggle" class="button" title="Show Password" data-visibility="hidden"><i class="fa-regular fa-eye"></i></button>
-			</p>
-			<p class="captcha-field">
-				<label for="captcha">Captcha<br><input type="text" name="captcha" autocomplete="off"><img id="captcha" src="<?php echo INC . '/captcha.php'; ?>"></label>
-			</p>
-			<p class="remember-field">
-				<label class="checkbox-label"><input type="checkbox" name="remember_login" value="checked"> <span>Keep me logged in</span></label>
-			</p>
 			<?php
+			// Login
+			echo domTag('p', array(
+				'class' => 'login-field',
+				'content' => domTag('label', array(
+					'for' => 'login',
+					'content' => 'Username or Email' . domTag('br') . domTag('input', array(
+						'id' => 'login',
+						'name' => 'login',
+						'autofocus' => 1
+					))
+				))
+			));
+			
+			// Password
+			echo domTag('p', array(
+				'class' => 'password-field',
+				'content' => domTag('label', array(
+					'for' => 'password',
+					'content' => 'Password' . domTag('br') . domTag('input', array(
+						'type' => 'password',
+						'id' => 'password',
+						'name' => 'password'
+					))
+				)) . domTag('button', array(
+					'id' => 'password-toggle',
+					'class' => 'button',
+					'title' => 'Show Password',
+					'data-visibility' => 'hidden',
+					'content' => domTag('i', array(
+						'class' => 'fa-regular fa-eye'
+					))
+				))
+			));
+			
+			// Captcha
+			echo domTag('p', array(
+				'class' => 'captcha-field',
+				'content' => domTag('label', array(
+					'for' => 'captcha',
+					'content' => 'Captcha' . domTag('br') . domTag('input', array(
+						'id' => 'captcha',
+						'name' => 'captcha',
+						'autocomplete' => 'off'
+					)) . domTag('img', array(
+						'id' => 'captcha-image',
+						'src' => INC . '/captcha.php'
+					))
+				))
+			));
+			
+			// Remember login
+			echo domTag('p', array(
+				'class' => 'remember-field',
+				'content' => domTag('label', array(
+					'class' => 'checkbox-label',
+					'for' => 'remember-login',
+					'content' => domTag('input', array(
+						'type' => 'checkbox',
+						'id' => 'remember-login',
+						'name' => 'remember_login',
+						'value' => 'checked'
+					)) . ' ' . domTag('span', array(
+						'content' => 'Keep me logged in'
+					))
+				))
+			));
+			
+			// Redirect
 			if(isset($_GET['redirect'])) {
-				?>
-				<input type="hidden" name="redirect" value="<?php echo $_GET['redirect']; ?>">
-				<?php
+				echo domTag('input', array(
+					'type' => 'hidden',
+					'name' => 'redirect',
+					'value' => $_GET['redirect']
+				));
 			}
+			
+			// Submit button
+			echo domTag('input', array(
+				'type' => 'submit',
+				'class' => 'button',
+				'name' => 'submit',
+				'value' => 'Log In'
+			));
 			?>
-			<input type="submit" class="button" name="submit" value="Log In">
 		</form>
 		<?php
 		if(!isset($_GET['pw_forgot'])) {
-			?>
-			<a href="?action=forgot_password">Forgot your password?</a>
-			<?php
-		}
-	}
-	
-	/**
-	 * Validate the "Log In" form data and log the user in.
-	 * @since 2.0.0-alpha
-	 *
-	 * @access private
-	 * @param array $data -- The form data.
-	 * @return string
-	 */
-	private function validateLoginData($data): string {
-		global $rs_query;
-		
-		$offsite_redirect = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-		
-		if(empty($data['login']) || empty($data['password']) || empty($data['captcha']))
-			return $this->statusMsg('F');
-		
-		// Check whether the login used was an email
-		if(str_contains($data['login'], '@'))
-			$email = $this->sanitizeData($data['login'], FILTER_SANITIZE_EMAIL);
-		else
-			$username = $this->sanitizeData($data['login'], '/[^\w.]/i');
-		
-		$this->shouldBlacklist($this->ip_address, ($email ?? $username));
-		
-		if($this->isBlacklisted($this->ip_address)) {
-			// Check whether the blacklist duration is indefinite and redirect off-site if so
-			if($this->getBlacklistDuration($this->ip_address) === 0) {
-				redirect($offsite_redirect);
-			} // Otherwise, return an error
-			elseif($this->getBlacklistDuration($this->ip_address) > 0) {
-				return $this->statusMsg('You\'re attempting to log in too fast! Try again later.');
-			}
-		}
-		
-		if($this->isBlacklisted($email ?? $username)) {
-			// Check whether the blacklist duration is indefinite and redirect off-site if so
-			if($this->getBlacklistDuration($email ?? $username) === 0) {
-				redirect($offsite_redirect);
-			} // Otherwise, return an error
-			elseif($this->getBlacklistDuration($email ?? $username) > 0) {
-				return $this->statusMsg('You\'re attempting to log in too fast! Try again later.');
-			}
-		}
-		
-		$password = $this->sanitizeData($data['password']);
-		$captcha = $this->sanitizeData($data['captcha'], '/[^a-zA-Z0-9]/i');
-		
-		if(getSetting('track_login_attempts')) {
-			$login_attempt = $rs_query->insert('login_attempts', array(
-				'login' => ($email ?? $username),
-				'ip_address' => $this->ip_address,
-				'date' => 'NOW()'
+			echo domTag('a', array(
+				'href' => '?action=forgot_password',
+				'content' => 'Forgot your password?'
 			));
 		}
-		
-		if(!$this->isValidCaptcha($captcha))
-			return $this->statusMsg('The captcha is not valid.');
-		
-		do {
-			// Generate a random hash for the session value
-			$session = generateHash(12);
-		} while($this->sessionExists($session));
-		
-		if(isset($email)) {
-			if(!$this->emailExists($email) || !$this->isValidPassword($email, $password))
-				return $this->statusMsg('The email and/or password is not valid.');
-			
-			$rs_query->update('users', array(
-				'last_login' => 'NOW()',
-				'session' => $session
-			), array('email' => $email));
-		} elseif(isset($username)) {
-			if(!$this->usernameExists($username) || !$this->isValidPassword($username, $password))
-				return $this->statusMsg('The username and/or password is not valid.');
-			
-			$rs_query->update('users', array(
-				'last_login' => 'NOW()',
-				'session' => $session
-			), array('username' => $username));
-		}
-		
-		// Check whether the login attempt was tracked
-		if(isset($login_attempt))
-			$rs_query->update('login_attempts', array('status' => 'success'), array('id' => $login_attempt));
-		
-		if(isset($data['remember_login']) && $data['remember_login'] === 'checked') {
-			// Create a cookie with the session value that expires in 30 days
-			setcookie('session', $session, array(
-				'expires' => time() + 60 * 60 * 24 * 30,
-				'path' => '/',
-				'secure' => $this->https,
-				'httponly' => true,
-				'samesite' => 'Strict'
-			));
-		} else {
-			// Create a cookie with the session value that expires when the browser is closed
-			setcookie('session', $session, array(
-				'expires' => 0,
-				'path' => '/',
-				'secure' => $this->https,
-				'httponly' => true,
-				'samesite' => 'Strict'
-			));
-		}
-		
-		unset($_SESSION['secure_login']);
-		
-		if(isset($data['redirect']))
-			redirect($data['redirect']);
-		else
-			redirect(slash(ADMIN));
-	}
-	
-	/**
-	 * Check whether the login or IP address is blacklisted.
-	 * @since 1.2.0-beta_snap-01
-	 *
-	 * @access private
-	 * @param string $login -- The login or IP address.
-	 * @return bool
-	 */
-	private function isBlacklisted($login): bool {
-		global $rs_query;
-		
-		return $rs_query->select('login_blacklist', 'COUNT(name)', array('name' => $login)) > 0;
-	}
-	
-	/**
-	 * Check whether a password is valid.
-	 * @since 2.0.0-alpha
-	 *
-	 * @access private
-	 * @param string $login -- The username or email.
-	 * @param string $password -- The password.
-	 * @return bool
-	 */
-	private function isValidPassword($login, $password): bool {
-		global $rs_query;
-		
-		// Check whether the login used was an email
-		if(str_contains($login, '@'))
-			$db_password = $rs_query->selectField('users', 'password', array('email' => $login));
-		else
-			$db_password = $rs_query->selectField('users', 'password', array('username' => $login));
-		
-		return !empty($db_password) && password_verify($password, $db_password);
-	}
-	
-	/**
-	 * Check whether a captcha value is valid.
-	 * @since 2.0.0-alpha
-	 *
-	 * @access private
-	 * @param string $captcha -- The captcha value.
-	 * @return bool
-	 */
-	private function isValidCaptcha($captcha): bool {
-		return !empty($_SESSION['secure_login']) && $captcha === $_SESSION['secure_login'];
-	}
-	
-	/**
-	 * Check whether the login or IP address should be blacklisted.
-	 * @since 1.2.0-beta_snap-05
-	 *
-	 * @access private
-	 * @param string $ip_address -- The IP address.
-	 * @param string $login -- The login.
-	 */
-	private function shouldBlacklist($ip_address, $login): void {
-		global $rs_query;
-		
-		$last_blacklisted_ip = $rs_query->selectField('login_attempts', 'last_blacklisted_ip', array(
-			'ip_address' => $ip_address
-		), 'id', 'ASC', '1');
-		
-		$failed_logins = $rs_query->select('login_attempts', 'COUNT(*)', array(
-			'ip_address' => $ip_address,
-			'date' => array('>', $last_blacklisted_ip),
-			'status' => 'failure'
-		));
-		
-		$login_rules = $rs_query->select('login_rules', '*', array(
-			'type' => 'ip_address'
-		), 'attempts', 'DESC');
-		
-		foreach($login_rules as $login_rule) {
-			// Check whether the failed logins exceed the rule's threshold
-			if($failed_logins >= $login_rule['attempts']) {
-				if(!$this->isBlacklisted($ip_address)) {
-					$attempts = $rs_query->select('login_attempts', 'COUNT(*)', array(
-						'ip_address' => $ip_address,
-						'status' => 'failure'
-					));
-					
-					// Create a blacklist for the IP address
-					$rs_query->insert('login_blacklist', array(
-						'name' => $ip_address,
-						'attempts' => $attempts,
-						'blacklisted' => 'NOW()',
-						'duration' => $login_rule['duration'],
-						'reason' => 'too many failed login attempts'
-					));
-					
-					// Update the last blacklisted date of the IP address and return
-					$rs_query->update('login_attempts', array('last_blacklisted_ip' => 'NOW()'), array(
-						'ip_address' => $ip_address
-					));
-					
-					// Fetch all logins associated with the IP address from the database
-					$logins = $rs_query->select('login_attempts', array('DISTINCT', 'login'), array(
-						'ip_address' => $ip_address
-					));
-					
-					foreach($logins as $login) {
-						$session = $rs_query->selectField('users', 'session', array(
-							'logic' => 'OR',
-							'username' => $login['login'],
-							'email' => $login['login']
-						));
-						
-						if(!is_null($session)) {
-							$rs_query->update('users', array('session' => null), array('session' => $session));
-							
-							// Check whether the cookie's value matches the session value and delete it if so
-							if(isset($_COOKIE['session']) && $_COOKIE['session'] === $session)
-								setcookie('session', '', 1, '/');
-						}
-					}
-				}
-				
-				return;
-			}
-		}
-		
-		$last_blacklisted_login = $rs_query->selectField('login_attempts', 'last_blacklisted_login', array(
-			'login' => $login
-		), 'id', 'ASC', '1');
-		
-		$failed_logins = $rs_query->select('login_attempts', 'COUNT(*)', array(
-			'login' => $login,
-			'date' => array('>', $last_blacklisted_login),
-			'status' => 'failure'
-		));
-		
-		$login_rules = $rs_query->select('login_rules', '*', array(
-			'type' => 'login'
-		), 'attempts', 'DESC');
-		
-		foreach($login_rules as $login_rule) {
-			// Check whether the failed logins exceed the rule's threshold
-			if($failed_logins >= $login_rule['attempts']) {
-				if(!$this->isBlacklisted($login)) {
-					// Fetch the total number of failed login attempts from the database
-					$attempts = $rs_query->select('login_attempts', 'COUNT(*)', array(
-						'login' => $login,
-						'status' => 'failure'
-					));
-					
-					// Create a blacklist for the login
-					$rs_query->insert('login_blacklist', array(
-						'name' => $login,
-						'attempts' => $attempts,
-						'blacklisted' => 'NOW()',
-						'duration' => $login_rule['duration'],
-						'reason' => 'too many failed login attempts'
-					));
-					
-					// Update the last blacklisted date of the login
-					$rs_query->update('login_attempts', array('last_blacklisted_login' => 'NOW()'), array(
-						'login' => $login
-					));
-					
-					$session = $rs_query->selectField('users', 'session', array(
-						'logic' => 'OR',
-						'username' => $login,
-						'email' => $login
-					));
-					
-					if(!is_null($session)) {
-						$rs_query->update('users', array('session' => null), array('session' => $session));
-						
-						// Check whether the cookie's value matches the session value and delete it if so
-						if(isset($_COOKIE['session']) && $_COOKIE['session'] === $session)
-							setcookie('session', '', 1, '/');
-					}
-				}
-				
-				return;
-			}
-		}
-	}
-	
-	/**
-	 * Check whether a session already exists in the database.
-	 * @since 2.0.2-alpha
-	 *
-	 * @access private
-	 * @param string $session -- The session value.
-	 * @return bool
-	 */
-	private function sessionExists($session): bool {
-		global $rs_query;
-		
-		return $rs_query->selectRow('users', 'COUNT(session)', array('session' => $session)) > 0;
-	}
-	
-	/**
-	 * Check whether an email already exists in the database.
-	 * @since 2.0.2-alpha
-	 *
-	 * @access private
-	 * @param string $email -- The email.
-	 * @return bool
-	 */
-	private function emailExists($email): bool {
-		global $rs_query;
-		
-		return $rs_query->selectRow('users', 'COUNT(email)', array('email' => $email)) > 0;
-	}
-	
-	/**
-	 * Check whether a username already exists in the database.
-	 * @since 2.0.0-alpha
-	 *
-	 * @access private
-	 * @param string $username -- The username.
-	 * @return bool
-	 */
-	private function usernameExists($username): bool {
-		global $rs_query;
-		
-		return $rs_query->selectRow('users', 'COUNT(username)', array('username' => $username)) > 0;
-	}
-	
-	/**
-	 * Fetch a blacklist's duration.
-	 * @since 1.2.0-beta_snap-01
-	 *
-	 * @access private
-	 * @param string $name -- The blacklist's name.
-	 * @return int
-	 */
-	private function getBlacklistDuration($name): int {
-		global $rs_query;
-		
-		// Fetch the blacklist's duration from the database
-		$blacklist = $rs_query->selectRow('login_blacklist', array('blacklisted', 'duration'), array(
-			'name' => $name
-		));
-		
-		if(empty($blacklist)) {
-			// Set the duration to expired
-			$duration = -1;
-		} else {
-			// Calculate the expiration date
-			$time = new DateTime($blacklist['blacklisted']);
-			$time->add(new DateInterval('PT' . $blacklist['duration'] . 'S'));
-			$expiration = $time->format('Y-m-d H:i:s');
-			
-			// Check whether the blacklist has expired
-			if(date('Y-m-d H:i:s') >= $expiration && $blacklist['duration'] !== 0) {
-				// Set the duration to expired
-				$duration = -1;
-				
-				$rs_query->delete('login_blacklist', array('name' => $name));
-			} else {
-				// Set the duration
-				$duration = (int)$blacklist['duration'];
-			}
-		}
-		
-		return $duration;
-	}
-	
-	/**
-	 * Sanitize user input data.
-	 * @since 2.0.1-alpha
-	 *
-	 * @access private
-	 * @param string $data -- The data to sanitize.
-	 * @param string $filter (optional) -- The filter to use.
-	 * @return string
-	 */
-	private function sanitizeData($data, $filter = null): string {
-		if(is_null($filter)) {
-			// Trim off whitespace characters, strip off HTML and/or PHP tags and return the data
-			return strip_tags(trim($data));
-		} elseif(is_int($filter)) {
-			// Strip off HTML and/or PHP tags, run the data through a filter, and return the data
-			return filter_var(strip_tags($data), $filter);
-		} else {
-			// Strip off HTML and/or PHP tags, replace any characters not specified in the filter, and return the data
-			return preg_replace($filter, '', strip_tags($data));
-		}
-	}
-	
-	/**
-	 * Construct a status message.
-	 * @since 2.0.0-alpha
-	 *
-	 * @access private
-	 * @param string $text -- The message's text.
-	 * @param bool $success (optional) -- Whether the submission was successful.
-	 * @return string
-	 */
-	private function statusMsg($text, $success = false): string {
-		if($success === true) {
-			$class = 'success';
-		} else {
-			$class = 'failure';
-			
-			switch(strtoupper($text)) {
-				case 'F':
-					$text = 'All fields must be filled in!';
-					break;
-			}
-		}
-		
-		return '<div class="status-message ' . $class . '">' . $text . '</div>';
-	}
-	
-	/**
-	 * Log the user out.
-	 * @since 2.0.1-alpha
-	 *
-	 * @access public
-	 * @param string $session -- The session value.
-	 */
-	public function userLogout($session): void {
-		global $rs_query;
-		
-		$rs_query->update('users', array('session' => null), array('session' => $session));
-		
-		// Delete the session cookie
-		setcookie('session', '', 1, '/');
-		
-		redirect($this->login_uri);
 	}
 	
 	/**
@@ -567,8 +252,8 @@ class Login {
 				echo $this->statusMsg('Your security key has expired. Submit this form to get a new password reset link.');
 		}
 		
-		// Validate the form data and display any error messages
-		echo isset($_POST['submit']) ? $this->validateForgotPasswordData($_POST) : '';
+		// Validate the form data
+		echo isset($_POST['submit']) ? $this->validateForgotPasswordSubmission($_POST) : '';
 		?>
 		<form class="data-form" action="" method="post">
 			<?php
@@ -602,70 +287,6 @@ class Login {
 	}
 	
 	/**
-	 * Validate the forgotten password data.
-	 * @since 2.0.5-alpha
-	 *
-	 * @access private
-	 * @param array $data -- The form data.
-	 * @return string
-	 */
-	private function validateForgotPasswordData($data): string {
-		global $rs_query;
-		
-		if(empty($data['login']))
-			return $this->statusMsg('F');
-		
-		$key = generateHash(20, false, time());
-		
-		$site_url = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];
-		
-		// Check whether the login used was an email
-		if(str_contains($data['login'], '@')) {
-			$email = $this->sanitizeData($data['login'], FILTER_SANITIZE_EMAIL);
-			
-			if(!$this->emailExists($email))
-				return $this->statusMsg('The email you provided is not registered on this website.');
-			
-			list($id, $username) = array_values($rs_query->selectRow('users', array('id', 'username'), array(
-				'email' => $email
-			)));
-		} else {
-			$username = $this->sanitizeData($data['login'], '/[^a-zA-Z0-9_\.]/i');
-			
-			if(!$this->usernameExists($username))
-				return $this->statusMsg('The username you provided is not registered on this website.');
-			
-			list($id, $email) = array_values($rs_query->selectRow('users', array('id', 'email'), array(
-				'username' => $username
-			)));
-		}
-		
-		$subject = getSetting('site_title') . ' – Password Reset';
-		
-		$pw_reset_link = $site_url . '/login.php?login=' . $username . '&key=' . $key .
-			'&action=reset_password';
-		
-		$message = 'A request has been made to reset the password for the user <strong>' . $username .
-			'</strong> on "' . getSetting('site_title') . '".<br><br>If this was you, please click the link below to reset your password. If not, you may disregard this email.<br><br><a href="' .
-			$pw_reset_link . '">Reset your password</a>';
-		
-		$content = formatEmail('Reset Password', array('message' => $message));
-		
-		// Set the content headers (to allow for HTML-formatted emails)
-		$headers[] = "MIME-Version: 1.0";
-		$headers[] = "Content-type: text/html; charset=iso-8859-1";
-		$headers[] = "From: " . CMS_ENGINE . " <rscms@" . $_SERVER['HTTP_HOST'] . ">";
-		
-		// Make sure the email can be sent
-		if(mail($email, $subject, $content, implode("\r\n", $headers))) {
-			$rs_query->update('users', array('security_key' => $key), array('id' => $id));
-			redirect('/login.php?pw_forgot=confirm');
-		} else {
-			return $this->statusMsg(CMS_ENGINE . ' encountered an error and could not send an email. Please contact this website\'s administrator or web host.');
-		}
-	}
-	
-	/**
 	 * Construct the "Reset Password" form.
 	 * @since 2.0.5-alpha
 	 *
@@ -684,12 +305,10 @@ class Login {
 				'samesite' => 'Strict'
 			));
 			
-			// Redirect to remove the 'login' and 'key' values from the query string
 			redirect('/login.php?action=reset_password');
 		}
 		
 		if(isset($_COOKIE[$cookie_name])) {
-			// Fetch the cookie's data
 			list($login, $key) = explode(':', $_COOKIE[$cookie_name]);
 			
 			if(!$this->isValidCookie($login, $key)) {
@@ -702,16 +321,285 @@ class Login {
 			redirect('/login.php?action=forgot_password&error=expired_key');
 		}
 		
-		// Validate the form data and display any error messages
-		echo isset($_POST['submit']) ? $this->validateResetPasswordData($_POST) : '';
+		// Validate the form data
+		echo isset($_POST['submit']) ? $this->validateResetPasswordSubmission($_POST) : '';
 		?>
 		<form class="data-form" action="" method="post">
-			<p><label for="password">New Password<br><input type="text" name="password" value="<?php echo generatePassword(); ?>" autofocus></label></p>
-			<input type="hidden" name="login" value="<?php echo $login; ?>">
-			<input type="hidden" name="key" value="<?php echo $key; ?>">
-			<input type="submit" class="button" name="submit" value="Reset Password">
+			<?php
+			// Password
+			echo domTag('p', array(
+				'content' => domTag('label', array(
+					'for' => 'password',
+					'content' => 'New Password' . domTag('br') . domTag('input', array(
+						'id' => 'password',
+						'name' => 'password',
+						'value' => generatePassword(),
+						'autofocus' => 1
+					))
+				))
+			));
+			
+			// Login
+			echo domTag('input', array(
+				'type' => 'hidden',
+				'name' => 'login',
+				'value' => $login
+			));
+			
+			// Key
+			echo domTag('input', array(
+				'type' => 'hidden',
+				'name' => 'key',
+				'value' => $key
+			));
+			
+			// Submit button
+			echo domTag('input', array(
+				'type' => 'submit',
+				'class' => 'button',
+				'name' => 'submit',
+				'value' => 'Reset Password'
+			));
+			?>
 		</form>
 		<?php
+	}
+	
+	/**
+	 * Log the user out.
+	 * @since 2.0.1-alpha
+	 *
+	 * @access public
+	 * @param string $session -- The session value.
+	 */
+	public function userLogout(string $session): void {
+		global $rs_query;
+		
+		$rs_query->update('users', array(
+			'u_session' => null
+		), array(
+			'u_session' => $session
+		));
+		
+		// Delete the session cookie
+		setcookie('session', '', 1, '/');
+		
+		redirect($this->login_uri);
+	}
+	
+	/*------------------------------------*\
+		VALIDATION
+	\*------------------------------------*/
+	
+	/**
+	 * Validate the "Log In" form data and log the user in.
+	 * @since 2.0.0-alpha
+	 *
+	 * @access private
+	 * @param array $data -- The form data.
+	 * @return string
+	 */
+	private function validateLoginSubmission(array $data): string {
+		global $rs_query;
+		
+		$offsite_redirect = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'; // ;)
+		
+		if(empty($data['login']) || empty($data['password']) || empty($data['captcha'])) {
+			return $this->statusMsg('F');
+			exit;
+		}
+		
+		// Check whether the login used was an email
+		if(str_contains($data['login'], '@'))
+			$email = $this->sanitizeData($data['login'], FILTER_SANITIZE_EMAIL);
+		else
+			$username = $this->sanitizeData($data['login'], '/[^\w.]/i');
+		
+		$this->shouldBlacklist($this->ip_address, ($email ?? $username));
+		
+		if($this->isBlacklisted($this->ip_address)) {
+			// Check whether the blacklist duration is indefinite and redirect off-site if so
+			if($this->getBlacklistDuration($this->ip_address) === 0) {
+				redirect($offsite_redirect);
+			} // Otherwise, return an error
+			elseif($this->getBlacklistDuration($this->ip_address) > 0) {
+				return $this->statusMsg('You\'re attempting to log in too fast! Try again later.');
+				exit;
+			}
+		}
+		
+		if($this->isBlacklisted($email ?? $username)) {
+			// Check whether the blacklist duration is indefinite and redirect off-site if so
+			if($this->getBlacklistDuration($email ?? $username) === 0) {
+				redirect($offsite_redirect);
+			} // Otherwise, return an error
+			elseif($this->getBlacklistDuration($email ?? $username) > 0) {
+				return $this->statusMsg('You\'re attempting to log in too fast! Try again later.');
+				exit;
+			}
+		}
+		
+		$password = $this->sanitizeData($data['password']);
+		$captcha = $this->sanitizeData($data['captcha'], '/[^a-zA-Z0-9]/i');
+		
+		if(getSetting('track_login_attempts')) {
+			$login_attempt = $rs_query->insert($this->tables[0], array(
+				$this->px[0] . 'login' => ($email ?? $username),
+				$this->px[0] . 'ip_address' => $this->ip_address,
+				$this->px[0] . 'date' => 'NOW()'
+			));
+		}
+		
+		if(!$this->isValidCaptcha($captcha)) {
+			return $this->statusMsg('The captcha is not valid.');
+			exit;
+		}
+		
+		do {
+			// Generate a random hash for the session value
+			$session = generateHash(12);
+		} while($this->sessionExists($session));
+		
+		if(isset($email)) {
+			if(!$this->emailExists($email) || !$this->isValidPassword($email, $password)) {
+				return $this->statusMsg('The email and/or password is not valid.');
+				exit;
+			}
+			
+			$rs_query->update('users', array(
+				'u_last_login' => 'NOW()',
+				'u_session' => $session
+			), array(
+				'u_email' => $email
+			));
+		} elseif(isset($username)) {
+			if(!$this->usernameExists($username) || !$this->isValidPassword($username, $password)) {
+				return $this->statusMsg('The username and/or password is not valid.');
+				exit;
+			}
+			
+			$rs_query->update('users', array(
+				'u_last_login' => 'NOW()',
+				'u_session' => $session
+			), array(
+				'u_username' => $username
+			));
+		}
+		
+		// Check whether the login attempt was tracked
+		if(isset($login_attempt)) {
+			$rs_query->update($this->tables[0], array(
+				$this->px[0] . 'status' => 'success'
+			), array(
+				$this->px[0] . 'id' => $login_attempt
+			));
+		}
+		
+		if(isset($data['remember_login']) && $data['remember_login'] === 'checked') {
+			// Create a cookie with the session value that expires in 30 days
+			setcookie('session', $session, array(
+				'expires' => time() + 60 * 60 * 24 * 30,
+				'path' => '/',
+				'secure' => $this->https,
+				'httponly' => true,
+				'samesite' => 'Strict'
+			));
+		} else {
+			// Create a cookie with the session value that expires when the browser is closed
+			setcookie('session', $session, array(
+				'expires' => 0,
+				'path' => '/',
+				'secure' => $this->https,
+				'httponly' => true,
+				'samesite' => 'Strict'
+			));
+		}
+		
+		unset($_SESSION['secure_login']);
+		
+		if(isset($data['redirect']))
+			redirect($data['redirect']);
+		else
+			redirect(slash(ADMIN));
+	}
+	
+	/**
+	 * Validate the forgotten password data.
+	 * @since 2.0.5-alpha
+	 *
+	 * @access private
+	 * @param array $data -- The form data.
+	 * @return string
+	 */
+	private function validateForgotPasswordSubmission(array $data): string {
+		global $rs_query;
+		
+		if(empty($data['login'])) {
+			return $this->statusMsg('F');
+			exit;
+		}
+		
+		$key = generateHash(20, false, time());
+		
+		$site_url = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];
+		
+		// Check whether the login used was an email
+		if(str_contains($data['login'], '@')) {
+			$email = $this->sanitizeData($data['login'], FILTER_SANITIZE_EMAIL);
+			
+			if(!$this->emailExists($email)) {
+				return $this->statusMsg('The email you provided is not registered on this website.');
+				exit;
+			}
+			
+			list($id, $username) = array_values($rs_query->selectRow('users', array('u_id', 'u_username'), array(
+				'u_email' => $email
+			)));
+		} else {
+			$username = $this->sanitizeData($data['login'], '/[^a-zA-Z0-9_\.]/i');
+			
+			if(!$this->usernameExists($username)) {
+				return $this->statusMsg('The username you provided is not registered on this website.');
+				exit;
+			}
+			
+			list($id, $email) = array_values($rs_query->selectRow('users', array('u_id', 'u_email'), array(
+				'u_username' => $username
+			)));
+		}
+		
+		$subject = getSetting('site_title') . ' – Password Reset';
+		
+		$pw_reset_link = $site_url . '/login.php?login=' . $username . '&key=' . $key .
+			'&action=reset_password';
+		
+		$message = 'A request has been made to reset the password for the user <strong>' . $username .
+			'</strong> on "' . getSetting('site_title') . '".<br><br>If this was you, please click the link below to reset your password. If not, you may disregard this email.<br><br><a href="' .
+			$pw_reset_link . '">Reset your password</a>';
+		
+		$content = formatEmail('Reset Password', array(
+			'message' => $message
+		));
+		
+		// Set the content headers (to allow for HTML-formatted emails)
+		$headers[] = "MIME-Version: 1.0";
+		$headers[] = "Content-type: text/html; charset=iso-8859-1";
+		$headers[] = "From: " . RS_ENGINE . " <" . (str_contains(getSetting('admin_email'), $_SERVER['HTTP_HOST']) ?
+			getSetting('admin_email') : "rscms@" . $_SERVER['HTTP_HOST']) . ">";
+		
+		// Make sure the email can be sent
+		if(mail($email, $subject, $content, implode("\r\n", $headers))) {
+			$rs_query->update('users', array(
+				'u_token' => $key
+			), array(
+				'u_id' => $id
+			));
+			
+			redirect('/login.php?pw_forgot=confirm');
+		} else {
+			return $this->statusMsg(RS_ENGINE . ' encountered an error and could not send an email. Please contact this website\'s administrator or web host.');
+			exit;
+		}
 	}
 	
 	/**
@@ -722,23 +610,28 @@ class Login {
 	 * @param array $data -- The form data.
 	 * @return string
 	 */
-	private function validateResetPasswordData($data): string {
+	private function validateResetPasswordSubmission(array $data): string {
 		global $rs_query;
 		
-		if(empty($data['password']))
+		if(empty($data['password'])) {
 			return $this->statusMsg('F');
+			exit;
+		}
 		
-		if(strlen($data['password']) < self::PW_LENGTH)
+		if(strlen($data['password']) < self::PW_LENGTH) {
 			return $this->statusMsg('Password must be at least ' . self::PW_LENGTH . ' characters long.');
+			exit;
+		}
 		
 		if($this->isValidCookie($data['login'], $data['key'])) {
-			// Hash the password (encrypts the password for security purposes)
 			$hashed_password = password_hash($data['password'], PASSWORD_BCRYPT, array('cost' => 10));
 			
 			$rs_query->update('users', array(
-				'password' => $hashed_password,
-				'security_key' => null
-			), array('username' => $data['login']));
+				'u_password' => $hashed_password,
+				'u_token' => null
+			), array(
+				'u_username' => $data['login']
+			));
 			
 			// Delete the cookie
 			setcookie('pw-reset-' . COOKIE_HASH, '', 1, '/login.php');
@@ -747,6 +640,95 @@ class Login {
 		} else {
 			redirect('/login.php?action=forgot_password&error=invalid_key');
 		}
+	}
+	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
+	/**
+	 * Check whether a session already exists in the database.
+	 * @since 2.0.2-alpha
+	 *
+	 * @access private
+	 * @param string $session -- The session value.
+	 * @return bool
+	 */
+	private function sessionExists(string $session): bool {
+		global $rs_query;
+		
+		return $rs_query->selectRow('users', 'COUNT(u_session)', array(
+			'u_session' => $session
+		)) > 0;
+	}
+	
+	/**
+	 * Check whether an email already exists in the database.
+	 * @since 2.0.2-alpha
+	 *
+	 * @access private
+	 * @param string $email -- The email.
+	 * @return bool
+	 */
+	private function emailExists(string $email): bool {
+		global $rs_query;
+		
+		return $rs_query->selectRow('users', 'COUNT(u_email)', array(
+			'u_email' => $email
+		)) > 0;
+	}
+	
+	/**
+	 * Check whether a username already exists in the database.
+	 * @since 2.0.0-alpha
+	 *
+	 * @access private
+	 * @param string $username -- The username.
+	 * @return bool
+	 */
+	private function usernameExists(string $username): bool {
+		global $rs_query;
+		
+		return $rs_query->selectRow('users', 'COUNT(u_username)', array(
+			'u_username' => $username
+		)) > 0;
+	}
+	
+	/**
+	 * Check whether a password is valid.
+	 * @since 2.0.0-alpha
+	 *
+	 * @access private
+	 * @param string $login -- The username or email.
+	 * @param string $password -- The password.
+	 * @return bool
+	 */
+	private function isValidPassword(string $login, string $password): bool {
+		global $rs_query;
+		
+		if(str_contains($login, '@')) {
+			$db_password = $rs_query->selectField('users', 'u_password', array(
+				'u_email' => $login
+			));
+		} else {
+			$db_password = $rs_query->selectField('users', 'u_password', array(
+				'u_username' => $login
+			));
+		}
+		
+		return !empty($db_password) && password_verify($password, $db_password);
+	}
+	
+	/**
+	 * Check whether a captcha value is valid.
+	 * @since 2.0.0-alpha
+	 *
+	 * @access private
+	 * @param string $captcha -- The captcha value.
+	 * @return bool
+	 */
+	private function isValidCaptcha(string $captcha): bool {
+		return !empty($_SESSION['secure_login']) && $captcha === $_SESSION['secure_login'];
 	}
 	
 	/**
@@ -758,12 +740,264 @@ class Login {
 	 * @param string $key -- The cookie hash key.
 	 * @return bool
 	 */
-	private function isValidCookie($login, $key): bool {
+	private function isValidCookie(string $login, string $key): bool {
 		global $rs_query;
 		
 		return $rs_query->selectRow('users', 'COUNT(*)', array(
-			'username' => $login,
-			'security_key' => $key
+			'u_username' => $login,
+			'u_token' => $key
 		)) > 0;
+	}
+	
+	/**
+	 * Check whether the login or IP address is blacklisted.
+	 * @since 1.2.0-beta_snap-01
+	 *
+	 * @access private
+	 * @param string $login -- The login or IP address.
+	 * @return bool
+	 */
+	private function isBlacklisted(string $login): bool {
+		global $rs_query;
+		
+		return $rs_query->select($this->tables[1], 'COUNT(' . $this->px[1] . 'name)', array(
+			$this->px[1] . 'name' => $login
+		)) > 0;
+	}
+	
+	/**
+	 * Check whether the login or IP address should be blacklisted.
+	 * @since 1.2.0-beta_snap-05
+	 *
+	 * @access private
+	 * @param string $ip_address -- The IP address.
+	 * @param string $login -- The login.
+	 */
+	private function shouldBlacklist(string $ip_address, string $login): void {
+		global $rs_query;
+		
+		$last_blacklisted_ip = $rs_query->selectField($this->tables[0], $this->px[0] . 'last_blacklisted_ip', array(
+			$this->px[0] . 'ip_address' => $ip_address
+		), array(
+			'orderby' => $this->px[0] . 'id',
+			'order' => 'ASC',
+			'limit' => '1'
+		));
+		
+		$failed_logins = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+			$this->px[0] . 'ip_address' => $ip_address,
+			$this->px[0] . 'date' => array('>', $last_blacklisted_ip),
+			$this->px[0] . 'status' => 'failure'
+		));
+		
+		$login_rules = $rs_query->select($this->tables[2], '*', array(
+			$this->px[2] . 'type' => 'ip_address'
+		), array(
+			'orderby' => $this->px[2] . 'attempts',
+			'order' => 'DESC'
+		));
+		
+		foreach($login_rules as $login_rule) {
+			// Check whether the failed logins exceed the rule's threshold
+			if($failed_logins >= $login_rule[$this->px[2] . 'attempts']) {
+				if(!$this->isBlacklisted($ip_address)) {
+					$attempts = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+						$this->px[0] . 'ip_address' => $ip_address,
+						$this->px[0] . 'status' => 'failure'
+					));
+					
+					// Create a blacklist for the IP address
+					$rs_query->insert($this->tables[1], array(
+						$this->px[1] . 'name' => $ip_address,
+						$this->px[1] . 'attempts' => $attempts,
+						$this->px[1] . 'blacklisted' => 'NOW()',
+						$this->px[1] . 'duration' => $login_rule[$this->px[2] . 'duration'],
+						$this->px[1] . 'reason' => 'too many failed login attempts'
+					));
+					
+					$rs_query->update($this->tables[0], array(
+						$this->px[0] . 'last_blacklisted_ip' => 'NOW()'
+					), array(
+						$this->px[0] . 'ip_address' => $ip_address
+					));
+					
+					$logins = $rs_query->select($this->tables[0], array('DISTINCT', $this->px[0] . 'login'), array(
+						$this->px[0] . 'ip_address' => $ip_address
+					));
+					
+					foreach($logins as $login) {
+						$session = $rs_query->selectField('users', 'u_session', array(
+							'logic' => 'OR',
+							'u_username' => $login[$this->px[0] . 'login'],
+							'u_email' => $login[$this->px[0] . 'login']
+						));
+						
+						if(!is_null($session)) {
+							$rs_query->update('users', array(
+								'u_session' => null
+							), array(
+								'u_session' => $session
+							));
+							
+							if(isset($_COOKIE['session']) && $_COOKIE['session'] === $session)
+								setcookie('session', '', 1, '/');
+						}
+					}
+				}
+				
+				return;
+			}
+		}
+		
+		$last_blacklisted_login = $rs_query->selectField($this->tables[0], $this->px[0] . 'last_blacklisted_login', array(
+			$this->px[0] . 'login' => $login
+		), array(
+			'orderby' => $this->px[0] . 'id',
+			'order' => 'ASC',
+			'limit' => '1'
+		));
+		
+		$failed_logins = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+			$this->px[0] . 'login' => $login,
+			$this->px[0] . 'date' => array('>', $last_blacklisted_login),
+			$this->px[0] . 'status' => 'failure'
+		));
+		
+		$login_rules = $rs_query->select($this->tables[2], '*', array(
+			$this->px[2] . 'type' => 'login'
+		), array(
+			'orderby' => $this->px[2] . 'attempts',
+			'order' => 'DESC'
+		));
+		
+		foreach($login_rules as $login_rule) {
+			// Check whether the failed logins exceed the rule's threshold
+			if($failed_logins >= $login_rule[$this->px[2] . 'attempts']) {
+				if(!$this->isBlacklisted($login)) {
+					$attempts = $rs_query->select($this->tables[0], 'COUNT(*)', array(
+						$this->px[0] . 'login' => $login,
+						$this->px[0] . 'status' => 'failure'
+					));
+					
+					// Create a blacklist for the login
+					$rs_query->insert($this->tables[1], array(
+						$this->px[1] . 'name' => $login,
+						$this->px[1] . 'attempts' => $attempts,
+						$this->px[1] . 'blacklisted' => 'NOW()',
+						$this->px[1] . 'duration' => $login_rule[$this->px[2] . 'duration'],
+						$this->px[1] . 'reason' => 'too many failed login attempts'
+					));
+					
+					$rs_query->update($this->tables[0], array(
+						$this->px[0] . 'last_blacklisted_login' => 'NOW()'
+					), array(
+						$this->px[0] . 'login' => $login
+					));
+					
+					$session = $rs_query->selectField('users', 'u_session', array(
+						'logic' => 'OR',
+						'u_username' => $login,
+						'u_email' => $login
+					));
+					
+					if(!is_null($session)) {
+						$rs_query->update('users', array(
+							'u_session' => null
+						), array(
+							'u_session' => $session
+						));
+						
+						if(isset($_COOKIE['session']) && $_COOKIE['session'] === $session)
+							setcookie('session', '', 1, '/');
+					}
+				}
+				
+				return;
+			}
+		}
+	}
+	
+	/**
+	 * Fetch a blacklist's duration.
+	 * @since 1.2.0-beta_snap-01
+	 *
+	 * @access private
+	 * @param string $name -- The blacklist's name.
+	 * @return int
+	 */
+	private function getBlacklistDuration(string $name): int {
+		global $rs_query;
+		
+		$blacklist = $rs_query->selectRow($this->tables[1], array($this->px[1] . 'blacklisted', $this->px[1] . 'duration'), array(
+			$this->px[1] . 'name' => $name
+		));
+		
+		if(empty($blacklist)) {
+			$duration = -1;
+		} else {
+			// Calculate the expiration date
+			$time = new \DateTime($blacklist[$this->px[1] . 'blacklisted']);
+			$time->add(new \DateInterval('PT' . $blacklist[$this->px[1] . 'duration'] . 'S'));
+			$expiration = $time->format('Y-m-d H:i:s');
+			
+			// Check whether the blacklist has expired
+			if(date('Y-m-d H:i:s') >= $expiration && $blacklist[$this->px[1] . 'duration'] !== 0) {
+				$duration = -1;
+				
+				$rs_query->delete($this->tables[1], array(
+					$this->px[1] . 'name' => $name
+				));
+			} else {
+				$duration = (int)$blacklist[$this->px[1] . 'duration'];
+			}
+		}
+		
+		return $duration;
+	}
+	
+	/**
+	 * Sanitize user input data.
+	 * @since 2.0.1-alpha
+	 *
+	 * @access private
+	 * @param string $data -- The data to sanitize.
+	 * @param null|string $filter (optional) -- The filter to use.
+	 * @return string
+	 */
+	private function sanitizeData(string $data, ?string $filter = null): string {
+		if(is_null($filter))
+			return strip_tags(trim($data));
+		elseif(is_int($filter))
+			return filter_var(strip_tags($data), $filter);
+		else
+			return preg_replace($filter, '', strip_tags($data));
+	}
+	
+	/**
+	 * Construct a status message.
+	 * @since 2.0.0-alpha
+	 *
+	 * @access private
+	 * @param string $text -- The message's text.
+	 * @param bool $success (optional) -- Whether the submission was successful.
+	 * @return string
+	 */
+	private function statusMsg(string $text, bool $success = false): string {
+		if($success === true) {
+			$class = 'success';
+		} else {
+			$class = 'failure';
+			
+			switch(strtoupper($text)) {
+				case 'F':
+					$text = 'All fields must be filled in!';
+					break;
+			}
+		}
+		
+		return domTag('div', array(
+			'class' => 'status-message ' . $class,
+			'content' => $text
+		));
 	}
 }

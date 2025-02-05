@@ -7,7 +7,7 @@
  */
 
 require_once __DIR__ . '/init.php';
-require_once FUNC;
+require_once RS_FUNC;
 
 ob_start();
 session_start();
