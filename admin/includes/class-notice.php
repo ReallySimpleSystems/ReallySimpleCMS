@@ -1,15 +1,26 @@
 <?php
 /**
  * Admin class used to implement the Notice object.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
+ *
+ * @package ReallySimpleCMS
  *
  * Notices provide the end user with information related to the status of the page they're currently viewing.
  * Notices can be dismissed (hidden) and shown again.
+ *
+ * ## VARIABLES ##
+ * - private string $id
+ *
+ * ## METHODS ##
+ * - public msg(string $text, int $status, bool $can_dismiss, bool $is_exit): string
+ * - public unhide(int $user_id): void
+ * - public isDismissed(string $text, array $dismissed): bool
+ * - private defaultMsg(string $msg_code): ?string
  */
 class Notice {
 	/**
 	 * The current notice's id.
-	 * @since 1.3.8[b]
+	 * @since 1.3.8-beta
 	 *
 	 * @access private
 	 * @var string
@@ -18,7 +29,7 @@ class Notice {
 	
 	/**
 	 * Create a notice message.
-	 * @since 1.3.8[b]
+	 * @since 1.3.8-beta
 	 *
 	 * @access public
 	 * @param string $text -- The notice's text.
@@ -27,12 +38,7 @@ class Notice {
 	 * @param bool $is_exit (optional) -- Whether the notice is for an exit status (i.e., for a form submission).
 	 * @return string
 	 */
-	public function msg(
-		string $text,
-		int $status = 2,
-		bool $can_dismiss = true,
-		bool $is_exit = false
-	): string {
+	public function msg(string $text, int $status = 2, bool $can_dismiss = true, bool $is_exit = false): string {
 		global $notices;
 		
 		if(!$is_exit) {
@@ -96,7 +102,7 @@ class Notice {
 	
 	/**
 	 * Unhide all dismissed notices.
-	 * @since 1.3.8[b]
+	 * @since 1.3.8-beta
 	 *
 	 * @access public
 	 * @param int $user_id -- The user's id.
@@ -104,7 +110,9 @@ class Notice {
 	public function unhide(int $user_id): void {
 		global $rs_query;
 		
-		$rs_query->update('usermeta', array('value' => ''), array(
+		$rs_query->update('usermeta', array(
+			'value' => ''
+		), array(
 			'user' => $user_id,
 			'datakey' => 'dismissed_notices'
 		));
@@ -112,7 +120,7 @@ class Notice {
 	
 	/**
 	 * Check whether a notice has been dismissed.
-	 * @since 1.3.8[b]
+	 * @since 1.3.8-beta
 	 *
 	 * @access public
 	 * @param string $text -- The notice's text.
@@ -125,7 +133,7 @@ class Notice {
 	
 	/**
 	 * Output a default, predefined message.
-	 * @since 1.3.8[b]
+	 * @since 1.3.8-beta
 	 *
 	 * @access private
 	 * @param string $msg_code -- The message's "code" abbreviation.

@@ -1,10 +1,48 @@
 <?php
 /**
  * Site-wide functions.
- * @since 1.0.0[a]
+ * @since 1.0.0-alpha
+ *
+ * @package ReallySimpleCMS
+ *
+ * ## CONSTANTS ##
+ * - string COOKIE_HASH
+ *
+ * ## FUNCTIONS ##
+ * HEADER & FOOTER:
+ * - getThemeScript(string $script, string $version): string
+ * - putThemeScript(string $script, string $version): void
+ * - getThemeStylesheet(string $stylesheet, string $version): string
+ * - putThemeStylesheet(string $stylesheet, string $version): void
+ * - headerScripts(string|array $exclude, array $include_styles, array $include_scripts): void
+ * - footerScripts(string|array $exclude, array $include_styles, array $include_scripts): void
+ * - bodyClasses(string|array $addtl_classes): string
+ * - adminBar(): void
+ * MISCELLANEOUS:
+ * - handleSecureLogin(): void
+ * - guessPageType(): void
+ * - postTypeExists(string $type): bool
+ * - taxonomyExists(string $taxonomy): bool
+ * - getPost(string $slug): object
+ * - getTerm(string $slug): object
+ * - getCategory(string $slug): object
+ * - getMenu(string $slug): void
+ * - getWidget(string $slug, bool $display_title = false): void
+ * - registerMenu(string $name, string $slug): void
+ * - registerWidget(string $title, string $slug): void
+ * - formatEmail(string $heading, array $fields): string
  */
 
-// Generate a cookie hash based on the site's URL
+/*------------------------------------*\
+    CONSTANTS
+\*------------------------------------*/
+
+/**
+ * Generate a cookie hash based on the site's URL.
+ * @since 2.0.6-alpha
+ *
+ * @var string
+ */
 define('COOKIE_HASH', md5(getSetting('site_url')));
 
 /*------------------------------------*\
@@ -13,13 +51,13 @@ define('COOKIE_HASH', md5(getSetting('site_url')));
 
 /**
  * Fetch a theme-specific script file.
- * @since 2.0.7[a]
+ * @since 2.0.7-alpha
  *
  * @param string $script -- The script to load.
  * @param string $version (optional) -- The script's version.
  * @return string
  */
-function getThemeScript(string $script, string $version = CMS_VERSION): string {
+function getThemeScript(string $script, string $version = RS_VERSION): string {
 	$theme_path = slash(THEMES) . getSetting('theme');
 	
 	return '<script src="' . slash($theme_path) . $script .
@@ -28,24 +66,24 @@ function getThemeScript(string $script, string $version = CMS_VERSION): string {
 
 /**
  * Output a theme-specific script file.
- * @since 1.3.0[b]
+ * @since 1.3.0-beta
  *
  * @param string $script -- The script to load.
  * @param string $version (optional) -- The script's version.
  */
-function putThemeScript(string $script, string $version = CMS_VERSION): void {
+function putThemeScript(string $script, string $version = RS_VERSION): void {
 	echo getThemeScript($script, $version);
 }
 
 /**
  * Fetch a theme-specific stylesheet.
- * @since 2.0.7[a]
+ * @since 2.0.7-alpha
  *
  * @param string $stylesheet -- The stylesheet to load.
  * @param string $version (optional) -- The stylesheet's version.
  * @return string
  */
-function getThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): string {
+function getThemeStylesheet(string $stylesheet, string $version = RS_VERSION): string {
 	$theme_path = slash(THEMES) . getSetting('theme');
 	
 	return '<link href="' . slash($theme_path) . $stylesheet .
@@ -54,32 +92,29 @@ function getThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): 
 
 /**
  * Output a theme-specific stylesheet.
- * @since 1.3.0[b]
+ * @since 1.3.0-beta
  *
  * @param string $stylesheet -- The stylesheet to load.
  * @param string $version (optional) -- The stylesheet's version.
  */
-function putThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): void {
+function putThemeStylesheet(string $stylesheet, string $version = RS_VERSION): void {
 	echo getThemeStylesheet($stylesheet, $version);
 }
 
 /**
  * Load all header scripts and stylesheets.
- * @since 2.4.2[a]
+ * @since 2.4.2-alpha
  *
  * @param string|array $exclude (optional) -- The script(s) to exclude.
  * @param array $include_styles (optional) -- Any additional stylesheets to include.
  * @param array $include_scripts (optional) -- Any additional scripts to include.
  */
-function headerScripts(
-	string|array $exclude = '',
-	array $include_styles = array(),
-	array $include_scripts = array()
-): void {
+function headerScripts(string|array $exclude = '', array $include_styles = array(), array $include_scripts = array()): void {
 	if(!is_array($exclude)) $exclude = explode(' ', $exclude);
 	
 	$debug = false;
-	if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
+	
+	if(isDebugMode()) $debug = true;
 	
 	// Button stylesheet
 	if(!in_array('button', $exclude, true))
@@ -115,21 +150,18 @@ function headerScripts(
 
 /**
  * Load all footer scripts and stylesheets.
- * @since 2.4.2[a]
+ * @since 2.4.2-alpha
  *
  * @param string|array $exclude (optional) -- The script(s) to exclude.
  * @param array $include_styles (optional) -- Any additional stylesheets to include.
  * @param array $include_scripts (optional) -- Any additional scripts to include.
  */
-function footerScripts(
-	string|array $exclude = '',
-	array $include_styles = array(),
-	array $include_scripts = array()
-): void {
+function footerScripts(string|array $exclude = '', array $include_styles = array(), array $include_scripts = array()): void {
 	if(!is_array($exclude)) $exclude = explode(' ', $exclude);
 	
 	$debug = false;
-	if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
+	
+	if(isDebugMode()) $debug = true;
 	
 	// Additional custom stylesheets
 	if(!empty($include_styles) && is_array($include_styles)) {
@@ -149,13 +181,13 @@ function footerScripts(
 
 /**
  * Construct a list of CSS classes for the body tag.
- * @since 2.2.3[a]
+ * @since 2.2.3-alpha
  *
  * @param string|array $addtl_classes (optional) -- Additional classes to include.
  * @return string
  */
 function bodyClasses(string|array $addtl_classes = array()): string {
-	global $rs_post, $rs_term, $session;
+	global $rs_post, $rs_term, $rs_session;
 	
 	$classes = array();
 	
@@ -183,22 +215,32 @@ function bodyClasses(string|array $addtl_classes = array()): string {
 	
 	$classes = array_merge($classes, (array)$addtl_classes);
 	
-	if($session) $classes[] = 'logged-in';
+	if($rs_session) $classes[] = 'logged-in';
 	
 	return implode(' ', $classes);
 }
 
 /**
  * Construct an admin bar for logged in users.
- * @since 2.2.7[a]
+ * @since 2.2.7-alpha
  */
 function adminBar(): void {
-	global $rs_post, $rs_term, $session, $post_types, $taxonomies;
+	global $rs_post, $rs_term, $rs_session, $rs_post_types, $rs_taxonomies;
 	?>
 	<div id="admin-bar">
 		<ul class="menu">
 			<li>
-				<a href="javascript:void(0)"><i class="fa-solid fa-gauge-high"></i> <span>Admin</span></a>
+				<?php
+				// Admin options
+				echo domTag('a', array(
+					'href' => 'javascript:void(0)',
+					'content' => domTag('i', array(
+						'class' => 'fa-solid fa-gauge-high'
+					)) . ' ' . domTag('span', array(
+						'content' => 'Admin'
+					))
+				));
+				?>
 				<ul class="sub-menu">
 					<?php
 					// Dashboard
@@ -210,7 +252,7 @@ function adminBar(): void {
 					));
 					
 					// Post types
-					foreach($post_types as $post_type) {
+					foreach($rs_post_types as $post_type) {
 						if(!userHasPrivilege('can_view_' . str_replace(' ', '_',
 							$post_type['labels']['name_lowercase'])) || !$post_type['show_in_admin_bar']) continue;
 						
@@ -219,15 +261,15 @@ function adminBar(): void {
 						
 						if(!empty($post_type['taxonomies'])) {
 							foreach($post_type['taxonomies'] as $tax) {
-								if(array_key_exists($tax, $taxonomies)) {
+								if(array_key_exists($tax, $rs_taxonomies)) {
 									if(userHasPrivilege('can_view_' . str_replace(' ', '_',
-										$taxonomies[$tax]['labels']['name_lowercase'])) &&
-										$taxonomies[$tax]['show_in_admin_bar']
+										$rs_taxonomies[$tax]['labels']['name_lowercase'])) &&
+										$rs_taxonomies[$tax]['show_in_admin_bar']
 									) {
 										$taxes[] = domTag('li', array(
 											'content' => domTag('a', array(
-												'href' => '/admin/' . $taxonomies[$tax]['menu_link'],
-												'content' => $taxonomies[$tax]['label']
+												'href' => '/admin/' . $rs_taxonomies[$tax]['menu_link'],
+												'content' => $rs_taxonomies[$tax]['label']
 											))
 										));
 									}
@@ -384,11 +426,21 @@ function adminBar(): void {
 				</ul>
 			</li>
 			<li>
-				<a href="javascript:void(0)"><i class="fa-solid fa-plus"></i> <span>New</span></a>
+				<?php
+				// New options
+				echo domTag('a', array(
+					'href' => 'javascript:void(0)',
+					'content' => domTag('i', array(
+						'class' => 'fa-solid fa-plus'
+					)) . ' ' . domTag('span', array(
+						'content' => 'New'
+					))
+				));
+				?>
 				<ul class="sub-menu">
 					<?php
 					// Post types
-					foreach($post_types as $post_type) {
+					foreach($rs_post_types as $post_type) {
 						if(!userHasPrivilege(($post_type['name'] === 'media' ? 'can_upload_media' :
 							'can_create_' . str_replace(' ', '_', $post_type['labels']['name_lowercase']))) ||
 							!$post_type['show_in_admin_bar']) continue;
@@ -398,17 +450,17 @@ function adminBar(): void {
 						
 						if(!empty($post_type['taxonomies'])) {
 							foreach($post_type['taxonomies'] as $tax) {
-								if(array_key_exists($tax, $taxonomies)) {
+								if(array_key_exists($tax, $rs_taxonomies)) {
 									if(userHasPrivilege('can_create_' . str_replace(' ', '_',
-										$taxonomies[$tax]['labels']['name_lowercase'])) &&
-										$taxonomies[$tax]['show_in_admin_bar']
+										$rs_taxonomies[$tax]['labels']['name_lowercase'])) &&
+										$rs_taxonomies[$tax]['show_in_admin_bar']
 									) {
 										$taxes[] = domTag('li', array(
 											'content' => domTag('a', array(
-												'href' => '/admin/' . $taxonomies[$tax]['menu_link'] . (
+												'href' => '/admin/' . $rs_taxonomies[$tax]['menu_link'] . (
 													$tax === 'category' ? '?action=create' : '&action=create'
 												),
-												'content' => $taxonomies[$tax]['labels']['name_singular']
+												'content' => $rs_taxonomies[$tax]['labels']['name_singular']
 											))
 										));
 									}
@@ -551,11 +603,11 @@ function adminBar(): void {
 			<?php
 			// Display name
 			echo domTag('span', array(
-				'content' => 'Welcome, ' . $session['display_name']
+				'content' => 'Welcome, ' . $rs_session['display_name']
 			));
 			
 			// Avatar
-			echo getMedia($session['avatar'], array(
+			echo getMedia($rs_session['avatar'], array(
 				'class' => 'avatar',
 				'width' => 20,
 				'height' => 20
@@ -564,7 +616,7 @@ function adminBar(): void {
 			<ul class="user-dropdown-menu">
 				<?php
 				// Avatar (large)
-				echo getMedia($session['avatar'], array(
+				echo getMedia($rs_session['avatar'], array(
 					'class' => 'avatar-large',
 					'width' => 100,
 					'height' => 100
@@ -598,7 +650,7 @@ function adminBar(): void {
 
 /**
  * Prevent direct access to `/login.php` if a login slug has been set.
- * @since 1.3.12[b]
+ * @since 1.3.12-beta
  */
 function handleSecureLogin(): void {
 	$login_slug = getSetting('login_slug');
@@ -620,7 +672,7 @@ function handleSecureLogin(): void {
 
 /**
  * Determine the type of page being viewed (e.g., post, term, etc.).
- * @since 1.3.11[b]
+ * @since 1.3.11-beta
  */
 function guessPageType(): void {
 	global $rs_query, $rs_post, $rs_term;
@@ -632,8 +684,13 @@ function guessPageType(): void {
 		
 		// Check whether the current page is the home page
 		if($raw_uri === '/' || str_starts_with($raw_uri, '/?')) {
-			$home_page = $rs_query->selectField('settings', 'value', array('name' => 'home_page'));
-			$slug = $rs_query->selectField('posts', 'slug', array('id' => $home_page));
+			$home_page = $rs_query->selectField('settings', 'value', array(
+				'name' => 'home_page'
+			));
+			
+			$slug = $rs_query->selectField('posts', 'slug', array(
+				'id' => $home_page
+			));
 		} else {
 			$uri = explode('/', $raw_uri);
 			$uri = array_filter($uri);
@@ -646,9 +703,13 @@ function guessPageType(): void {
 		}
 		
 		// Check whether the current page is a post or a term
-		if($rs_query->selectRow('posts', 'COUNT(slug)', array('slug' => $slug)) > 0) {
+		if($rs_query->selectRow('posts', 'COUNT(slug)', array(
+			'slug' => $slug
+		)) > 0) {
 			$rs_post = new Post;
-		} elseif($rs_query->selectRow('terms', 'COUNT(slug)', array('slug' => $slug)) > 0) {
+		} elseif($rs_query->selectRow('terms', 'COUNT(slug)', array(
+			'slug' => $slug
+		)) > 0) {
 			$rs_term = new Term;
 		} else {
 			// Catastrophic failure, abort
@@ -659,7 +720,7 @@ function guessPageType(): void {
 
 /**
  * Check whether a post type exists in the database.
- * @since 1.0.5[b]
+ * @since 1.0.5-beta
  *
  * @param string $type -- The post's type.
  * @return bool
@@ -669,12 +730,14 @@ function postTypeExists(string $type): bool {
 	
 	$type = sanitize($type);
 	
-	return $rs_query->selectRow('posts', 'COUNT(type)', array('type' => $type)) > 0;
+	return $rs_query->selectRow('posts', 'COUNT(type)', array(
+		'type' => $type
+	)) > 0;
 }
 
 /**
  * Check whether a taxonomy exists in the database.
- * @since 1.0.5[b]
+ * @since 1.0.5-beta
  *
  * @param string $taxonomy -- The taxonomy's name.
  * @return bool
@@ -684,12 +747,14 @@ function taxonomyExists(string $taxonomy): bool {
 	
 	$taxonomy = sanitize($taxonomy);
 	
-	return $rs_query->selectRow('taxonomies', 'COUNT(name)', array('name' => $taxonomy)) > 0;
+	return $rs_query->selectRow('taxonomies', 'COUNT(name)', array(
+		'name' => $taxonomy
+	)) > 0;
 }
 
 /**
  * Create a Post object based on a provided slug.
- * @since 2.2.3[a]
+ * @since 2.2.3-alpha
  *
  * @param string $slug -- The post's slug.
  * @return object
@@ -700,7 +765,7 @@ function getPost(string $slug): object {
 
 /**
  * Create a Term object based on a provided slug.
- * @since 1.0.6[b]
+ * @since 1.0.6-beta
  *
  * @param string $slug -- The term's slug.
  * @return object
@@ -711,7 +776,7 @@ function getTerm(string $slug): object {
 
 /**
  * Alias for the getTerm function.
- * @since 2.4.1[a]
+ * @since 2.4.1-alpha
  *
  * @see getTerm()
  * @param string $slug -- The category's slug.
@@ -723,7 +788,7 @@ function getCategory(string $slug): object {
 
 /**
  * Fetch a nav menu.
- * @since 2.2.3[a]
+ * @since 2.2.3-alpha
  *
  * @param string $slug -- The menu's slug.
  */
@@ -734,7 +799,7 @@ function getMenu(string $slug): void {
 
 /**
  * Fetch a widget.
- * @since 2.2.1[a]
+ * @since 2.2.1-alpha
  *
  * @param string $slug -- The widget's slug.
  * @param bool $display_title (optional) -- Whether to display the widget's title.
@@ -748,38 +813,38 @@ function getWidget(string $slug, bool $display_title = false): void {
 	));
 	
 	if(empty($widget)) {
-		?>
-		<div class="widget">
-			<h3>The specified widget does not exist.</h3>
-		</div>
-		<?php
+		echo domTag('div', array(
+			'class' => 'widget',
+			'content' => domTag('h3', array(
+				'class' => 'widget-title',
+				'content' => 'The specified widget does not exist.'
+			))
+		));
 	} elseif($widget['status'] === 'inactive') {
-		?>
-		<div class="widget">
-			<h3>The specified widget could not be loaded.</h3>
-		</div>
-		<?php
+		echo domTag('div', array(
+			'class' => 'widget',
+			'content' => domTag('h3', array(
+				'class' => 'widget-title',
+				'content' => 'The specified widget could not be loaded.'
+			))
+		));
 	} else {
-		?>
-		<div class="widget <?php echo $slug; ?>">
-			<?php
-			if($display_title) {
-				?>
-				<h3 class="widget-title"><?php echo $widget['title']; ?></h3>
-				<?php
-			}
-			?>
-			<div class="widget-content">
-				<?php echo $widget['content']; ?>
-			</div>
-		</div>
-		<?php
+		echo domTag('div', array(
+			'class' => 'widget ' . $slug,
+			'content' => ($display_title ? domTag('h3', array(
+				'class' => 'widget-title',
+				'content' => $widget['title']
+			)) : '') . domTag('div', array(
+				'class' => 'widget-content',
+				'content' => $widget['content']
+			))
+		));
 	}
 }
 
 /**
  * Register a menu.
- * @since 1.0.0[b]
+ * @since 1.0.0-beta
  *
  * @param string $name -- The menu's name.
  * @param string $slug -- The menu's slug.
@@ -788,7 +853,11 @@ function registerMenu(string $name, string $slug): void {
 	global $rs_query;
 	
 	$slug = sanitize($slug);
-	$menu = $rs_query->selectRow('terms', '*', array('slug' => $slug, 'taxonomy' => getTaxonomyId('nav_menu')));
+	
+	$menu = $rs_query->selectRow('terms', '*', array(
+		'slug' => $slug,
+		'taxonomy' => getTaxonomyId('nav_menu')
+	));
 	
 	if(empty($menu)) {
 		$rs_query->insert('terms', array(
@@ -801,7 +870,7 @@ function registerMenu(string $name, string $slug): void {
 
 /**
  * Register a widget.
- * @since 1.0.0[b]
+ * @since 1.0.0-beta
  *
  * @param string $title -- The widget's title.
  * @param string $slug -- The widget's slug.
@@ -810,7 +879,11 @@ function registerWidget(string $title, string $slug): void {
 	global $rs_query;
 	
 	$slug = sanitize($slug);
-	$widget = $rs_query->selectRow('posts', '*', array('slug' => $slug, 'type' => 'widget'));
+	
+	$widget = $rs_query->selectRow('posts', '*', array(
+		'slug' => $slug,
+		'type' => 'widget'
+	));
 	
 	if(empty($widget)) {
 		$rs_query->insert('posts', array(
@@ -826,7 +899,7 @@ function registerWidget(string $title, string $slug): void {
 
 /**
  * Format an email message with HTML and CSS.
- * @since 2.0.5[a]
+ * @since 2.0.5-alpha
  *
  * @param string $heading -- The email heading.
  * @param array $fields -- The email fields.

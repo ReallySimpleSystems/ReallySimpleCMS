@@ -1,23 +1,57 @@
 <?php
 /**
  * Core class used to implement the Query object.
- * @since 1.0.0[a]
+ * This class is the heart of the system, providing the primary interface with the database.
+ * @since 1.0.0-alpha
  *
- * This class is the heart of the CMS, providing the primary interface with the database.
+ * @package ReallySimpleCMS
+ *
+ * ## VARIABLES ##
+ * - private object $conn
+ * - public bool $conn_status
+ * - public string $charset
+ * - public string $collate
+ * - public string $server_version
+ * - public string $client_version
+ *
+ * ## METHODS ##
+ * - public __construct()
+ * BASIC QUERIES:
+ * - public select(string $table, string|array $cols, array $where, array $args): int|array
+ * - public selectRow(string $table, string|array $cols, array $where, array $args): int|array
+ * - public selectField(string $table, string $col, array $where, array $args): string
+ * - public insert(string $table, array $data, array $args): int
+ * - public update(string $table, array $data, array $where, array $args): void
+ * - public delete(string $table, array $where, array $args): void
+ * - public doQuery(string $sql): void
+ * ADVANCED QUERIES & ACTIONS:
+ * - public showTables(string $table): int|array
+ * - public showIndexes(string $table): int|array
+ * - public tableExists(string $table): bool
+ * - public columnExists(string $table, string $col): int|bool
+ * - public createTable(string $table, array $data): void
+ * - public dropTable(string $table): void
+ * - public dropTables(array $tables): void
+ * MISCELLANEOUS:
+ * - private getAttr(string $attr): string
+ * - private initCharset(): void
+ * - private setCharset(?string $charset, ?string $collate): void
+ * - public hasCap(string $cap): bool
+ * - private errorMsg(string $type): void [DEPRECATED]
  */
 class Query {
 	/**
 	 * The database connection.
-	 * @since 1.0.0[a]
+	 * @since 1.0.0-alpha
 	 *
 	 * @access private
-	 * @var object
+	 * @var null|object
 	 */
 	private $conn = null;
 	
 	/**
 	 * The database connection status.
-	 * @since 1.3.0[a]
+	 * @since 1.3.0-alpha
 	 *
 	 * @access public
 	 * @var bool
@@ -26,7 +60,7 @@ class Query {
 	
 	/**
 	 * The database character set.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access public
 	 * @var string
@@ -35,7 +69,7 @@ class Query {
 	
 	/**
 	 * The database collation.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access public
 	 * @var string
@@ -44,7 +78,7 @@ class Query {
 	
 	/**
 	 * The database server version.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access public
 	 * @var string
@@ -53,7 +87,7 @@ class Query {
 	
 	/**
 	 * The database client version.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access public
 	 * @var string
@@ -62,11 +96,13 @@ class Query {
 	
 	/**
 	 * Class constructor. Initializes the database connection.
-	 * @since 1.0.0[a]
+	 * @since 1.0.0-alpha
 	 *
 	 * @access public
 	 */
 	public function __construct() {
+		global $rs_error;
+		
 		try {
 			// Create a PDO object and plug in the database constant values
 			$this->conn = new PDO('mysql' .
@@ -91,36 +127,39 @@ class Query {
 			$this->conn_status = true;
 			$this->setCharset();
 		} catch(PDOException $e) {
-			logError($e);
 			$this->conn_status = false;
+			
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
+	/*------------------------------------*\
+		BASIC QUERIES
+	\*------------------------------------*/
+	
 	/**
 	 * Select one or more rows from the database and return them.
-	 * @since 1.1.0[a]
+	 * @since 1.1.0-alpha
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @param string|array $cols (optional) -- The column(s) to query.
 	 * @param array $where (optional) -- The where clause.
-	 * @param string $order_by (optional) -- The column to order results by.
-	 * @param string $order (optional) -- The sort order (ASC|DESC).
-	 * @param string|array $limit (optional) -- Limit the results.
+	 * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
 	 * @return int|array
 	 */
-	public function select(
-		string $table,
-		string|array $cols = '*',
-		array $where = array(),
-		string $order_by = '',
-		string $order = 'ASC',
-		string|array $limit = ''
-	): int|array {
-		if(empty($table)) exit($this->errorMsg('table'));
+	public function select(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
+		global $rs_error;
+		
+		$debug = false;
+		
+		if(isset($args['debug']) && $args['debug']) $debug = true;
 		
 		if(is_array($cols)) {
-			// DISTINCT clause
+			// DISTINCT CLAUSE
 			if(in_array('DISTINCT', $cols, true)) {
 				$distinct = true;
 				
@@ -131,9 +170,10 @@ class Query {
 			$cols = implode(', ', $cols);
 		}
 		
+		// SELECT FROM CLAUSE
 		$sql = 'SELECT ' . (isset($distinct) ? 'DISTINCT ' : '') . $cols . ' FROM `' . $table . '`';
 		
-		// WHERE clause
+		// WHERE CLAUSE
 		if(!empty($where)) {
 			$conditions = $values = $vals = $placeholders = array();
 			
@@ -145,11 +185,8 @@ class Query {
 				'IS NULL', 'IS NOT NULL'
 			);
 			
-			// Default operator
-			$operator = '<>';
-			
-			// Default logic
-			$logic = 'AND';
+			// Defaults
+			list($operator, $logic) = array('<>', 'AND');
 			
 			foreach($where as $field => $value) {
 				if($field === 'logic') {
@@ -172,21 +209,12 @@ class Query {
 						$placeholders[] = '?';
 					}
 					
-					switch($operator) {
-						case 'BETWEEN': case 'NOT BETWEEN':
-							$conditions[] = $field . ' ' . $operator . ' ' .
-								implode(' AND ', $placeholders);
-							break;
-						case 'IN': case 'NOT IN':
-							$conditions[] = $field . ' ' . $operator . ' (' .
-								implode(', ', $placeholders) . ')';
-							break;
-						case 'IS NULL': case 'IS NOT NULL':
-							$conditions[] = $field . ' ' . $operator;
-							break;
-						default:
-							$conditions[] = $field . ' ' . $operator . ' ?';
-					}
+					$conditions[] = match($operator) {
+						'BETWEEN', 'NOT BETWEEN' => $field . ' ' . $operator . ' ' . implode(' AND ', $placeholders),
+						'IN', 'NOT IN' => $field . ' ' . $operator . ' (' . implode(', ', $placeholders) . ')',
+						'IS NULL', 'IS NOT NULL' => $field . ' ' . $operator,
+						default => $field . ' ' . $operator . ' ?'
+					};
 					
 					// Merge the two values arrays into one
 					$values = array_merge($values, $vals);
@@ -200,7 +228,25 @@ class Query {
 			$sql .= ' WHERE ' . implode(' ' . $logic . ' ', $conditions);
 		}
 		
-		// ORDER BY clause
+		// ADDITIONAL ARGS
+		$defaults = array(
+			'order_by' => '', ## type: string
+			'order' => 'ASC', ## type: string
+			'limit' => '' ## type: string|array
+		);
+		
+		$args = array_merge($defaults, $args);
+		
+		foreach($args as $key => $value)
+			if(!array_key_exists($key, $defaults)) unset($args[$key]);
+		
+		list(
+			'order_by' => $order_by,
+			'order' => $order,
+			'limit' => $limit
+		) = $args;
+		
+		// ORDER BY CLAUSE
 		if(!empty($order_by)) {
 			$order = strtoupper($order);
 			
@@ -209,7 +255,7 @@ class Query {
 			$sql .= ' ORDER BY ' . $order_by . ' ' . $order;
 		}
 		
-		// LIMIT clause
+		// LIMIT CLAUSE
 		if(!empty($limit)) {
 			if(is_array($limit)) $limit = implode(', ', $limit);
 			
@@ -217,6 +263,8 @@ class Query {
 		}
 		
 		try {
+			if($debug) var_dump($sql);
+			
 			$select_query = $this->conn->prepare($sql);
 			isset($values) ? $select_query->execute($values) : $select_query->execute();
 			
@@ -231,33 +279,28 @@ class Query {
                 return $data;
             }
 		} catch(PDOException $e) {
-			logError($e);
-			return -1;
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
+			return array();
 		}
 	}
 	
 	/**
 	 * Select only a single row from the database and return it.
-	 * @since 1.1.1[a]
+	 * @since 1.1.1-alpha
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @param string|array $cols (optional) -- The column(s) to query.
 	 * @param array $where (optional) -- The where clause.
-	 * @param string $order_by (optional) -- The column to order results by.
-	 * @param string $order (optional) -- The sort order (ASC|DESC).
-	 * @param string|array $limit (optional) -- Limit the results.
+	 * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
 	 * @return int|array
 	 */
-	public function selectRow(
-		string $table,
-		string|array $cols = '*',
-		array $where = array(),
-		string $order_by = '',
-		string $order = 'ASC',
-		string|array $limit = ''
-	): int|array {
-		$data = $this->select($table, $cols, $where, $order_by, $order, $limit);
+	public function selectRow(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
+		$data = $this->select($table, $cols, $where, $args);
 		
 		if(is_array($data) && !empty($data))
 			return array_merge(...$data);
@@ -267,28 +310,17 @@ class Query {
 	
 	/**
 	 * Select only a single field from the database and return it.
-	 * @since 1.8.10[a]
+	 * @since 1.8.10-alpha
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @param string $col -- The column to query.
 	 * @param array $where (optional) -- The where clause.
-	 * @param string $order_by (optional) -- The column to order results by.
-	 * @param string $order (optional) -- The sort order (ASC|DESC).
-	 * @param string|array $limit (optional) -- Limit the results.
+	 * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
 	 * @return string
 	 */
-	public function selectField(
-		string $table,
-		string $col,
-		array $where = array(),
-		string $order_by = '',
-		string $order = 'ASC',
-		string|array $limit = ''
-	): string {
-		if(empty($col)) exit($this->errorMsg('field'));
-		
-		$data = $this->selectRow($table, $col, $where, $order_by, $order, $limit);
+	public function selectField(string $table, string $col, array $where = array(), array $args = array()): string {
+		$data = $this->selectRow($table, $col, $where, $args);
 		
 		if(is_array($data))
 			return implode('', $data);
@@ -298,21 +330,25 @@ class Query {
 	
 	/**
 	 * Insert a row into the database.
-	 * @since 1.1.0[a]
+	 * @since 1.1.0-alpha
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @param array $data -- The data to insert.
+	 * @param array $args (optional) -- Additional args.
 	 * @return int
 	 */
-	public function insert(string $table, array $data): int {
-		if(empty($table)) exit($this->errorMsg('table'));
-		if(empty($data)) exit($this->errorMsg('data'));
+	public function insert(string $table, array $data, array $args = array()): int {
+		global $rs_error;
+		
+		$debug = false;
+		
+		if(isset($args['debug']) && $args['debug']) $debug = true;
 		
 		$fields = $values = $placeholders = array();
 		
 		foreach($data as $field => $value) {
-			if(strtoupper($value) === 'NOW()') {
+			if(!is_null($value) && strtoupper($value) === 'NOW()') {
 				$fields[] = $field;
 				$placeholders[] = $value;
 			} else {
@@ -324,36 +360,48 @@ class Query {
 		
 		$fields = implode(', ', $fields);
 		$placeholders = implode(', ', $placeholders);
+		
+		// INSERT INTO CLAUSE
 		$sql = 'INSERT INTO `' . $table . '` (' . $fields . ') VALUES (' . $placeholders . ')';
 		
 		try {
+			if($debug) var_dump($sql);
+			
 			$insert_query = $this->conn->prepare($sql);
 			$insert_query->execute($values);
 			
 			return $this->conn->lastInsertId();
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
 	
 	/**
 	 * Update an existing row in the database.
-	 * @since 1.1.0[a]
+	 * @since 1.1.0-alpha
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @param array $data -- The data to update.
 	 * @param array $where (optional) -- The where clause.
+	 * @param array $args (optional) -- Additional args.
 	 */
-	public function update(string $table, array $data, array $where = array()): void {
-		if(empty($table)) exit($this->errorMsg('table'));
-		if(empty($data)) exit($this->errorMsg('data'));
+	public function update(string $table, array $data, array $where = array(), array $args = array()): void {
+		global $rs_error;
+		
+		$debug = false;
+		
+		if(isset($args['debug']) && $args['debug']) $debug = true;
 		
 		$fields = $values = array();
 		
 		foreach($data as $field => $value) {
-			if(strtoupper($value) === 'NOW()') {
+			if(!is_null($value) && strtoupper($value) === 'NOW()') {
 				$fields[] = $field . ' = ' . $value;
 			} else {
 				$fields[] = $field . ' = ?';
@@ -362,17 +410,22 @@ class Query {
 		}
 		
 		$fields = implode(', ', $fields);
+		
+		// UPDATE SET CLAUSE
 		$sql = 'UPDATE `' . $table . '` SET ' . $fields;
 		
-		// WHERE clause
+		// WHERE CLAUSE
 		if(!empty($where)) {
 			$conditions = $vals = $placeholders = array();
 			
-			// Default operator
-			$operator = 'IN';
+			// Accepted operators
+			$operators = array(
+				'=', '>', '<', '>=', '<=', '<>',
+				'LIKE', 'IN', 'NOT IN'
+			);
 			
-			// Default logic
-			$logic = 'AND';
+			// Defaults
+			list($operator, $logic) = array('IN', 'AND');
 			
 			foreach($where as $field => $value) {
 				if($field === 'logic') {
@@ -382,19 +435,27 @@ class Query {
 				
 				if(is_array($value)) {
 					foreach($value as $val) {
-						if($val === 'IN' || $val === 'NOT IN') {
-							$operator = $val;
-						} else {
-							$vals[] = $val;
-							$placeholders[] = '?';
+						if(is_string($val)) {
+							// Check whether the value is an operator
+							if(in_array(strtoupper($val), $operators, true))
+								$operator = strtoupper($val);
 						}
+						
+						// Skip over the operator value
+						if(strtoupper($val) === $operator) continue;
+						
+						$vals[] = $val;
+						$placeholders[] = '?';
 					}
 					
-					$conditions[] = $field . ' ' . $operator . ' (' .
-						implode(', ', $placeholders) . ')';
+					$conditions[] = match($operator) {
+						'IN', 'NOT IN' => $field . ' ' . $operator . ' (' . implode(', ', $placeholders) . ')',
+						default => $field . ' ' . $operator . ' ?'
+					};
 					
 					// Merge the two values arrays into one
 					$values = array_merge($values, $vals);
+					$vals = array();
 				} else {
 					$conditions[] = $field . ' = ?';
 					$values[] = $value;
@@ -405,35 +466,43 @@ class Query {
 		}
 		
 		try {
+			if($debug) var_dump($sql);
+			
 			$update_query = $this->conn->prepare($sql);
 			$update_query->execute($values);
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
 	/**
 	 * Delete a row from the database.
-	 * @since 1.0.3[a]
+	 * @since 1.0.3-alpha
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @param array $where (optional) -- The where clause.
+	 * @param array $args (optional) -- Additional args.
 	 */
-	public function delete(string $table, array $where = array()): void {
-		if(empty($table)) exit($this->errorMsg('table'));
+	public function delete(string $table, array $where = array(), array $args = array()): void {
+		global $rs_error;
 		
+		$debug = false;
+		
+		if(isset($args['debug']) && $args['debug']) $debug = true;
+		
+		// DELETE FROM CLAUSE
 		$sql = 'DELETE FROM `' . $table . '`';
 		
-		// WHERE clause
+		// WHERE CLAUSE
 		if(!empty($where)) {
 			$conditions = $values = $vals = $placeholders = array();
 			
-			// Default operator
-			$operator = 'IN';
-			
-			// Default logic
-			$logic = 'AND';
+			// Defaults
+			list($operator, $logic) = array('IN', 'AND');
 			
 			foreach($where as $field => $value) {
 				if($field === 'logic') {
@@ -451,8 +520,7 @@ class Query {
 						}
 					}
 					
-					$conditions[] = $field . ' ' . $operator . ' (' .
-						implode(', ', $placeholders) . ')';
+					$conditions[] = $field . ' ' . $operator . ' (' . implode(', ', $placeholders) . ')';
 					
 					// Merge the two values arrays into one
 					$values = array_merge($values, $vals);
@@ -466,38 +534,54 @@ class Query {
 		}
 		
 		try {
+			if($debug) var_dump($sql);
+			
 			$delete_query = $this->conn->prepare($sql);
 			isset($values) ? $delete_query->execute($values) : $delete_query->execute();
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
 	/**
 	 * Run a generic SQL query. Does not return data.
-	 * @since 1.3.0[a]
+	 * @since 1.3.0-alpha
 	 *
 	 * @access public
 	 * @param string $sql -- The SQL statement to execute.
 	 */
 	public function doQuery(string $sql): void {
+		global $rs_error;
+		
 		try {
 			$query = $this->conn->prepare($sql);
 			$query->execute();
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
+	/*------------------------------------*\
+		ADVANCED QUERIES & ACTIONS
+	\*------------------------------------*/
+	
 	/**
 	 * Show tables in the database.
-	 * @since 1.3.3[a]
+	 * @since 1.3.3-alpha
 	 *
 	 * @access public
 	 * @param string $table (optional) -- The table name.
 	 * @return int|array
 	 */
 	public function showTables(string $table = ''): int|array {
+		global $rs_error;
+		
 		$data = array();
 		$sql = 'SHOW TABLES';
 		
@@ -511,21 +595,25 @@ class Query {
 			
 			return $data;
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
 	
 	/**
 	 * Show indexes in a table.
-	 * @since 1.2.1[b]
+	 * @since 1.2.1-beta
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 * @return int|array
 	 */
 	public function showIndexes(string $table): int|array {
-		if(empty($table)) exit($this->errorMsg('table'));
+		global $rs_error;
 		
 		$sql = 'SHOW INDEXES FROM `' . $table . '`;';
 		
@@ -537,14 +625,18 @@ class Query {
 			
 			return $data;
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
 	
 	/**
 	 * Check whether a table already exists in the database.
-	 * @since 1.0.8[b]
+	 * @since 1.0.8-beta
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
@@ -556,7 +648,7 @@ class Query {
 	
 	/**
 	 * Check whether a column exists in a database table.
-	 * @since 1.3.5[b]
+	 * @since 1.3.5-beta
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
@@ -564,8 +656,7 @@ class Query {
 	 * @return int|bool
 	 */
 	public function columnExists(string $table, string $col): int|bool {
-		if(empty($table)) exit($this->errorMsg('table'));
-		if(empty($col)) exit($this->errorMsg('column'));
+		global $rs_error;
 		
 		$sql = 'SHOW COLUMNS FROM `' . $table . '` LIKE \'' . $col . '\';';
 		
@@ -575,37 +666,55 @@ class Query {
 			
 			return !empty($query->fetch());
 		} catch(PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
 	
 	/**
+	 * Create a database table.
+	 * @since 1.3.14-beta
+	 *
+	 * @access public
+	 * @param string $table -- The table name.
+	 * @param array $data -- All data to add to the table (e.g., columns and indexes).
+	 */
+	public function createTable(string $table, array $data): void {
+		$sql = 'CREATE TABLE ' . $table . ' (';
+		
+		foreach($data as $line) $sql .= $line;
+		
+		$sql .= ');';
+		
+		$this->doQuery($sql);
+	}
+	
+	/**
 	 * Drop a table from the database.
-	 * @since 1.2.0[b]
+	 * @since 1.2.0-beta
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
 	 */
 	public function dropTable(string $table): void {
-		if(empty($table)) exit($this->errorMsg('table'));
-		
-		$this->doQuery('DROP TABLE `' . $table . '`;');
+		$this->doQuery('DROP TABLE IF EXISTS `' . $table . '`;');
 	}
 	
 	/**
 	 * Drop multiple tables from the database.
-	 * @since 1.2.0[b]
+	 * @since 1.2.0-beta
 	 *
 	 * @access public
 	 * @param array $tables -- The table names.
 	 */
 	public function dropTables(array $tables): void {
-		if(empty($tables)) exit($this->errorMsg('table'));
-		
 		if(!is_array($tables)) $tables = (array)$tables;
 		
-		$sql = 'DROP TABLE ';
+		$sql = 'DROP TABLE IF EXISTS ';
 		
 		for($i = 0; $i < count($tables); $i++)
 			$sql .= '`' . $tables[$i] . '`' . ($i < count($tables) - 1 ? ', ' : ';');
@@ -613,9 +722,13 @@ class Query {
 		$this->doQuery($sql);
 	}
 	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
 	/**
 	 * Fetch a PDO attribute.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access private
 	 * @param string $attr -- The attribute's name.
@@ -627,7 +740,7 @@ class Query {
 	
 	/**
 	 * Initialize the charset and collation.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access private
 	 */
@@ -661,21 +774,23 @@ class Query {
 	
 	/**
 	 * Set the charset and collation.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access private
 	 * @param string|null $charset (optional) -- The character set.
 	 * @param string|null $collate (optional) -- The collation.
 	 */
 	private function setCharset(?string $charset = null, ?string $collate = null): void {
+		global $rs_error;
+		
 		if(!isset($charset)) $charset = $this->charset;
 		if(!isset($collate)) $collate = $this->collate;
 		
 		if($this->hasCap('collation') && !empty($charset)) {
 			$change_charset = $change_collate = false;
 			
-			if(file_exists(DB_CONFIG)) {
-				$config_file = file(DB_CONFIG);
+			if(file_exists(RS_CONFIG)) {
+				$config_file = file(RS_CONFIG);
 				
 				foreach($config_file as $line_num => $line) {
 					// Skip over unmatched lines
@@ -708,10 +823,8 @@ class Query {
 				unset($line);
 				
 				if($change_charset || $change_collate) {
-					// Open the file stream
-					$handle = fopen(DB_CONFIG, 'w');
+					$handle = fopen(RS_CONFIG, 'w');
 					
-					// Write to the file
 					if($handle !== false) {
 						foreach($config_file as $line) fwrite($handle, $line);
 						
@@ -722,8 +835,15 @@ class Query {
 					
 					if(!empty($collate)) $sql .= ' COLLATE ' . $collate . ';';
 					
-					$query = $this->conn->prepare($sql);
-					$query->execute();
+					try {
+						$query = $this->conn->prepare($sql);
+						$query->execute();
+					} catch(PDOException $e) {
+						$rs_error->logError($e);
+						
+						if(isDebugMode())
+							$rs_error->triggerError();
+					}
 				}
 			}
 		}
@@ -731,7 +851,7 @@ class Query {
 	
 	/**
 	 * Check whether the database supports a particular capability.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access public
 	 * @param string $cap -- The capability.
@@ -764,12 +884,15 @@ class Query {
 	
 	/**
 	 * Return an error message for poorly executed queries.
-	 * @since 1.0.3[a]
+	 * @since 1.0.3-alpha
+	 * @deprecated since 1.3.14-beta
 	 *
 	 * @access private
 	 * @param string $type -- The type of error.
 	 */
 	private function errorMsg(string $type): void {
+		deprecated();
+		
 		$error = 'Query Error: ';
 		
 		switch($type) {

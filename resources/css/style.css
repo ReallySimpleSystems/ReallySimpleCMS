@@ -1,6 +1,8 @@
-/**
+/*!
  * Stylesheet for the front end of the CMS.
- * @since 1.3.3[a]
+ * @since 1.3.3-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
 /*------------------------------------*\
@@ -12,6 +14,20 @@
 	--rscms-font-family: 'Segoe UI', Helvetica, sans-serif;
 	--rscms-gutter-width: 1rem;
 	--rscms-admin-bar-height: 30px;
+	
+	/* Typography */
+	
+	--global--font: 'Segoe UI', Helvetica, sans-serif;
+	
+	/* Colors */
+	
+	--rs__link-color: #8bcff9;
+	
+	--global--bg-color-dark: #2f2f2f;
+	--global--content-bg-color-dark: #ededed;
+	--global--border-color-dark: #c4c4c4;
+	--global--text-color-dark: #101010;
+	--global--heading-color-dark: #fefefe;
 }
 
 /*------------------------------------*\
@@ -32,6 +48,7 @@ body {
 }
 
 a {
+	color: var(--rs__link-color);
 	text-decoration: none;
 }
 
@@ -65,6 +82,8 @@ small {
     CONTENT
 \*------------------------------------*/
 
+/* Clear content after floating elements */
+
 .clear::before {
 	content: '';
 	display: table;
@@ -76,8 +95,21 @@ small {
 	display: table;
 }
 
+/* Hidden content */
+
 .hidden {
 	display: none;
+}
+
+/* "Powered by" message */
+
+.powered-by {
+	color: var(--global--heading-color-dark);
+	font-size: 0.8em;
+	font-style: italic;
+	margin-top: 10px;
+	margin-bottom: 0;
+	text-align: center;
 }
 
 /* Log In and Forgot/Reset Password forms */
@@ -179,7 +211,7 @@ small {
       bottom: 0;
 }
 
-.login .data-form #captcha {
+.login .data-form #captcha-image {
 	margin-top: 10px;
 }
 
@@ -259,25 +291,25 @@ small {
 
 /* Maintenance page */
 
-.maintenance {
+.maintenance-page {
 	display: flex;
 	  align-items: center;
 	min-height: 100vh;
 	text-align: center;
 }
 
-.maintenance h1 {
+.maintenance-page h1 {
 	margin-top: 0;
 }
 
-.maintenance .wrapper {
+.maintenance-page .wrapper {
 	margin: 0 auto;
 	max-width: 1200px;
 	position: relative;
 	width: 95%;
 }
 
-.maintenance .copyright {
+.maintenance-page .copyright {
 	background-color: #2f2f2f;
 	color: #fefefe;
 	font-size: 0.875em;
@@ -287,6 +319,31 @@ small {
 	  bottom: 0;
 	  left: 0;
 	width: 100%;
+}
+
+/* Error page */
+
+.error-page {
+	background-color: var(--global--bg-color-dark);
+}
+
+.error-page .wrapper {
+	margin: 5em auto;
+	max-width: 725px;
+	width: 95%;
+}
+
+.error-page h1 {
+	color: var(--global--heading-color-dark);
+	text-align: center;
+}
+
+.error-page .content {
+	background-color: var(--global--content-bg-color-dark);
+	border-radius: 6px;
+	box-shadow: 0 2px 4px #000;
+	color: var(--global--text-color-dark);
+	padding: 1em;
 }
 
 /* Scroll to top button */
@@ -434,6 +491,8 @@ small {
 	content: '';
 	height: 100%;
 	position: absolute;
+	  top: 0;
+	  left: 0;
 	width: 100%;
 }
 
@@ -463,6 +522,8 @@ small {
 	content: '';
 	height: 100%;
 	position: absolute;
+	  top: 0;
+	  left: 0;
 	width: 100%;
 }
 

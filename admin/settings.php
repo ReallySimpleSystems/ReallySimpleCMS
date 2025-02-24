@@ -1,24 +1,21 @@
 <?php
 /**
  * Admin settings page.
- * @since 1.2.6[a]
+ * @since 1.2.6-alpha
+ *
+ * @package ReallySimpleCMS
  */
+
 require_once __DIR__ . '/header.php';
 
-// Create a Settings object
-$rs_settings = new Settings;
+$id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
+$page = $_GET['page'] ?? 'general';
+
+$rs_settings = new Settings($page);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current settings page
-	$page = $_GET['page'] ?? '';
-	
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
-	// Fetch the current id
-	$id = (int)($_GET['id'] ?? 0);
-	
 	switch($page) {
 		case 'design':
 			// Design settings
@@ -26,8 +23,7 @@ $rs_settings = new Settings;
 				redirect('index.php');
 			break;
 		case 'user_roles':
-			// Create a UserRole object
-			$rs_user_role = new UserRole($id);
+			$rs_user_role = new UserRole($id, $action, $page);
 			
 			switch($action) {
 				case 'create':

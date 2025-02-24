@@ -1,9 +1,10 @@
 /*!
  * Scripts for the admin dashboard.
- * @since 1.5.6[a]
+ * @since 1.5.6-alpha
+ *
+ * @package ReallySimpleCMS
  */
 jQuery(document).ready($ => {
-	// Turn on strict mode
 	'use strict';
 	
 	/*------------------------------*\
@@ -12,23 +13,23 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Bulk select/deselect all records.
-	 * @since 1.2.7[b]
+	 * @since 1.2.7-beta
 	 */
 	$('body').on('click', '.bulk-selector', function() {
 		let is_checked = $(this).prop('checked');
 		
 		$('.bulk-selector').prop('checked', is_checked);
-		$('.bulk-select .checkbox').prop('checked', is_checked);
+		$('.col-bulk-select .checkbox').prop('checked', is_checked);
 	});
 	
 	/**
 	 * Handle checking/unchecking the other checkboxes.
-	 * @since 1.2.7[b]
+	 * @since 1.2.7-beta
 	 */
-	$('body').on('click', '.bulk-select .checkbox', function() {
+	$('body').on('click', '.col-bulk-select .checkbox', function() {
 		let is_checked;
 		
-		$('.bulk-select .checkbox').each(function(idx, elem) {
+		$('.col-bulk-select .checkbox').each(function(idx, elem) {
 			if(!$(elem).prop('checked')) {
 				is_checked = false;
 				return false;
@@ -42,7 +43,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Bulk update all selected records.
-	 * @since 1.2.7[b]
+	 * @since 1.2.7-beta
 	 */
 	$('body').on('click', '.bulk-update', function() {
 		// Fetch the current page
@@ -53,7 +54,7 @@ jQuery(document).ready($ => {
 		let selected = [];
 		let i = 0;
 		
-		$('.bulk-select .checkbox').each(function() {
+		$('.col-bulk-select .checkbox').each(function() {
 			if($(this).prop('checked')) {
 				selected[i] = $(this).val();
 				i++;
@@ -94,7 +95,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Bulk delete all spam comments.
-	 * @since 1.3.7[b]
+	 * @since 1.3.7-beta
 	 */
 	$('body').on('click', '.bulk-delete-spam', function() {
 		$('.content').empty();
@@ -131,7 +132,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Remove the 'invalid' class from all fields that already have data.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	(function() {
 		// Loop through all required inputs that have not been changed
@@ -143,7 +144,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Validate a required field.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('.required').on('input', function() {
 		if(!$(this).hasClass('checkbox-label')) {
@@ -165,7 +166,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Validate a required checkbox field.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('.checkbox-input').on('click', function() {
 		if($(this).parent().hasClass('required')) {
@@ -180,7 +181,7 @@ jQuery(document).ready($ => {
 
 	/**
 	 * Remove the 'init' class from a required field when its focus is blurred.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('.required').on('blur', function() {
 		$(this).removeClass('init');
@@ -188,7 +189,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Try to submit the form.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('.submit-input').on('click', function(e) {
 		// Fetch the form whose submit button was just clicked
@@ -203,7 +204,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Show hidden conditional fields if appropriate.
-	 * @since 1.2.0[b]{ss-04}
+	 * @since 1.2.0-beta_snap-04
 	 */
 	$('.checkbox-label.conditional-toggle').each(function() {
 		if(!$(this).children('input').prop('checked')) $(this).siblings('.conditional-field').addClass('hidden');
@@ -225,7 +226,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Remove an image.
-	 * @since 2.1.5[a]
+	 * @since 2.1.5-alpha
 	 */
 	$('.image-remove').on('click', function() {
 		$(this).parent().siblings('input[data-field="id"]').val(0);
@@ -240,7 +241,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Display the bars for the statistics graph.
-	 * @since 1.5.6[a]
+	 * @since 1.5.6-alpha
 	 */
 	(function(is_dash) {
 		if(is_dash) {
@@ -256,7 +257,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Show/hide the record search form.
-	 * @since 1.3.7[b]
+	 * @since 1.3.7-beta
 	 */
 	$('#search-toggle').on('click', function() {
 		let form = $('.search-form');
@@ -269,7 +270,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Display information about an admin page.
-	 * @since 1.2.0[b]
+	 * @since 1.2.0-beta
 	 */
 	$('.admin-info i').on('click', function() {
 		let wrap = $(this).parent();
@@ -282,7 +283,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Dismiss a status message.
-	 * @since 1.3.8[b]
+	 * @since 1.3.8-beta
 	 */
 	$('.notice .dismiss').on('click', function() {
 		$(this).parent().hide(250);
@@ -309,7 +310,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Event handler to format a post slug.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('#title-field').on('input', function() {
 		formatSlug(this);
@@ -317,7 +318,7 @@ jQuery(document).ready($ => {
 
 	/**
 	 * Event handler to format a term slug.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('#name-field').on('input', function() {
  		formatSlug(this);
@@ -325,7 +326,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Format a slug while editing the slug field.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('#slug-field').on('input', function() {
 		let str = $(this).val();
@@ -341,7 +342,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Format a slug.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 *
 	 * @param string field
 	 */
@@ -367,7 +368,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Select all/none on a checkbox list.
-	 * @since 1.2.0[b]
+	 * @since 1.2.0-beta
 	 */
 	$('#select-all').on('click', function() {
 		let list = $(this).parents('.checkbox-list');
@@ -402,7 +403,7 @@ jQuery(document).ready($ => {
 	
 	/**
 	 * Event handler to generate a random password.
-	 * @since 2.1.9[a]
+	 * @since 2.1.9-alpha
 	 */
 	$('#password-gen').on('click', function() {
 		$('#password-field').val(generatePassword());
@@ -412,7 +413,7 @@ jQuery(document).ready($ => {
 
 	/**
  	 * Generate a random password.
- 	 * @since 2.1.9[a]
+ 	 * @since 2.1.9-alpha
 	 *
 	 * @param int length (optional; default: 16)
 	 * @param bool special_chars (optional; default: true)

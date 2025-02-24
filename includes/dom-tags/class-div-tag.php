@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class DivTag extends \DomTag implements DomTagInterface {
+class DivTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0
@@ -29,9 +29,6 @@ class DivTag extends \DomTag implements DomTagInterface {
 	 * @return array
 	 */
 	public static function props(): array {
-		return array_merge(
-			parent::ALWAYS_WL,
-			array('style')
-		);
+		return parent::ALWAYS_WL;
 	}
 }

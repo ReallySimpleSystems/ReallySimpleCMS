@@ -1,3 +1,12 @@
+<?php
+/**
+ * Carbon theme - footer template.
+ * @since 1.5.5-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
+ */
+?>
 			<div id="scroll-top">
 				<i class="fa-solid fa-chevron-up"></i>
 			</div>
@@ -23,7 +32,7 @@
 				</div>
 			</div>
 		</footer>
-		<?php if($session) adminBar(); ?>
+		<?php if($rs_session) adminBar(); ?>
 		<?php footerScripts('', array(), array(array('script'))); ?>
 	</body>
 </html>

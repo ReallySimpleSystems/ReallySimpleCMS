@@ -1,21 +1,20 @@
 <?php
 /**
  * Admin themes page.
- * @since 2.3.0[a]
+ * @since 2.3.0-alpha
+ *
+ * @package ReallySimpleCMS
  */
+
 require_once __DIR__ . '/header.php';
 
-// Create a Theme object
-$rs_theme = new Theme;
+$name = $_GET['name'] ?? '';
+$action = $_GET['action'] ?? '';
+
+$rs_theme = new Theme($name, $action);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
-	// Fetch the theme's name
-	$name = $_GET['name'] ?? '';
-	
 	switch($action) {
 		case 'create':
 			// Create a new theme
@@ -24,12 +23,12 @@ $rs_theme = new Theme;
 			break;
 		case 'activate':
 			// Activate an inactive theme
-			userHasPrivilege('can_edit_themes') ? $rs_theme->activateTheme($name) :
+			userHasPrivilege('can_edit_themes') ? $rs_theme->activateTheme() :
 				redirect(ADMIN_URI);
 			break;
 		case 'delete':
 			// Delete an existing theme
-			userHasPrivilege('can_delete_themes') ? $rs_theme->deleteTheme($name) :
+			userHasPrivilege('can_delete_themes') ? $rs_theme->deleteTheme() :
 				redirect(ADMIN_URI);
 			break;
 		default:

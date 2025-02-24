@@ -1,19 +1,15 @@
 <?php
 /**
  * Log in to the admin dashboard.
- * @since 1.3.3[a]
+ * @since 1.3.3-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
-// Include the initialization file
 require_once __DIR__ . '/init.php';
+require_once RS_FUNC;
 
-// Include functions
-require_once FUNC;
-
-// Start output buffering
 ob_start();
-
-// Start the session
 session_start();
 
 $rs_login = new Login;
@@ -72,5 +68,4 @@ $action = $_GET['action'] ?? '';
 	</body>
 </html>
 <?php
-// End output buffering
 ob_end_flush();

@@ -1,3 +1,11 @@
+<?php
+/**
+ * Delete modal for admin pages.
+ * @since 2.1.8-alpha
+ *
+ * @package ReallySimpleCMS
+ */
+?>
 <div id="modal-delete" class="modal fade">
 	<div class="modal-wrap">
 		<div class="modal-header clear">
@@ -16,4 +24,5 @@
 		</div>
 	</div>
 </div>
-<?php adminScript('modal.js'); ?>
+<?php
+adminScript('modal.js');

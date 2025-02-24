@@ -1,12 +1,10 @@
 <?php
 /**
  * Fallback theme used by the CMS if there are no themes installed.
- * @since 2.3.0[a]
+ * @since 2.3.0-alpha
+ *
+ * @package ReallySimpleCMS
  */
-
-// Determine whether the site is in debug mode
-$debug = false;
-if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,7 +13,7 @@ if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<?php
-		if($debug)
+		if(isDebugMode())
 			putStylesheet('style.css');
 		else
 			putStylesheet('style.min.css');
@@ -37,6 +35,22 @@ if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
 				<?php endif; ?>
 			</article>
 		</div>
-		<p class="copyright">&copy; <?php echo date('Y'); ?> <?php echo CMS_NAME; ?>. All rights reserved.</p>
+		<?php
+		// Copyright
+		echo domTag('p', array(
+			'class' => 'copyright',
+				'content' => '&copy; ' . date('Y') . ' ' . domTag('a', array(
+				'href' => 'https://github.com/CaptFredricks/ReallySimpleCMS',
+				'target' => '_blank',
+				'rel' => 'noreferrer noopener',
+				'content' => RS_ENGINE
+			)) . ' &ndash; ' . domTag('em', array(
+				'content' => 'powered by ' . RS_DEVELOPER
+			)) . ' &bull; All Rights Reserved.'
+		));
+		?>
 	</body>
 </html>
+<?php
+// Prevent further execution of scripts or content output
+exit;

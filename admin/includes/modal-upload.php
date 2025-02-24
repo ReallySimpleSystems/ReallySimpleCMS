@@ -1,3 +1,11 @@
+<?php
+/**
+ * Upload modal for admin pages.
+ * @since 2.1.1-alpha
+ *
+ * @package ReallySimpleCMS
+ */
+?>
 <div id="modal-upload" class="modal fade">
 	<div class="modal-wrap">
 		<div class="modal-header">
@@ -44,4 +52,5 @@
 		</div>
 	</div>
 </div>
-<?php adminScript('modal.js'); ?>
+<?php
+adminScript('modal.js');

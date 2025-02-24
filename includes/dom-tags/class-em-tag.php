@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class EmTag extends \DomTag implements DomTagInterface {
+class EmTag extends \DomTags implements DomTagInterface {
 	/**
 	 * The tag types.
 	 * @since 1.0.0

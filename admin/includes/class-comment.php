@@ -1,15 +1,55 @@
 <?php
 /**
  * Admin class used to implement the Comment object.
- * @since 1.1.0[b]{ss-01}
+ * @since 1.1.0-beta_snap-01
+ *
+ * @package ReallySimpleCMS
  *
  * Comments are left by users as feedback for a post on the front end of the site.
  * Comments can be created (front end only), moderated, and deleted.
+ *
+ * ## VARIABLES ##
+ * - private int $id
+ * - private int $post
+ * - private int $author
+ * - private string $created
+ * - private string $content
+ * - private int $upvotes
+ * - private int $downvotes
+ * - private string $status
+ * - private int $parent
+ * - private string $action
+ * - private array $paged
+ * - private string $table
+ * - private string $px
+ *
+ * ## METHODS ##
+ * - public __construct(int $id, string $action)
+ * LISTS, FORMS, & ACTIONS:
+ * - public listRecords(): void
+ * - public createRecord(): void
+ * - public editRecord(): void
+ * - public updateCommentStatus(string $status, int $id): void
+ * - public approveComment(): void
+ * - public unapproveComment(): void
+ * - public spamComment(): void
+ * - public deleteRecord(): void
+ * - public deleteSpamComments(): void
+ * VALIDATION:
+ * - private validateSubmission(array $data): string
+ * MISCELLANEOUS:
+ * - public pageHeading(): void
+ * - private exitNotice(string $exit_status, int $status_code): string
+ * - private bulkActions(): void
+ * - private getPost(int $id): string
+ * - private getPostPermalink(int $id): string
+ * - private getAuthor(int $id): string
+ * - private getCommentCount(string $status, string $search): int
  */
 class Comment implements AdminInterface {
 	/**
 	 * The currently queried comment's id.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access private
 	 * @var int
@@ -18,7 +58,7 @@ class Comment implements AdminInterface {
 	
 	/**
 	 * The post the currently queried comment is attached to.
-	 * @since 1.1.7[b]
+	 * @since 1.1.7-beta
 	 *
 	 * @access private
 	 * @var int
@@ -26,8 +66,26 @@ class Comment implements AdminInterface {
 	private $post;
 	
 	/**
+	 * The currently queried comment's author.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var int
+	 */
+	private $author;
+	
+	/**
+	 * The currently queried comment's creation date.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $date;
+	
+	/**
 	 * The currently queried comment's content.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access private
 	 * @var string
@@ -35,8 +93,26 @@ class Comment implements AdminInterface {
 	private $content;
 	
 	/**
+	 * The currently queried comment's upvotes.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var int
+	 */
+	private $upvotes;
+	 
+	/**
+	 * The currently queried comment's downvotes.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var int
+	 */
+	private $downvotes;
+	
+	/**
 	 * The currently queried comment's status.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access private
 	 * @var string
@@ -44,30 +120,85 @@ class Comment implements AdminInterface {
 	private $status;
 	
 	/**
+	 * The currently queried comment's parent.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var int
+	 */
+	private $parent;
+	
+	/**
+	 * The current action.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $action;
+	
+	/**
+	 * The pagination.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private $paged = array();
+	
+	/**
+	 * The associated database table.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $table = 'comments';
+	
+	/**
+	 * The table prefix.
+	 * @since 1.3.14-beta
+	 *
+	 * @access private
+	 * @var string
+	 */
+	private $px = 'c_';
+	
+	/**
 	 * Class constructor.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access public
-	 * @param int $id (optional) -- The comment's id.
+	 * @param int $id -- The comment's id.
+	 * @param string $action -- The current action.
 	 */
-	public function __construct(int $id = 0) {
+	public function __construct(int $id, string $action) {
 		global $rs_query;
 		
-		$cols = array_keys(get_object_vars($this));
+		$this->action = $action;
 		
-		if($id !== 0) {
-			$comment = $rs_query->selectRow('comments', $cols, array(
+		if($id > 0) {
+			$cols = array_keys(get_object_vars($this));
+			$exclude = array('action', 'paged', 'table', 'px');
+			$cols = array_diff($cols, $exclude);
+			
+			$comment = $rs_query->selectRow($this->table, $cols, array(
 				'id' => $id
 			));
 			
-			// Set the class variable values
 			foreach($comment as $key => $value) $this->$key = $comment[$key];
+		} else {
+			$this->id = 0;
 		}
 	}
 	
+	/*------------------------------------*\
+		LISTS, FORMS, & ACTIONS
+	\*------------------------------------*/
+	
 	/**
 	 * Construct a list of all comments in the database.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access public
 	 */
@@ -77,94 +208,41 @@ class Comment implements AdminInterface {
 		// Query vars
 		$status = $_GET['status'] ?? 'all';
 		$search = $_GET['search'] ?? null;
-		$paged = paginate((int)($_GET['paged'] ?? 1));
+		$this->paged = paginate((int)($_GET['paged'] ?? 1));
+		
+		$this->pageHeading();
 		?>
-		<div class="heading-wrap">
-			<?php
-			// Page title
-			echo domTag('h1', array(
-				'content' => 'Comments'
-			));
-			
-			// Search
-			recordSearch(array(
-				'status' => $status
-			));
-			
-			// Info
-			adminInfo();
-			
-			echo domTag('hr');
-			
-			// Notices
-			if(!getSetting('enable_comments'))
-				echo notice('Comments are currently disabled. You can enable them on the <a href="' . ADMIN . '/settings.php">settings page</a>.', 2, false, true);
-			
-			if(isset($_GET['exit_status']) && $_GET['exit_status'] === 'success')
-				echo exitNotice('The comment was successfully deleted.');
-			?>
-			<ul class="status-nav">
-				<?php
-				$keys = array('all', 'approved', 'pending', 'spam');
-				$count = array();
-				
-				foreach($keys as $key) {
-					if($key === 'all') {
-						if(!is_null($search) && $key === $status)
-							$count[$key] = $this->getCommentCount('', $search);
-						else
-							$count[$key] = $this->getCommentCount();
-					} else {
-						if(!is_null($search) && $key === $status)
-							$count[$key] = $this->getCommentCount($key, $search);
-						else
-							$count[$key] = $this->getCommentCount($key);
-					}
-				}
-				
-				// Statuses
-				foreach($count as $key => $value) {
-					echo domTag('li', array(
-						'content' => domTag('a', array(
-							'href' => ADMIN_URI . ($key === 'all' ? '' : '?status=' . $key),
-							'content' => ucfirst($key) . ' ' . domTag('span', array(
-								'class' => 'count',
-								'content' => '(' . $value . ')'
-							))
-						))
-					));
-					
-					if($key !== array_key_last($count)) echo ' &bull; ';
-				}
-				?>
-			</ul>
-			<?php
-			// Record count
-			echo domTag('div', array(
-				'class' => 'entry-count status',
-				'content' => $count[$status] . ' ' . ($count[$status] === 1 ? 'entry' : 'entries')
-			));
-			?>
-		</div>
 		<table class="data-table has-bulk-select">
 			<thead>
 				<?php
-				$table_header_cols = array(
-					domTag('input', array(
+				$header_cols = array(
+					'bulk-select' => domTag('input', array(
 						'type' => 'checkbox',
 						'class' => 'checkbox bulk-selector'
 					)),
-					'Comment',
-					'Post',
-					'Author',
-					'Date Posted'
+					'content' => 'Comment',
+					'post' => 'Post',
+					'author' => 'Author',
+					'posted-date' => 'Date Posted',
+					'upvotes' => domTag('i', array(
+						'class' => 'fa-solid fa-thumbs-up',
+						'title' => 'Upvotes'
+					)),
+					'downvotes' => domTag('i', array(
+						'class' => 'fa-solid fa-thumbs-down',
+						'title' => 'Downvotes'
+					))
 				);
 				
-				echo tableHeaderRow($table_header_cols);
+				echo tableHeaderRow($header_cols);
 				?>
 			</thead>
 			<tbody>
 				<?php
+				$order_by = 'date';
+				$order = 'DESC';
+				$limit = array($this->paged['start'], $this->paged['per_page']);
+				
 				if($status === 'all')
 					$db_status = array('<>', 'spam');
 				else
@@ -172,54 +250,72 @@ class Comment implements AdminInterface {
 				
 				if(!is_null($search)) {
 					// Search results
-					$comments = $rs_query->select('comments', '*', array(
+					$comments = $rs_query->select($this->table, '*', array(
 						'content' => array('LIKE', '%' . $search . '%'),
 						'status' => $db_status
-					), 'date', 'DESC', array(
-						$paged['start'],
-						$paged['per_page']
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => $limit
 					));
 				} else {
 					// All results
-					$comments = $rs_query->select('comments', '*', array(
+					$comments = $rs_query->select($this->table, '*', array(
 						'status' => $db_status
-					), 'date', 'DESC', array(
-						$paged['start'],
-						$paged['per_page']
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => $limit
 					));
 				}
 				
 				foreach($comments as $comment) {
+					list($c_id, $c_post, $c_author, $c_date, $c_content,
+						$c_upvotes, $c_downvotes, $c_status, $c_parent
+					) = array(
+						$comment['id'],
+						$comment['post'],
+						$comment['author'],
+						$comment['date'],
+						$comment['content'],
+						$comment['upvotes'],
+						$comment['downvotes'],
+						$comment['status'],
+						$comment['parent']
+					);
+					
 					$actions = array(
 						// Approve/unapprove
-						userHasPrivilege('can_edit_comments'
-							) ? ($comment['status'] === 'approved' ? actionLink('unapprove', array(
+						userHasPrivilege('can_edit_comments') ? ($c_status === 'approved' ?
+							actionLink('unapprove', array(
 								'caption' => 'Unapprove',
-								'id' => $comment['id']
+								'id' => $c_id
 							)) : actionLink('approve', array(
 								'caption' => 'Approve',
-								'id' => $comment['id']
+								'id' => $c_id
 							))) : null,
 						// Spam
-						userHasPrivilege('can_edit_comments') ? actionLink('spam', array(
-							'caption' => 'Spam',
-							'id' => $comment['id']
-						)) : null,
+						userHasPrivilege('can_edit_comments') ? ($c_status !== 'spam' ?
+							actionLink('spam', array(
+								'caption' => 'Spam',
+								'id' => $c_id
+							)) : null
+							) : null,
 						// Edit
 						userHasPrivilege('can_edit_comments') ? actionLink('edit', array(
 							'caption' => 'Edit',
-							'id' => $comment['id']
+							'id' => $c_id
 						)) : null,
 						// Delete
 						userHasPrivilege('can_delete_comments') ? actionLink('delete', array(
 							'classes' => 'modal-launch delete-item',
 							'data_item' => 'comment',
 							'caption' => 'Delete',
-							'id' => $comment['id']
+							'id' => $c_id
 						)) : null,
 						// View
 						domTag('a', array(
-							'href' => $this->getPostPermalink($comment['post']) . '#comment-' . $comment['id'],
+							'href' => $this->getPostPermalink($c_post) . '#comment-' . $c_id,
 							'content' => 'View'
 						))
 					);
@@ -232,11 +328,10 @@ class Comment implements AdminInterface {
 						tdCell(domTag('input', array(
 							'type' => 'checkbox',
 							'class' => 'checkbox',
-							'value' => $comment['id']
+							'value' => $c_id
 						)), 'bulk-select'),
 						// Comment
-						tdCell(trimWords($comment['content']) . ($comment['status'] === 'pending' &&
-							$status === 'all' ? ' &mdash; ' .
+						tdCell(trimWords($c_content) . ($c_status === 'pending' && $status === 'all' ? ' &mdash; ' .
 							domTag('em', array(
 								'content' => 'pending approval'
 							)) : '') .
@@ -246,36 +341,39 @@ class Comment implements AdminInterface {
 							)), 'content'
 						),
 						// Post
-						tdCell($this->getPost($comment['post']), 'post'),
+						tdCell($this->getPost($c_post), 'post'),
 						// Author
-						tdCell($this->getAuthor($comment['author']), 'author'),
+						tdCell($this->getAuthor($c_author), 'author'),
 						// Date posted
-						tdCell(formatDate($comment['date'], 'd M Y @ g:i A'), 'date')
+						tdCell(formatDate($c_date, 'd M Y @ g:i A'), 'posted-date'),
+						// Upvotes
+						tdCell($c_upvotes, 'upvotes'),
+						// Downvotes
+						tdCell($c_downvotes, 'downvotes')
 					);
 				}
 				
 				if(empty($comments))
-					echo tableRow(tdCell('There are no comments to display.', '', count($table_header_cols)));
+					echo tableRow(tdCell('There are no comments to display.', '', count($header_cols)));
 				?>
 			</tbody>
 			<tfoot>
-				<?php echo tableHeaderRow($table_header_cols); ?>
+				<?php echo tableHeaderRow($header_cols); ?>
 			</tfoot>
 		</table>
 		<?php
 		// Bulk actions
 		if(!empty($comments)) $this->bulkActions();
 		
-		// Page navigation
-		$paged['count'] = ceil($count[$status] / $paged['per_page']);
-		echo pagerNav($paged['current'], $paged['count']);
+		// Set up page navigation
+		echo pagerNav($this->paged['current'], $this->paged['count']);
 		
         include_once PATH . ADMIN . INC . '/modal-delete.php';
 	}
 	
 	/**
 	 * Create a new comment.
-	 * @since 1.3.10[b]
+	 * @since 1.3.10-beta
 	 *
 	 * @access public
 	 */
@@ -285,118 +383,120 @@ class Comment implements AdminInterface {
 	
 	/**
 	 * Edit an existing comment.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access public
 	 */
 	public function editRecord(): void {
 		global $rs_query;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0)
 			redirect(ADMIN_URI);
-		} else {
-			// Validate the form data and return any messages
-			$message = isset($_POST['submit']) ? $this->validateData($_POST, $this->id) : '';
-			?>
-			<div class="heading-wrap">
-				<?php
-				echo domTag('h1', array(
-					'content' => 'Edit Comment'
-				));
-				
-				echo $message;
-				?>
-			</div>
-			<div class="data-form-wrap clear">
-				<form class="data-form" action="" method="post" autocomplete="off">
-					<table class="form-table">
-						<?php
-						// Content
-						echo formRow(array('Content', true), array(
-							'tag' => 'textarea',
-							'class' => 'textarea-input',
-							'name' => 'content',
-							'cols' => 30,
-							'rows' => 10,
-							'content' => htmlspecialchars($this->content)
-						));
-						
-						// Status
-						echo formRow('Status', array(
-							'tag' => 'select',
-							'class' => 'select-input',
-							'name' => 'status',
-							'content' => domTag('option', array(
-								'value' => 'approved',
-								'selected' => ($this->status === 'approved' ? 1 : 0),
-								'content' => 'Approved'
-							)) . domTag('option', array(
-								'value' => 'pending',
-								'selected' => ($this->status === 'pending' ? 1 : 0),
-								'content' => 'Pending'
-							)) . domTag('option', array(
-								'value' => 'spam',
-								'selected' => ($this->status === 'spam' ? 1 : 0),
-								'content' => 'Spam'
-							))
-						));
-						
-						// Separator
-						echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
-						
-						// Submit button
-						echo formRow('', array(
-							'tag' => 'input',
-							'type' => 'submit',
-							'class' => 'submit-input button',
-							'name' => 'submit',
-							'value' => 'Update Comment'
-						));
-						?>
-					</table>
-				</form>
-			</div>
-			<?php
-		}
+		
+		$this->pageHeading();
+		?>
+		<div class="data-form-wrap clear">
+			<form class="data-form" action="" method="post" autocomplete="off">
+				<table class="form-table">
+					<?php
+					// Content
+					echo formRow(array('Content', true), array(
+						'tag' => 'textarea',
+						'id' => 'content-field',
+						'class' => 'textarea-input',
+						'name' => 'content',
+						'cols' => 30,
+						'rows' => 10,
+						'content' => htmlspecialchars($this->content)
+					));
+					
+					// Status
+					echo formRow('Status', array(
+						'tag' => 'select',
+						'id' => 'status-field',
+						'class' => 'select-input',
+						'name' => 'status',
+						'content' => domTag('option', array(
+							'value' => 'approved',
+							'selected' => ($this->status === 'approved' ? 1 : 0),
+							'content' => 'Approved'
+						)) . domTag('option', array(
+							'value' => 'pending',
+							'selected' => ($this->status === 'pending' ? 1 : 0),
+							'content' => 'Pending'
+						)) . domTag('option', array(
+							'value' => 'spam',
+							'selected' => ($this->status === 'spam' ? 1 : 0),
+							'content' => 'Spam'
+						))
+					));
+					
+					// Separator
+					echo formRow('', array(
+						'tag' => 'hr',
+						'class' => 'separator'
+					));
+					
+					// Submit button
+					echo formRow('', array(
+						'tag' => 'input',
+						'type' => 'submit',
+						'class' => 'submit-input button',
+						'name' => 'submit',
+						'value' => 'Update Comment'
+					));
+					?>
+				</table>
+			</form>
+		</div>
+		<?php
 	}
 	
 	/**
 	 * Update a comment's status.
-	 * @since 1.2.9[b]
+	 * @since 1.2.9-beta
 	 *
 	 * @access public
 	 * @param string $status -- The comment's status.
 	 * @param int $id (optional) -- The comment's id.
 	 */
-	public function updateCommentStatus($status, $id = 0): void {
+	public function updateCommentStatus(string $status, int $id = 0): void {
 		global $rs_query;
 		
 		if($id !== 0) $this->id = $id;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0)
 			redirect(ADMIN_URI);
-		} else {
-			$rs_query->update('comments', array('status' => $status), array('id' => $this->id));
-			
-			if(is_null($this->post))
-				$this->post = $rs_query->selectField('comments', 'post', array('id' => $this->id));
-			
-			// Update the approved comment count for the attached post
-			$count = $rs_query->select('comments', 'COUNT(*)', array(
-				'post' => $this->post,
-				'status' => 'approved'
-			));
-			
-			$rs_query->update('postmeta', array('value' => $count), array(
-				'post' => $this->post,
-				'datakey' => 'comment_count'
+		
+		$rs_query->update($this->table, array(
+			'status' => $status
+		), array(
+			'id' => $this->id
+		));
+		
+		if(is_null($this->post)) {
+			$this->post = $rs_query->selectField($this->table, 'post', array(
+				'id' => $this->id
 			));
 		}
+		
+		// Update the approved comment count for the attached post
+		$count = $rs_query->select($this->table, 'COUNT(*)', array(
+			'post' => $this->post,
+			'status' => 'approved'
+		));
+		
+		$rs_query->update('postmeta', array(
+			'value' => $count
+		), array(
+			'post' => $this->post,
+			'datakey' => 'comment_count'
+		));
 	}
 	
 	/**
 	 * Approve a comment.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access public
 	 */
@@ -408,7 +508,7 @@ class Comment implements AdminInterface {
 	
 	/**
 	 * Unapprove a comment.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access public
 	 */
@@ -420,7 +520,7 @@ class Comment implements AdminInterface {
 	
 	/**
 	 * Send a comment to spam.
-	 * @since 1.3.7[b]
+	 * @since 1.3.7-beta
 	 *
 	 * @access public
 	 */
@@ -432,166 +532,219 @@ class Comment implements AdminInterface {
 	
 	/**
 	 * Delete an existing comment.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access public
 	 */
 	public function deleteRecord(): void {
 		global $rs_query;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0)
 			redirect(ADMIN_URI);
-		} else {
-			$rs_query->delete('comments', array('id' => $this->id));
-			
-			// Update the approved comment count for the attached post
-			$count = $rs_query->select('comments', 'COUNT(*)', array(
-				'post' => $this->post,
-				'status' => 'approved'
-			));
-			
-			$rs_query->update('postmeta', array('value' => $count), array(
-				'post' => $this->post,
-				'datakey' => 'comment_count'
-			));
-			
-			redirect(ADMIN_URI . '?exit_status=success');
-		}
+		
+		$rs_query->delete($this->table, array(
+			'id' => $this->id
+		));
+		
+		// Update the approved comment count for the attached post
+		$count = $rs_query->select($this->table, 'COUNT(*)', array(
+			'post' => $this->post,
+			'status' => 'approved'
+		));
+		
+		$rs_query->update('postmeta', array(
+			'value' => $count
+		), array(
+			'post' => $this->post,
+			'datakey' => 'comment_count'
+		));
+		
+		redirect(ADMIN_URI . '?exit_status=del_success');
 	}
 	
 	/**
 	 * Delete all spam comments.
-	 * @since 1.3.7[b]
+	 * @since 1.3.7-beta
 	 *
 	 * @access public
 	 */
-	public function deleteSpamComments() {
+	public function deleteSpamComments(): void {
 		global $rs_query;
 		
-		$rs_query->delete('comments', array('status' => 'spam'));
+		$rs_query->delete($this->table, array(
+			'status' => 'spam'
+		));
+		
+		redirect(ADMIN_URI . '?exit_status=del_spam_success');
 	}
+	
+	/*------------------------------------*\
+		VALIDATION
+	\*------------------------------------*/
 	
 	/**
 	 * Validate the form data.
-	 * @since 1.1.0[b]{ss-02}
+	 * @since 1.1.0-beta_snap-02
 	 *
 	 * @access private
 	 * @param array $data -- The submission data.
-	 * @param int $id -- The comment's id.
 	 * @return string
 	 */
-	private function validateData(array $data, int $id): string {
+	private function validateSubmission(array $data): string {
 		global $rs_query;
 		
-		if(empty($data['content']))
+		if(empty($data['content'])) {
 			return exitNotice('REQ', -1);
+			exit;
+		}
 		
 		if($data['status'] !== 'approved' && $data['status'] !== 'pending')
 			$data['status'] = 'pending';
 		
-		$rs_query->update('comments', array(
+		$rs_query->update($this->table, array(
 			'content' => $data['content'],
 			'status' => $data['status']
-		), array('id' => $id));
-		
-		// Update the class variables
-		foreach($data as $key => $value) $this->$key = $value;
-		
-		return exitNotice('Comment updated! <a href="' . ADMIN_URI . '">Return to list</a>?');
-	}
-	
-	/**
-	 * Fetch a comment's post.
-	 * @since 1.1.0[b]{ss-02}
-	 *
-	 * @access private
-	 * @param int $id -- The post's id.
-	 * @return string
-	 */
-	private function getPost(int $id): string {
-		global $rs_query;
-		
-		$title = $rs_query->selectField('posts', 'title', array(
-			'id' => $id
-		));
-		
-		return domTag('a', array(
-			'href' => $this->getPostPermalink($id),
-			'content' => $title
-		));
-	}
-	
-	/**
-	 * Fetch a post's permalink.
-	 * @since 1.1.0[b]{ss-02}
-	 *
-	 * @access private
-	 * @param int $id -- The post's id.
-	 * @return string
-	 */
-	private function getPostPermalink(int $id): string {
-		global $rs_query;
-		
-		$post = $rs_query->selectRow('posts', array(
-			'slug',
-			'parent',
-			'type'
 		), array(
 			'id' => $id
 		));
 		
-		return getPermalink($post['type'], $post['parent'], $post['slug']);
+		foreach($data as $key => $value) $this->$key = $value;
+		
+		redirect(ADMIN_URI . '?id=' . $this->id . '&action=' . $this->action . '&exit_status=edit_success');
 	}
-	 
+	
+	/*------------------------------------*\
+		MISCELLANEOUS
+	\*------------------------------------*/
+	
 	/**
-	 * Fetch a comment's author.
-	 * @since 1.1.0[b]{ss-02}
+	 * Construct the page heading.
+	 * @since 1.3.14-beta
 	 *
-	 * @access private
-	 * @param int $id -- The author's id.
-	 * @return string
+	 * @access public
 	 */
-	private function getAuthor(int $id): string {
-		global $rs_query;
-		
-		$author = $rs_query->selectField('usermeta', 'value', array(
-			'user' => $id,
-			'datakey' => 'display_name'
-		));
-		
-		return empty($author) ? '&mdash;' : $author;
+	public function pageHeading(): void {
+		switch($this->action) {
+			case 'create':
+				// unused
+				break;
+			case 'edit':
+				$title = 'Edit Comment: { ' . domTag('em', array(
+					'content' => $this->getAuthor($this->author)
+				)) . ' }';
+				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST) : '';
+				break;
+			default:
+				$title = 'Comments';
+				$status = $_GET['status'] ?? 'all';
+				$search = $_GET['search'] ?? null;
+		}
+		?>
+		<div class="heading-wrap">
+			<?php
+			// Page title
+			echo domTag('h1', array(
+				'content' => $title
+			));
+			
+			if(!empty($this->action)) {
+				// Status messages
+				echo $message;
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
+			} else {
+				// Search
+				recordSearch(array(
+					'status' => $status
+				));
+				
+				// Info
+				adminInfo();
+				
+				echo domTag('hr');
+				
+				// Notices
+				if(!getSetting('enable_comments'))
+					echo notice('Comments are currently disabled. You can enable them on the <a href="' . ADMIN . '/settings.php">settings page</a>.', 2, false, true);
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
+				?>
+				<ul class="status-nav">
+					<?php
+					$keys = array('all', 'approved', 'pending', 'spam');
+					$count = array();
+					
+					foreach($keys as $key) {
+						if($key === 'all') {
+							if(!is_null($search) && $key === $status)
+								$count[$key] = $this->getCommentCount('', $search);
+							else
+								$count[$key] = $this->getCommentCount();
+						} else {
+							if(!is_null($search) && $key === $status)
+								$count[$key] = $this->getCommentCount($key, $search);
+							else
+								$count[$key] = $this->getCommentCount($key);
+						}
+					}
+					
+					// Statuses
+					foreach($count as $key => $value) {
+						echo domTag('li', array(
+							'content' => domTag('a', array(
+								'href' => ADMIN_URI . ($key === 'all' ? '' : '?status=' . $key),
+								'content' => ucfirst($key) . ' ' . domTag('span', array(
+									'class' => 'count',
+									'content' => '(' . $value . ')'
+								))
+							))
+						));
+						
+						if($key !== array_key_last($count)) echo ' &bull; ';
+					}
+					?>
+				</ul>
+				<?php
+				// Record count
+				echo domTag('div', array(
+					'class' => 'entry-count status',
+					'content' => $count[$status] . ' ' . ($count[$status] === 1 ? 'entry' : 'entries')
+				));
+				
+				$this->paged['count'] = ceil($count[$status] / $this->paged['per_page']);
+			}
+			?>
+		</div>
+		<?php
 	}
 	
 	/**
-	 * Fetch the comment count based on a specific status.
-	 * @since 1.1.7[b]
+	 * Generate an exit notice.
+	 * @since 1.3.14-beta
 	 *
-	 * @access private
-	 * @param string $status (optional) -- The comment's status.
-	 * @param string $search (optional) -- The search query.
-	 * @return int
+	 * @param string $exit_status -- The exit status.
+	 * @param int $status_code (optional) -- The type of notice to display.
+	 * @return string
 	 */
-	private function getCommentCount(string $status = '', string $search = ''): int {
-		global $rs_query;
-		
-		if(empty($status))
-			$db_status = array('<>', 'spam');
-		else
-			$db_status = $status;
-		
-		if(!empty($search)) {
-			return $rs_query->select('comments', 'COUNT(*)', array(
-				'content' => array('LIKE', '%' . $search . '%'),
-				'status' => $db_status
-			));
-		} else {
-			return $rs_query->select('comments', 'COUNT(*)', array('status' => $db_status));
-		}
+	private function exitNotice(string $exit_status, int $status_code = 1): string {
+		return exitNotice(match($exit_status) {
+			'edit_success' => 'Comment updated! ' . domTag('a', array(
+				'href' => ADMIN_URI,
+				'content' => 'Return to list'
+			)) . '?',
+			'del_success' => 'The comment was successfully deleted.',
+			'del_spam_success' => 'All spam comments were successfully deleted.',
+			default => 'The action was completed successfully.'
+		}, $status_code);
 	}
 	
 	/**
 	 * Construct bulk actions.
-	 * @since 1.2.7[b]
+	 * @since 1.2.7-beta
 	 *
 	 * @access private
 	 */
@@ -643,5 +796,92 @@ class Comment implements AdminInterface {
 			?>
 		</div>
 		<?php
+	}
+	
+	/**
+	 * Fetch a comment's post.
+	 * @since 1.1.0-beta_snap-02
+	 *
+	 * @access private
+	 * @param int $id -- The post's id.
+	 * @return string
+	 */
+	private function getPost(int $id): string {
+		global $rs_query;
+		
+		$title = $rs_query->selectField('posts', 'title', array(
+			'id' => $id
+		));
+		
+		return domTag('a', array(
+			'href' => $this->getPostPermalink($id),
+			'content' => $title
+		));
+	}
+	
+	/**
+	 * Fetch a post's permalink.
+	 * @since 1.1.0-beta_snap-02
+	 *
+	 * @access private
+	 * @param int $id -- The post's id.
+	 * @return string
+	 */
+	private function getPostPermalink(int $id): string {
+		global $rs_query;
+		
+		$post = $rs_query->selectRow('posts', array('slug', 'parent', 'type'), array(
+			'id' => $id
+		));
+		
+		return getPermalink($post['type'], $post['parent'], $post['slug']);
+	}
+	 
+	/**
+	 * Fetch a comment's author.
+	 * @since 1.1.0-beta_snap-02
+	 *
+	 * @access private
+	 * @param int $id -- The author's id.
+	 * @return string
+	 */
+	private function getAuthor(int $id): string {
+		global $rs_query;
+		
+		$author = $rs_query->selectField('usermeta', 'value', array(
+			'user' => $id,
+			'datakey' => 'display_name'
+		));
+		
+		return empty($author) ? 'Anonymous' : $author;
+	}
+	
+	/**
+	 * Fetch the comment count based on a specific status.
+	 * @since 1.1.7-beta
+	 *
+	 * @access private
+	 * @param string $status (optional) -- The comment's status.
+	 * @param string $search (optional) -- The search query.
+	 * @return int
+	 */
+	private function getCommentCount(string $status = '', string $search = ''): int {
+		global $rs_query;
+		
+		if(empty($status))
+			$db_status = array('<>', 'spam');
+		else
+			$db_status = $status;
+		
+		if(!empty($search)) {
+			return $rs_query->select($this->table, 'COUNT(*)', array(
+				'content' => array('LIKE', '%' . $search . '%'),
+				'status' => $db_status
+			));
+		} else {
+			return $rs_query->select($this->table, 'COUNT(*)', array(
+				'status' => $db_status
+			));
+		}
 	}
 }

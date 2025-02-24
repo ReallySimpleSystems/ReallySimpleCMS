@@ -1,8 +1,15 @@
 <?php
+/**
+ * Carbon theme - index template.
+ * @since 1.5.5-alpha
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
+ */
+
 // Stop execution if the file is accessed directly
 if(!defined('PATH')) exit('You do not have permission to access this directory.');
 
-// Include the header
 getHeader();
 
 // Check whether the post has a featured image
@@ -18,5 +25,4 @@ if(isPost() && postHasFeaturedImage()): ?>
 	</article>
 </div>
 <?php
-// Include the footer
 getFooter();

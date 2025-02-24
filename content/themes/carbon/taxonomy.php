@@ -1,5 +1,12 @@
 <?php
-// Include the header
+/**
+ * Carbon theme - taxonomy template.
+ * @since 1.0.6-beta
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Carbon
+ */
+
 getHeader();
 ?>
 <div class="wrapper">
@@ -9,5 +16,4 @@ getHeader();
 	</article>
 </div>
 <?php
-// Include the footer
 getFooter();

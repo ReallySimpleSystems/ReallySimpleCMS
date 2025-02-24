@@ -1,15 +1,66 @@
 <?php
 /**
  * Admin class used to implement the Post object.
- * @since 1.4.0[a]
+ * @since 1.4.0-alpha
+ *
+ * @package ReallySimpleCMS
  *
  * Posts are the basis of the front end of the website. Currently, there are two post types: post (default, used for blog posts) and page (used for content pages).
  * Posts can be created, modified, and deleted.
+ *
+ * ## VARIABLES ##
+ * - protected int $id
+ * - protected string $title
+ * - protected int $author
+ * - protected string $created
+ * - protected string $modified
+ * - protected string $content
+ * - protected string $status
+ * - protected string $slug
+ * - protected int $parent
+ * - protected string $type
+ * - private array $type_data
+ * - private array $tax_data
+ * - protected string $action
+ * - protected array $paged
+ * - protected string $table
+ * - protected string $px
+ *
+ * ## METHODS ##
+ * - public __construct(int $id, string $action, array $type_data)
+ * LISTS, FORMS, & ACTIONS:
+ * - public listRecords(): void
+ * - public createRecord(): void
+ * - public editRecord(): void
+ * - public duplicatePost(): void
+ * - public updatePostStatus(string $status, int $id): void
+ * - public trashPost(): void
+ * - public restorePost(): void
+ * - public deleteRecord(): void
+ * VALIDATION:
+ * - private validateSubmission(array $data): string
+ * MISCELLANEOUS:
+ * - public pageHeading(): void
+ * - private exitNotice(string $exit_status, int $status_code): string
+ * - private bulkActions(): void
+ * - protected slugExists(string $slug): bool
+ * - private isTrash(int $id): bool
+ * - private isDescendant(int $id, int $ancestor): bool
+ * - protected getPostMeta(int $id): array
+ * - private getStatusList(): string
+ * - protected getAuthor(int $id): string
+ * - private getAuthorList(int $id): string
+ * - private getTerms(string $taxonomy, int $id): string
+ * - private getTermsList(string $taxonomy, int $id): string
+ * - private getParent(int $id): string
+ * - private getParentList(string $type, int $parent, int $id): string
+ * - private getTemplateList(int $id): string
+ * - protected getPostCount(string $type, string $status, string $search, string $term): int
  */
 class Post implements AdminInterface {
 	/**
 	 * The currently queried post's id.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var int
@@ -18,7 +69,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's title.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -27,7 +78,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's author.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var int
@@ -36,7 +87,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's publish date.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -45,7 +96,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's modified date.
-	 * @since 1.2.9[b]
+	 * @since 1.2.9-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -54,7 +105,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's content.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -63,7 +114,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's status.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -72,7 +123,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's slug.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -81,7 +132,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's parent.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var int
@@ -90,7 +141,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's type.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access protected
 	 * @var string
@@ -99,7 +150,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's type data.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access private
 	 * @var array
@@ -108,7 +159,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The currently queried post's taxonomy data.
-	 * @since 1.0.6[b]
+	 * @since 1.0.6-beta
 	 *
 	 * @access private
 	 * @var array
@@ -117,34 +168,43 @@ class Post implements AdminInterface {
 	
 	/**
 	 * The current action.
-	 * @since 1.3.13[b]
+	 * @since 1.3.13-beta
 	 *
-	 * @access private
+	 * @access protected
 	 * @var string
 	 */
-	private $action;
+	protected $action;
 	
 	/**
 	 * The pagination.
-	 * @since 1.3.13[b]
+	 * @since 1.3.13-beta
 	 *
-	 * @access private
+	 * @access protected
 	 * @var array
 	 */
-	private $paged = array();
+	protected $paged = array();
 	
 	/**
 	 * The associated database table.
-	 * @since 1.3.13[b]
+	 * @since 1.3.13-beta
 	 *
-	 * @access private
+	 * @access protected
 	 * @var string
 	 */
-	private $table = 'posts';
+	protected $table = 'posts';
+	
+	/**
+	 * The table prefix.
+	 * @since 1.3.14-beta
+	 *
+	 * @access protected
+	 * @var string
+	 */
+	protected $px = 'p_';
 	
 	/**
 	 * Class constructor.
-	 * @since 1.0.1[b]
+	 * @since 1.0.1-beta
 	 *
 	 * @access public
 	 * @param int $id -- The post's id.
@@ -152,19 +212,22 @@ class Post implements AdminInterface {
 	 * @param array $type_data (optional) -- The post type data.
 	 */
 	public function __construct(int $id, string $action, array $type_data = array()) {
-		global $rs_query, $taxonomies;
+		global $rs_query, $rs_taxonomies;
 		
-		$exclude = array('type_data', 'tax_data', 'action', 'paged', 'table');
-		$cols = array_keys(get_object_vars($this));
-		$cols = array_diff($cols, $exclude);
 		$this->action = $action;
 		
 		if($id > 0) {
+			$cols = array_keys(get_object_vars($this));
+			$exclude = array('type_data', 'tax_data', 'action', 'paged', 'table', 'px');
+			$cols = array_diff($cols, $exclude);
+			
 			$post = $rs_query->selectRow($this->table, $cols, array(
 				'id' => $id
 			));
 			
 			foreach($post as $key => $value) $this->$key = $post[$key];
+		} else {
+			$this->id = 0;
 		}
 		
 		$this->type_data = $type_data;
@@ -172,19 +235,19 @@ class Post implements AdminInterface {
 		// Fetch any associated taxonomy data
 		if(!empty($this->type_data['taxonomies'])) {
 			foreach($this->type_data['taxonomies'] as $tax) {
-				if(array_key_exists($tax, $taxonomies))
-					$this->tax_data[] = $taxonomies[$tax];
+				if(array_key_exists($tax, $rs_taxonomies))
+					$this->tax_data[] = $rs_taxonomies[$tax];
 			}
 		}
 	}
 	
 	/*------------------------------------*\
-		LISTS & FORMS
+		LISTS, FORMS, & ACTIONS
 	\*------------------------------------*/
 	
 	/**
 	 * Construct a list of all posts in the database.
-	 * @since 1.4.0[a]
+	 * @since 1.4.0-alpha
 	 *
 	 * @access public
 	 */
@@ -204,57 +267,70 @@ class Post implements AdminInterface {
 			<thead>
 				<?php
 				if($this->type_data['hierarchical']) {
-					$table_header_cols = array(
-						domTag('input', array(
+					$header_cols = array(
+						'bulk-select' => domTag('input', array(
 							'type' => 'checkbox',
 							'class' => 'checkbox bulk-selector'
 						)),
-						'Title',
-						'Author',
-						'Publish Date',
-						'Parent',
-						'Meta Title',
-						'Meta Desc.'
+						'title' => 'Title',
+						'author' => 'Author',
+						'publish-date' => 'Publish Date',
+						'parent' => 'Parent',
+						'meta-title' => 'Meta Title',
+						'meta-description' => 'Meta Desc.'
 					);
 					
 					// Add a label for comments if they're enabled
-					if(getSetting('enable_comments') && $this->type_data['comments'])
-						array_splice($table_header_cols, 5, 0, 'Comments');
+					if(getSetting('enable_comments') && $this->type_data['comments']) {
+						$offset = 5;
+						
+						$header_cols = array_slice($header_cols, 0, $offset, true) + array(
+							'comments' => 'Comments'
+						) + array_slice($header_cols, $offset, null, true);
+					}
 				} else {
-					$table_header_cols = array(
-						domTag('input', array(
+					$header_cols = array(
+						'bulk-select' => domTag('input', array(
 							'type' => 'checkbox',
 							'class' => 'checkbox bulk-selector'
 						)),
-						'Title',
-						'Author',
-						'Publish Date',
-						'Meta Title',
-						'Meta Desc.'
+						'title' => 'Title',
+						'author' => 'Author',
+						'publish-date' => 'Publish Date',
+						'meta-title' => 'Meta Title',
+						'meta-description' => 'Meta Desc.'
 					);
 					
 					// Add a label for comments if they're enabled
-					if(getSetting('enable_comments') && $this->type_data['comments'])
-						array_splice($table_header_cols, 4, 0, 'Comments');
+					if(getSetting('enable_comments') && $this->type_data['comments']) {
+						$offset = 4;
+						
+						$header_cols = array_slice($header_cols, 0, $offset, true) + array(
+							'comments' => 'Comments'
+						) + array_slice($header_cols, $offset, null, true);
+					}
 					
 					// Add labels for any associated taxonomies
 					if(!empty($this->tax_data)) {
-						$i = 3;
+						$offset = 3;
 						
 						foreach($this->tax_data as $tax) {
-							array_splice($table_header_cols, $i, 0, $tax['label']);
-							$i++;
+							$header_cols = array_slice($header_cols, 0, $offset, true) + array(
+								'taxonomy' => $tax['label']
+							) + array_slice($header_cols, $offset, null, true);
+							$offset++;
 						}
 					}
 				}
 				
-				echo tableHeaderRow($table_header_cols);
+				echo tableHeaderRow($header_cols);
 				?>
 			</thead>
 			<tbody>
 				<?php
 				$order_by = $type === 'page' ? 'title' : 'date';
 				$order = $type === 'page' ? 'ASC' : 'DESC';
+				$limit = array($this->paged['start'], $this->paged['per_page']);
 				
 				if($status === 'all')
 					$db_status = array('<>', 'trash');
@@ -262,7 +338,10 @@ class Post implements AdminInterface {
 					$db_status = $status;
 					
 				if(!empty($term)) {
-					$term_id = (int)$rs_query->selectField('terms', 'id', array('slug' => $term));
+					$term_id = (int)$rs_query->selectField('terms', 'id', array(
+						'slug' => $term
+					));
+					
 					$relationships = $rs_query->select('term_relationships', 'post', array(
 						'term' => $term_id
 					));
@@ -281,33 +360,58 @@ class Post implements AdminInterface {
 					// Term results
 					$posts = $rs_query->select($this->table, '*', array(
 						'id' => $post_ids,
-						'status' => $db_status,
 						'type' => $type
-					), $order_by, $order, array($this->paged['start'], $this->paged['per_page']));
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => $limit
+					));
 				} elseif(!is_null($search)) {
 					// Search results
 					$posts = $rs_query->select($this->table, '*', array(
 						'title' => array('LIKE', '%' . $search . '%'),
 						'status' => $db_status,
 						'type' => $type
-					), $order_by, $order, array($this->paged['start'], $this->paged['per_page']));
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => $limit
+					));
 				} else {
 					// All results
 					$posts = $rs_query->select($this->table, '*', array(
 						'status' => $db_status,
 						'type' => $type
-					), $order_by, $order, array($this->paged['start'], $this->paged['per_page']));
+					), array(
+						'order_by' => $order_by,
+						'order' => $order,
+						'limit' => $limit
+					));
 				}
 				
 				foreach($posts as $post) {
-					$meta = $this->getPostMeta($post['id']);
+					list($p_id, $p_title, $p_author, $p_date,
+						$p_status, $p_slug, $p_parent, $p_type
+					) = array(
+						$post['id'],
+						$post['title'],
+						$post['author'],
+						$post['date'],
+						$post['status'],
+						$post['slug'],
+						$post['parent'],
+						$post['type']
+					);
+					
+					$meta = $this->getPostMeta($p_id);
 					$type_name = str_replace(' ', '_', $this->type_data['labels']['name_lowercase']);
 					
-					switch($post['status']) {
+					switch($p_status) {
 						case 'draft':
 							$is_published = false;
 							break;
-						case 'published': case 'private':
+						case 'published':
+						case 'private':
 							$is_published = true;
 							break;
 					}
@@ -317,47 +421,46 @@ class Post implements AdminInterface {
 					
 					if(!$this->type_data['hierarchical'] && !empty($this->tax_data)) {
 						foreach($this->tax_data as $tax)
-							$terms[] = tdCell($this->getTerms($tax['name'], $post['id']), 'terms');
+							$terms[] = tdCell($this->getTerms($tax['name'], $p_id), 'terms');
 					}
 					
 					$term_cols = implode('', $terms);
 					
-					// Action links
 					$actions = array(
 						// Edit
-						userHasPrivilege('can_edit_' . $type_name) && $status !== 'trash' ?
+						userHasPrivilege('can_edit_' . $type_name) && ($status !== 'trash' && $p_status !== 'trash') ?
 							actionLink('edit', array(
 								'caption' => 'Edit',
-								'id' => $post['id']
+								'id' => $p_id
 							)) : null,
 						// Duplicate
-						userHasPrivilege('can_create_' . $type_name) && $status !== 'trash' ?
+						userHasPrivilege('can_create_' . $type_name) && ($status !== 'trash' && $p_status !== 'trash') ?
 							actionLink('duplicate', array(
 								'caption' => 'Duplicate',
-								'id' => $post['id']
+								'id' => $p_id
 							)) : null,
 						// Trash/restore
-						userHasPrivilege('can_edit_' . $type_name) ? ($status === 'trash' ?
+						userHasPrivilege('can_edit_' . $type_name) ? (($status === 'trash' || $p_status === 'trash') ?
 							actionLink('restore', array(
 								'caption' => 'Restore',
-								'id' => $post['id']
+								'id' => $p_id
 							)) : actionLink('trash', array(
 								'caption' => 'Trash',
-								'id' => $post['id']
+								'id' => $p_id
 							))) : null,
 						// Delete
-						$status === 'trash' ? (userHasPrivilege('can_delete_' . $type_name) ?
+						($status === 'trash' || $p_status === 'trash') ? (userHasPrivilege('can_delete_' . $type_name) ?
 							actionLink('delete', array(
 								'classes' => 'modal-launch delete-item',
 								'data_item' => strtolower($this->type_data['labels']['name_singular']),
 								'caption' => 'Delete',
-								'id' => $post['id']
+								'id' => $p_id
 							)) : null) : (
 						// View/preview
 						domTag('a', array(
-							'href' => ($is_published ? (isHomePage($post['id']) ? '/' :
-								getPermalink($post['type'], $post['parent'], $post['slug'])) :
-								('/?id=' . $post['id'] . '&preview=true')),
+							'href' => ($is_published ? (isHomePage($p_id) ? '/' :
+								getPermalink($p_type, $p_parent, $p_slug)) :
+								('/?id=' . $p_id . '&preview=true')),
 							'content' => ($is_published ? 'View' : 'Preview')
 						)))
 					);
@@ -370,35 +473,35 @@ class Post implements AdminInterface {
 						tdCell(domTag('input', array(
 							'type' => 'checkbox',
 							'class' => 'checkbox',
-							'value' => $post['id']
+							'value' => $p_id
 						)), 'bulk-select'),
 						// Title
-						tdCell((isHomePage($post['id']) ?
+						tdCell((isHomePage($p_id) ?
 							domTag('i', array(
 								'class' => 'fa-solid fa-house-chimney',
 								'style' => 'cursor: help;',
 								'title' => 'Home Page'
 							)) . ' ' : '') .
 							domTag('strong', array(
-								'content' => $post['title']
-							)) . ($post['status'] !== 'published' && $status === 'all' ? ' &mdash; ' .
+								'content' => $p_title
+							)) . ($p_status !== 'published' && $status === 'all' ? ' &mdash; ' .
 							domTag('em', array(
-								'content' => $post['status']
+								'content' => $p_status
 							)) : '') .
 							domTag('div', array(
 								'class' => 'actions',
 								'content' => implode(' &bull; ', $actions)
 							)), 'title'),
 						// Author
-						tdCell($this->getAuthor($post['author']), 'author'),
+						tdCell($this->getAuthor($p_author), 'author'),
 						// Terms (hierarchical post types only)
 						$term_cols,
 						// Publish date
-						tdCell(is_null($post['date']) ? '&mdash;' :
-							formatDate($post['date'], 'd M Y @ g:i A'), 'publish-date'),
+						tdCell(is_null($p_date) ? '&mdash;' :
+							formatDate($p_date, 'd M Y @ g:i A'), 'publish-date'),
 						// Parent (hierarchical post types only)
 						$this->type_data['hierarchical'] ?
-							tdCell($this->getParent($post['parent']), 'parent') : '',
+							tdCell($this->getParent($p_parent), 'parent') : '',
 						// Comments
 						getSetting('enable_comments') && $this->type_data['comments'] ?
 							tdCell(($meta['comment_status'] ? $meta['comment_count'] : '&mdash;'), 'comments') : '',
@@ -409,14 +512,12 @@ class Post implements AdminInterface {
 					);
 				}
 				
-				if(empty($posts)) {
-					echo tableRow(tdCell('There are no ' . $this->type_data['labels']['name_lowercase'] .
-						' to display.', '', count($table_header_cols)));
-				}
+				if(empty($posts))
+					echo tableRow(tdCell($this->type_data['labels']['no_items'], '', count($header_cols)));
 				?>
 			</tbody>
 			<tfoot>
-				<?php echo tableHeaderRow($table_header_cols); ?>
+				<?php echo tableHeaderRow($header_cols); ?>
 			</tfoot>
 		</table>
 		<?php
@@ -431,7 +532,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * Create a new post.
-	 * @since 1.4.1[a]
+	 * @since 1.4.1-alpha
 	 *
 	 * @access public
 	 */
@@ -457,25 +558,25 @@ class Post implements AdminInterface {
 						'class' => 'text-input required invalid init',
 						'name' => 'title',
 						'value' => ($_POST['title'] ?? ''),
-						'placeholder' => $this->type_data['labels']['name_singular'] . ' title'
+						'placeholder' => $this->type_data['labels']['title_placeholder']
 					));
 					?>
 					<div class="permalink">
 						<?php
 						// Permalink
 						echo domTag('label', array(
-							'for' => 'slug',
+							'for' => 'slug-field',
 							'content' => domTag('strong', array(
 								'content' => 'Permalink: '
 							)) . getSetting('site_url') . getPermalink($this->type_data['name'])
 						));
+						
 						echo domTag('input', array(
 							'id' => 'slug-field',
 							'class' => 'text-input required invalid init',
 							'name' => 'slug',
 							'value' => ($_POST['slug'] ?? '')
-						));
-						echo domTag('span', array(
+						)) . domTag('span', array(
 							'content' => '/'
 						));
 						?>
@@ -492,6 +593,7 @@ class Post implements AdminInterface {
 					
 					// Content
 					echo domTag('textarea', array(
+						'id' => 'content-field',
 						'class' => 'textarea-input',
 						'name' => 'content',
 						'rows' => 25,
@@ -501,12 +603,21 @@ class Post implements AdminInterface {
 				</div>
 				<div class="sidebar">
 					<div class="block">
-						<h2>Publish</h2>
+						<?php
+						echo domTag('h2', array(
+							'content' => 'Publish'
+						));
+						?>
 						<div class="row">
 							<?php
 							// Status
-							echo domTag('label', array('for' => 'status', 'content' => 'Status'));
+							echo domTag('label', array(
+								'for' => 'status-field',
+								'content' => 'Status'
+							));
+							
 							echo domTag('select', array(
+								'id' => 'status-field',
 								'class' => 'select-input',
 								'name' => 'status',
 								'content' => $this->getStatusList()
@@ -516,8 +627,13 @@ class Post implements AdminInterface {
 						<div class="row">
 							<?php
 							// Author
-							echo domTag('label', array('for' => 'author', 'content' => 'Author'));
+							echo domTag('label', array(
+								'for' => 'author-field',
+								'content' => 'Author'
+							));
+							
 							echo domTag('select', array(
+								'id' => 'author-field',
 								'class' => 'select-input',
 								'name' => 'author',
 								'content' => $this->getAuthorList()
@@ -527,15 +643,21 @@ class Post implements AdminInterface {
 						<div class="row">
 							<?php
 							// Publish date
-							echo domTag('label', array('for' => 'date', 'content' => 'Publish on'));
-							echo domTag('br');
+							echo domTag('label', array(
+								'for' => 'date-field',
+								'content' => 'Publish on'
+							)) . domTag('br');
+							
 							echo domTag('input', array(
 								'type' => 'date',
+								'id' => 'date-field',
 								'class' => 'date-input',
 								'name' => 'date[]'
 							));
+							
 							echo domTag('input', array(
 								'type' => 'time',
+								'id' => 'date-field',
 								'class' => 'date-input',
 								'name' => 'date[]'
 							));
@@ -557,12 +679,21 @@ class Post implements AdminInterface {
 					if($this->type_data['hierarchical']) {
 						?>
 						<div class="block">
-							<h2>Attributes</h2>
+							<?php
+							echo domTag('h2', array(
+								'content' => 'Attributes'
+							));
+							?>
 							<div class="row">
 								<?php
 								// Parent
-								echo domTag('label', array('for' => 'parent', 'content' => 'Parent'));
+								echo domTag('label', array(
+									'for' => 'parent-field',
+									'content' => 'Parent'
+								));
+								
 								echo domTag('select', array(
+									'id' => 'parent-field',
 									'class' => 'select-input',
 									'name' => 'parent',
 									'content' => domTag('option', array(
@@ -576,10 +707,12 @@ class Post implements AdminInterface {
 								<?php
 								// Template
 								echo domTag('label', array(
-									'for' => 'template',
+									'for' => 'template-field',
 									'content' => 'Template'
 								));
+								
 								echo domTag('select', array(
+									'id' => 'template-field',
 									'class' => 'select-input',
 									'name' => 'template',
 									'content' => domTag('option', array(
@@ -596,7 +729,11 @@ class Post implements AdminInterface {
 							foreach($this->tax_data as $tax) {
 								?>
 								<div class="block">
-									<h2><?php echo $tax['label']; ?></h2>
+									<?php
+									echo domTag('h2', array(
+										'content' => $tax['label']
+									));
+									?>
 									<div class="row">
 										<?php
 										// Terms list
@@ -612,7 +749,11 @@ class Post implements AdminInterface {
 					if(getSetting('enable_comments') && $this->type_data['comments']) {
 						?>
 						<div class="block">
-							<h2>Comments</h2>
+							<?php
+							echo domTag('h2', array(
+								'content' => 'Comments'
+							));
+							?>
 							<div class="row">
 								<?php
 								// Enable comments
@@ -639,18 +780,27 @@ class Post implements AdminInterface {
 					}
 					?>
 					<div class="block">
-						<h2>Featured Image</h2>
+						<?php
+						echo domTag('h2', array(
+							'content' => 'Featured Image'
+						));
+						?>
 						<div class="row">
 							<div class="image-wrap">
 								<?php
 								// Featured image thumbnail
-								echo domTag('img', array('src' => '//:0', 'data-field' => 'thumb'));
+								echo domTag('img', array(
+									'src' => '//:0',
+									'data-field' => 'thumb'
+								));
 								
 								// Remove image button
 								echo domTag('span', array(
 									'class' => 'image-remove',
 									'title' => 'Remove',
-									'content' => domTag('i', array('class' => 'fa-solid fa-xmark'))
+									'content' => domTag('i', array(
+										'class' => 'fa-solid fa-xmark'
+									))
 								));
 								?>
 							</div>
@@ -676,13 +826,21 @@ class Post implements AdminInterface {
 				</div>
 				<div class="metadata">
 					<div class="block">
-						<h2>Metadata</h2>
+						<?php
+						echo domTag('h2', array(
+							'content' => 'Metadata'
+						));
+						?>
 						<div class="row">
 							<?php
 							// Meta title
-							echo domTag('label', array('for' => 'meta_title', 'content' => 'Title'));
-							echo domTag('br');
+							echo domTag('label', array(
+								'for' => 'meta-title-field',
+								'content' => 'Title'
+							)) . domTag('br');
+							
 							echo domTag('input', array(
+								'id' => 'meta-title-field',
 								'class' => 'text-input',
 								'name' => 'meta_title',
 								'value' => ($_POST['meta_title'] ?? '')
@@ -693,11 +851,12 @@ class Post implements AdminInterface {
 							<?php
 							// Meta description
 							echo domTag('label', array(
-								'for' => 'meta_description',
+								'for' => 'meta-description-field',
 								'content' => 'Description'
-							));
-							echo domTag('br');
+							)) . domTag('br');
+							
 							echo domTag('textarea', array(
+								'id' => 'meta-description-field',
 								'class' => 'textarea-input',
 								'name' => 'meta_description',
 								'cols' => 30,
@@ -714,9 +873,10 @@ class Post implements AdminInterface {
 							
 							echo domTag('input', array(
 								'type' => 'checkbox',
+								'id' => 'index-post-field',
 								'class' => 'checkbox-input',
 								'name' => 'index_post',
-								'value' => ($index ? 1 : 0),
+								'value' => $index ? 1 : 0,
 								'checked' => $index,
 								'label' => array(
 									'class' => 'checkbox-label',
@@ -737,463 +897,498 @@ class Post implements AdminInterface {
 	
 	/**
 	 * Edit an existing post.
-	 * @since 1.4.9[a]
+	 * @since 1.4.9-alpha
 	 *
 	 * @access public
 	 */
 	public function editRecord(): void {
 		global $rs_query;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0 || empty($this->type))
 			redirect(ADMIN_URI);
-		} else {
-			if(empty($this->type)) {
-				redirect(ADMIN_URI);
-			} elseif($this->type === 'media') {
-				redirect('media.php?id=' . $this->id . '&action=edit');
-			} elseif($this->type === 'widget') {
-				redirect('widgets.php?id=' . $this->id . '&action=edit');
-			} else {
-				if($this->isTrash($this->id)) {
-					redirect(ADMIN_URI . ($this->type !== 'post' ? '?type=' . $this->type . '&' : '?') .
-						'status=trash');
-				} else {
-					$meta = $this->getPostMeta($this->id);
-					
-					if(!empty($meta['feat_image']))
-						list($width, $height) = getimagesize(PATH . getMediaSrc($meta['feat_image']));
-					
-					$this->pageHeading();
+		
+		if($this->type === 'media')
+			redirect('media.php?id=' . $this->id . '&action=edit');
+		
+		if($this->type === 'widget')
+			redirect('widgets.php?id=' . $this->id . '&action=edit');
+		
+		if($this->isTrash($this->id))
+			redirect(ADMIN_URI . ($this->type !== 'post' ? '?type=' . $this->type . '&' : '?') . 'status=trash');
+		
+		$this->pageHeading();
+		
+		$meta = $this->getPostMeta($this->id);
+		$featimg_filepath = PATH . getMediaSrc($meta['feat_image']);
+		
+		if(!empty($meta['feat_image']) && file_exists($featimg_filepath))
+			list($width, $height) = getimagesize($featimg_filepath);
+		?>
+		<div class="data-form-wrap clear">
+			<form class="data-form" action="" method="post" autocomplete="off">
+				<div class="content">
+					<?php
+					// Title
+					echo domTag('input', array(
+						'id' => 'title-field',
+						'class' => 'text-input required invalid init',
+						'name' => 'title',
+						'value' => $this->title,
+						'placeholder' => $this->type_data['labels']['title_placeholder']
+					));
 					?>
-					<div class="data-form-wrap clear">
-						<form class="data-form" action="" method="post" autocomplete="off">
-							<div class="content">
-								<?php
-								// Title
-								echo domTag('input', array(
-									'id' => 'title-field',
-									'class' => 'text-input required invalid init',
-									'name' => 'title',
-									'value' => $this->title,
-									'placeholder' => $this->type_data['labels']['name_singular'] . ' title'
-								));
-								?>
-								<div class="permalink">
-									<?php
-									// Permalink
-									echo domTag('label', array(
-										'for' => 'slug',
-										'content' => domTag('strong', array(
-											'content' => 'Permalink: '
-										)) . getSetting('site_url') . getPermalink($this->type, $this->parent)
-									));
-									echo domTag('input', array(
-										'id' => 'slug-field',
-										'class' => 'text-input required invalid init',
-										'name' => 'slug',
-										'value' => $this->slug
-									));
-									echo domTag('span', array(
-										'content' => '/'
-									));
-									?>
-								</div>
-								<?php
-								// Insert media button
-								echo domTag('input', array(
-									'type' => 'button',
-									'class' => 'button-input button modal-launch',
-									'value' => 'Insert Media',
-									'data-type' => 'all',
-									'data-insert' => 'true'
-								));
-								
-								// Content
-								echo domTag('textarea', array(
-									'class' => 'textarea-input',
-									'name' => 'content',
-									'rows' => 25,
-									'content' => htmlspecialchars($this->content)
-								));
-								?>
-							</div>
-							<div class="sidebar">
-								<div class="block">
-									<h2>Publish</h2>
-									<div class="row">
-										<?php
-										// Status
-										echo domTag('label', array(
-											'for' => 'status',
-											'content' => 'Status'
-										));
-										echo domTag('select', array(
-											'class' => 'select-input',
-											'name' => 'status',
-											'content' => $this->getStatusList()
-										));
-										?>
-									</div>
-									<div class="row">
-										<?php
-										// Author
-										echo domTag('label', array(
-											'for' => 'author',
-											'content' => 'Author'
-										));
-										echo domTag('select', array(
-											'class' => 'select-input',
-											'name' => 'author',
-											'content' => $this->getAuthorList($this->author)
-										));
-										?>
-									</div>
-									<div class="row">
-										<?php
-										// Publish date
-										echo domTag('label', array(
-											'for' => 'date',
-											'content' => 'Published on'
-										));
-										echo domTag('br');
-										echo domTag('input', array(
-											'type' => 'date',
-											'class' => 'date-input',
-											'name' => 'date[]',
-											'value' => (
-												!is_null($this->date) ?
-												formatDate($this->date, 'Y-m-d') :
-												formatDate($this->modified, 'Y-m-d')
-											)
-										));
-										echo domTag('input', array(
-											'type' => 'time',
-											'class' => 'date-input',
-											'name' => 'date[]',
-											'value' => (
-												!is_null($this->date) ?
-												formatDate($this->date, 'H:i') :
-												formatDate($this->modified, 'H:i'))
-										));
-										?>
-									</div>
-									<div id="submit" class="row">
-										<?php
-										switch($this->status) {
-											case 'draft':
-												$is_published = false;
-												break;
-											case 'published': case 'private':
-												$is_published = true;
-												break;
-										}
-										
-										// View/preview link
-										echo $is_published ?
-											domTag('a', array(
-												'href' => (isHomePage($this->id) ? '/' : getPermalink(
-													$this->type,
-													$this->parent,
-													$this->slug
-												)),
-												'target' => '_blank',
-												'rel' => 'noreferrer noopener',
-												'content' => 'View'
-											)) :
-											domTag('a', array(
-												'href' => '/?id=' . $this->id . '&preview=true',
-												'target' => '_blank',
-												'rel' => 'noreferrer noopener',
-												'content' => 'Preview'
-											));
-										
-										// Submit button
-										echo domTag('input', array(
-											'type' => 'submit',
-											'class' => 'submit-input button',
-											'name' => 'submit',
-											'value' => 'Update'
-										));
-										?>
-									</div>
-								</div>
-								<?php
-								if($this->type_data['hierarchical']) {
-									?>
-									<div class="block">
-										<h2>Attributes</h2>
-										<div class="row">
-											<?php
-											// Parent
-											echo domTag('label', array(
-												'for' => 'parent',
-												'content' => 'Parent'
-											));
-											echo domTag('select', array(
-												'class' => 'select-input',
-												'name' => 'parent',
-												'content' => domTag('option', array(
-													'value' => 0,
-													'content' => '(none)'
-												)) .
-												$this->getParentList(
-													$this->type,
-													$this->parent,
-													$this->id
-												)
-											));
-											?>
-										</div>
-										<div class="row">
-											<?php
-											// Template
-											echo domTag('label', array(
-												'for' => 'template',
-												'content' => 'Template'
-											));
-											echo domTag('select', array(
-												'class' => 'select-input',
-												'name' => 'template',
-												'content' => domTag('option', array(
-													'value' => 'default',
-													'content' => 'Default'
-												)). $this->getTemplateList($this->id)
-											));
-											?>
-										</div>
-									</div>
-									<?php
-								} else {
-									if(!empty($this->tax_data)) {
-										foreach($this->tax_data as $tax) {
-											?>
-											<div class="block">
-												<h2><?php echo $tax['label']; ?></h2>
-												<div class="row">
-													<?php
-													// Terms list
-													echo $this->getTermsList($tax['name'], $this->id);
-													?>
-												</div>
-											</div>
-											<?php
-										}
-									}
-								}
-								
-								if(getSetting('enable_comments') && $this->type_data['comments']) {
-									?>
-									<div class="block">
-										<h2>Comments</h2>
-										<div class="row">
-											<?php
-											// Enable comments
-											echo domTag('input', array(
-												'type' => 'checkbox',
-												'class' => 'checkbox-input',
-												'name' => 'comments',
-												'value' => $meta['comment_status'],
-												'checked' => $meta['comment_status'],
-												'label' => array(
-													'class' => 'checkbox-label',
-													'content' => domTag('span', array(
-														'content' => 'Enable comments'
-													))
-												)
-											));
-											?>
-										</div>
-									</div>
-									<?php
-								}
-								?>
-								<div class="block">
-									<h2>Featured Image</h2>
-									<div class="row">
-										<div class="image-wrap<?php echo !empty($meta['feat_image']) ?
-											' visible' : ''; ?>" style="width: <?php echo $width ?? 0; ?>px;">
-											<?php
-											// Featured image thumbnail
-											echo getMedia($meta['feat_image'], array(
-												'data-field' => 'thumb'
-											));
-											
-											// Remove image button
-											echo domTag('span', array(
-												'class' => 'image-remove',
-												'title' => 'Remove',
-												'content' => domTag('i', array(
-													'class' => 'fa-solid fa-xmark'
-												))
-											));
-											?>
-										</div>
-										<?php
-										// Featured image (hidden)
-										echo domTag('input', array(
-											'type' => 'hidden',
-											'name' => 'feat_image',
-											'value' => $meta['feat_image'],
-											'data-field' => 'id'
-										));
-										
-										// Choose image
-										echo domTag('a', array(
-											'class' => 'modal-launch',
-											'href' => 'javascript:void(0)',
-											'data-type' => 'image',
-											'content' => 'Choose Image',
-										));
-										?>
-									</div>
-								</div>
-							</div>
-							<div class="metadata">
-								<div class="block">
-									<h2>Metadata</h2>
-									<div class="row">
-										<?php
-										// Meta title
-										echo domTag('label', array(
-											'for' => 'meta_title',
-											'content' => 'Title'
-										));
-										echo domTag('br');
-										echo domTag('input', array(
-											'class' => 'text-input',
-											'name' => 'meta_title',
-											'value' => ($meta['title'] ?? '')
-										));
-										?>
-									</div>
-									<div class="row">
-										<?php
-										// Meta description
-										echo domTag('label', array(
-											'for' => 'meta_description',
-											'content' => 'Description'
-										));
-										echo domTag('br');
-										echo domTag('textarea', array(
-											'class' => 'textarea-input',
-											'name' => 'meta_description',
-											'cols' => 30,
-											'rows' => 4,
-											'content' => ($meta['description'] ?? '')
-										));
-										?>
-									</div>
-									<div class="row">
-										<?php
-										// Index post
-										echo domTag('input', array(
-											'type' => 'checkbox',
-											'class' => 'checkbox-input',
-											'name' => 'index_post',
-											'value' => $meta['index_post'],
-											'checked' => $meta['index_post'],
-											'label' => array(
-												'class' => 'checkbox-label',
-												'content' => domTag('span', array(
-													'content' => 'Index ' . strtolower($this->type_data['labels']['name_singular'])
-												))
-											)
-										));
-										?>
-									</div>
-								</div>
-							</div>
-						</form>
+					<div class="permalink">
+						<?php
+						// Permalink
+						echo domTag('label', array(
+							'for' => 'slug-field',
+							'content' => domTag('strong', array(
+								'content' => 'Permalink: '
+							)) . getSetting('site_url') . getPermalink($this->type, $this->parent)
+						));
+						
+						echo domTag('input', array(
+							'id' => 'slug-field',
+							'class' => 'text-input required invalid init',
+							'name' => 'slug',
+							'value' => $this->slug
+						)) . domTag('span', array(
+							'content' => '/'
+						));
+						?>
 					</div>
 					<?php
-					include_once PATH . ADMIN . INC . '/modal-upload.php';
-				}
-			}
-		}
+					// Insert media button
+					echo domTag('input', array(
+						'type' => 'button',
+						'class' => 'button-input button modal-launch',
+						'value' => 'Insert Media',
+						'data-type' => 'all',
+						'data-insert' => 'true'
+					));
+					
+					// Content
+					echo domTag('textarea', array(
+						'id' => 'content-field',
+						'class' => 'textarea-input',
+						'name' => 'content',
+						'rows' => 25,
+						'content' => htmlspecialchars($this->content)
+					));
+					?>
+				</div>
+				<div class="sidebar">
+					<div class="block">
+						<?php
+						echo domTag('h2', array(
+							'content' => 'Publish'
+						));
+						?>
+						<div class="row">
+							<?php
+							// Status
+							echo domTag('label', array(
+								'for' => 'status-field',
+								'content' => 'Status'
+							));
+							
+							echo domTag('select', array(
+								'id' => 'status-field',
+								'class' => 'select-input',
+								'name' => 'status',
+								'content' => $this->getStatusList()
+							));
+							?>
+						</div>
+						<div class="row">
+							<?php
+							// Author
+							echo domTag('label', array(
+								'for' => 'author-field',
+								'content' => 'Author'
+							));
+							
+							echo domTag('select', array(
+								'id' => 'author-field',
+								'class' => 'select-input',
+								'name' => 'author',
+								'content' => $this->getAuthorList($this->author)
+							));
+							?>
+						</div>
+						<div class="row">
+							<?php
+							// Publish date
+							echo domTag('label', array(
+								'for' => 'date-field',
+								'content' => 'Published on'
+							)) . domTag('br');
+							
+							echo domTag('input', array(
+								'type' => 'date',
+								'id' => 'date-field',
+								'class' => 'date-input',
+								'name' => 'date[]',
+								'value' => (
+									!is_null($this->date) ?
+									formatDate($this->date, 'Y-m-d') :
+									formatDate($this->modified, 'Y-m-d')
+								)
+							));
+							
+							echo domTag('input', array(
+								'type' => 'time',
+								'id' => 'date-field',
+								'class' => 'date-input',
+								'name' => 'date[]',
+								'value' => (
+									!is_null($this->date) ?
+									formatDate($this->date, 'H:i') :
+									formatDate($this->modified, 'H:i'))
+							));
+							?>
+						</div>
+						<div id="submit" class="row">
+							<?php
+							switch($this->status) {
+								case 'draft':
+									$is_published = false;
+									break;
+								case 'published':
+								case 'private':
+									$is_published = true;
+									break;
+							}
+							
+							// View/preview link
+							echo $is_published ?
+								domTag('a', array(
+									'href' => (isHomePage($this->id) ? '/' : getPermalink(
+										$this->type,
+										$this->parent,
+										$this->slug
+									)),
+									'target' => '_blank',
+									'rel' => 'noreferrer noopener',
+									'content' => 'View'
+								)) :
+								domTag('a', array(
+									'href' => '/?id=' . $this->id . '&preview=true',
+									'target' => '_blank',
+									'rel' => 'noreferrer noopener',
+									'content' => 'Preview'
+								));
+							
+							// Submit button
+							echo domTag('input', array(
+								'type' => 'submit',
+								'class' => 'submit-input button',
+								'name' => 'submit',
+								'value' => 'Update'
+							));
+							?>
+						</div>
+					</div>
+					<?php
+					if($this->type_data['hierarchical']) {
+						?>
+						<div class="block">
+							<?php
+							echo domTag('h2', array(
+								'content' => 'Attributes'
+							));
+							?>
+							<div class="row">
+								<?php
+								// Parent
+								echo domTag('label', array(
+									'for' => 'parent-field',
+									'content' => 'Parent'
+								));
+								
+								echo domTag('select', array(
+									'id' => 'parent-field',
+									'class' => 'select-input',
+									'name' => 'parent',
+									'content' => domTag('option', array(
+										'value' => 0,
+										'content' => '(none)'
+									)) .
+									$this->getParentList(
+										$this->type,
+										$this->parent,
+										$this->id
+									)
+								));
+								?>
+							</div>
+							<div class="row">
+								<?php
+								// Template
+								echo domTag('label', array(
+									'for' => 'template-field',
+									'content' => 'Template'
+								));
+								
+								echo domTag('select', array(
+									'id' => 'template-field',
+									'class' => 'select-input',
+									'name' => 'template',
+									'content' => domTag('option', array(
+										'value' => 'default',
+										'content' => 'Default'
+									)) . $this->getTemplateList($this->id)
+								));
+								?>
+							</div>
+						</div>
+						<?php
+					} else {
+						if(!empty($this->tax_data)) {
+							foreach($this->tax_data as $tax) {
+								?>
+								<div class="block">
+									<?php
+									echo domTag('h2', array(
+										'content' => $tax['label']
+									));
+									?>
+									<div class="row">
+										<?php
+										// Terms list
+										echo $this->getTermsList($tax['name'], $this->id);
+										?>
+									</div>
+								</div>
+								<?php
+							}
+						}
+					}
+					
+					if(getSetting('enable_comments') && $this->type_data['comments']) {
+						?>
+						<div class="block">
+							<?php
+							echo domTag('h2', array(
+								'content' => 'Comments'
+							));
+							?>
+							<div class="row">
+								<?php
+								// Enable comments
+								echo domTag('input', array(
+									'type' => 'checkbox',
+									'class' => 'checkbox-input',
+									'name' => 'comments',
+									'value' => $meta['comment_status'],
+									'checked' => $meta['comment_status'],
+									'label' => array(
+										'class' => 'checkbox-label',
+										'content' => domTag('span', array(
+											'content' => 'Enable comments'
+										))
+									)
+								));
+								?>
+							</div>
+						</div>
+						<?php
+					}
+					?>
+					<div class="block">
+						<?php
+						echo domTag('h2', array(
+							'content' => 'Featured Image'
+						));
+						?>
+						<div class="row">
+							<div class="image-wrap<?php echo !empty($meta['feat_image']) ?
+								' visible' : ''; ?>" style="width: <?php echo $width ?? 0; ?>px;">
+								<?php
+								// Featured image thumbnail
+								echo getMedia($meta['feat_image'], array(
+									'data-field' => 'thumb'
+								));
+								
+								// Remove image button
+								echo domTag('span', array(
+									'class' => 'image-remove',
+									'title' => 'Remove',
+									'content' => domTag('i', array(
+										'class' => 'fa-solid fa-xmark'
+									))
+								));
+								?>
+							</div>
+							<?php
+							// Featured image (hidden)
+							echo domTag('input', array(
+								'type' => 'hidden',
+								'name' => 'feat_image',
+								'value' => $meta['feat_image'],
+								'data-field' => 'id'
+							));
+							
+							// Choose image
+							echo domTag('a', array(
+								'class' => 'modal-launch',
+								'href' => 'javascript:void(0)',
+								'data-type' => 'image',
+								'content' => 'Choose Image',
+							));
+							?>
+						</div>
+					</div>
+				</div>
+				<div class="metadata">
+					<div class="block">
+						<?php
+						echo domTag('h2', array(
+							'content' => 'Metadata'
+						));
+						?>
+						<div class="row">
+							<?php
+							// Meta title
+							echo domTag('label', array(
+								'for' => 'meta-title-field',
+								'content' => 'Title'
+							)) . domTag('br');
+							
+							echo domTag('input', array(
+								'id' => 'meta-title-field',
+								'class' => 'text-input',
+								'name' => 'meta_title',
+								'value' => ($meta['title'] ?? '')
+							));
+							?>
+						</div>
+						<div class="row">
+							<?php
+							// Meta description
+							echo domTag('label', array(
+								'for' => 'meta-description-field',
+								'content' => 'Description'
+							)) . domTag('br');
+							
+							echo domTag('textarea', array(
+								'id' => 'meta-description-field',
+								'class' => 'textarea-input',
+								'name' => 'meta_description',
+								'cols' => 30,
+								'rows' => 4,
+								'content' => ($meta['description'] ?? '')
+							));
+							?>
+						</div>
+						<div class="row">
+							<?php
+							// Index post
+							echo domTag('input', array(
+								'type' => 'checkbox',
+								'id' => 'index-post-field',
+								'class' => 'checkbox-input',
+								'name' => 'index_post',
+								'value' => $meta['index_post'],
+								'checked' => $meta['index_post'],
+								'label' => array(
+									'class' => 'checkbox-label',
+									'content' => domTag('span', array(
+										'content' => 'Index ' . strtolower($this->type_data['labels']['name_singular'])
+									))
+								)
+							));
+							?>
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+		<?php
+		include_once PATH . ADMIN . INC . '/modal-upload.php';
 	}
 	
 	/**
 	 * Duplicate a post.
-	 * @since 1.3.7[b]
+	 * @since 1.3.7-beta
 	 *
 	 * @access public
 	 */
 	public function duplicatePost(): void {
 		global $rs_query;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0 || empty($this->type))
 			redirect(ADMIN_URI);
-		} else {
-			if(empty($this->type)) {
-				redirect(ADMIN_URI);
-			} elseif($this->type === 'media') {
-				redirect('media.php?id=' . $this->id . '&action=edit');
-			} elseif($this->type === 'widget') {
-				redirect('widgets.php?id=' . $this->id . '&action=edit');
-			} else {
-				if($this->isTrash($this->id)) {
-					redirect(ADMIN_URI . ($this->type !== 'post' ? '?type=' . $this->type . '&' : '?') .
-						'status=trash');
-				} else {
-					$this->pageHeading();
-					?>
-					<div class="data-form-wrap clear">
-						<form class="data-form" action="" method="post" autocomplete="off">
-							<table class="form-table">
-								<?php
-								// Original post
-								echo formRow('Original Post', array(
-									'tag' => 'input',
-									'class' => 'text-input disabled',
-									'name' => 'original_post',
-									'value' => $this->title,
-									'disabled' => 1
-								));
-								
-								$new_title = 'Copy of ' . $this->title;
-								
-								// New post title
-								echo formRow(array('New Title', true), array(
-									'tag' => 'input',
-									'id' => 'title-field',
-									'class' => 'text-input required invalid init',
-									'name' => 'title',
-									'value' => $new_title
-								));
-								
-								// New post slug
-								echo formRow(array('New Slug', true), array(
-									'tag' => 'input',
-									'id' => 'slug-field',
-									'class' => 'text-input required invalid init',
-									'name' => 'slug',
-									'value' => sanitize(str_replace(' ', '-', $new_title))
-								));
-								
-								// Separator
-								echo formRow('', array('tag' => 'hr', 'class' => 'separator'));
-								
-								// Submit button
-								echo formRow('', array(
-									'tag' => 'input',
-									'type' => 'submit',
-									'class' => 'submit-input button',
-									'name' => 'submit',
-									'value' => 'Duplicate ' . $this->type_data['labels']['name_singular']
-								));
-								?>
-							</table>
-						</form>
-					</div>
+		
+		if($this->type === 'media')
+			redirect('media.php?id=' . $this->id . '&action=edit');
+		
+		if($this->type === 'widget')
+			redirect('widgets.php?id=' . $this->id . '&action=edit');
+		
+		if($this->isTrash($this->id))
+			redirect(ADMIN_URI . ($this->type !== 'post' ? '?type=' . $this->type . '&' : '?') . 'status=trash');
+		
+		$this->pageHeading();
+		?>
+		<div class="data-form-wrap clear">
+			<form class="data-form" action="" method="post" autocomplete="off">
+				<table class="form-table">
 					<?php
-				}
-			}
-		}
+					// Original post
+					echo formRow('Original Post', array(
+						'tag' => 'input',
+						'id' => 'original-post-field',
+						'class' => 'text-input disabled',
+						'name' => 'original_post',
+						'value' => $this->title,
+						'disabled' => 1
+					));
+					
+					$new_title = 'Copy of ' . $this->title;
+					
+					// New post title
+					echo formRow(array('New Title', true), array(
+						'tag' => 'input',
+						'id' => 'title-field',
+						'class' => 'text-input required invalid init',
+						'name' => 'title',
+						'value' => $new_title
+					));
+					
+					// New post slug
+					echo formRow(array('New Slug', true), array(
+						'tag' => 'input',
+						'id' => 'slug-field',
+						'class' => 'text-input required invalid init',
+						'name' => 'slug',
+						'value' => sanitize(str_replace(' ', '-', $new_title))
+					));
+					
+					// Separator
+					echo formRow('', array(
+						'tag' => 'hr',
+						'class' => 'separator'
+					));
+					
+					// Submit button
+					echo formRow('', array(
+						'tag' => 'input',
+						'type' => 'submit',
+						'class' => 'submit-input button',
+						'name' => 'submit',
+						'value' => 'Duplicate ' . $this->type_data['labels']['name_singular']
+					));
+					?>
+				</table>
+			</form>
+		</div>
+		<?php
 	}
 	
 	/**
 	 * Update a post's status.
-	 * @since 1.2.9[b]
+	 * @since 1.2.9-beta
 	 *
 	 * @access public
 	 * @param string $status -- The post's status.
@@ -1204,40 +1399,47 @@ class Post implements AdminInterface {
 		
 		if($id !== 0) $this->id = $id;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0)
 			redirect(ADMIN_URI);
-		} else {
-			$type = $rs_query->selectField($this->table, 'type', array('id' => $this->id));
-			
-			if($type === $this->type_data['name']) {
-				if($status === 'published' || $status === 'private') {
-					$db_status = $rs_query->selectField($this->table, 'status', array('id' => $this->id));
-					
-					if($db_status !== $status) {
-						$rs_query->update($this->table, array(
-							'date' => 'NOW()',
-							'status' => $status
-						), array('id' => $this->id));
-					} else {
-						$rs_query->update($this->table, array(
-							'status' => $status
-						), array(
-							'id' => $this->id
-						));
-					}
+		
+		$type = $rs_query->selectField($this->table, 'type', array(
+			'id' => $this->id
+		));
+		
+		if($type === $this->type_data['name']) {
+			if($status === 'published' || $status === 'private') {
+				$db_status = $rs_query->selectField($this->table, 'status', array(
+					'id' => $this->id
+				));
+				
+				if($db_status !== $status) {
+					$rs_query->update($this->table, array(
+						'date' => 'NOW()',
+						'status' => $status
+					), array(
+						'id' => $this->id
+					));
 				} else {
 					$rs_query->update($this->table, array(
-						'date' => null,
 						'status' => $status
-					), array('id' => $this->id));
+					), array(
+						'id' => $this->id
+					));
 				}
+			} else {
+				$rs_query->update($this->table, array(
+					'date' => null,
+					'status' => $status
+				), array(
+					'id' => $this->id
+				));
 			}
 		}
 	}
 	
 	/**
 	 * Send a post to the trash.
-	 * @since 1.4.6[a]
+	 * @since 1.4.6-alpha
 	 *
 	 * @access public
 	 */
@@ -1249,7 +1451,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * Restore a post from the trash.
-	 * @since 1.4.6[a]
+	 * @since 1.4.6-alpha
 	 *
 	 * @access public
 	 */
@@ -1261,54 +1463,64 @@ class Post implements AdminInterface {
 	
 	/**
 	 * Delete a post.
-	 * @since 1.4.7[a]
+	 * @since 1.4.7-alpha
 	 *
 	 * @access public
 	 */
 	public function deleteRecord(): void {
 		global $rs_query;
 		
-		if(empty($this->id) || $this->id <= 0) {
+		if(empty($this->id) || $this->id <= 0)
 			redirect(ADMIN_URI);
-		} else {
-			$rs_query->delete($this->table, array('id' => $this->id));
-			$rs_query->delete('postmeta', array('post' => $this->id));
-			
-			$relationships = $rs_query->select('term_relationships', '*', array(
-				'post' => $this->id
+		
+		$rs_query->delete($this->table, array(
+			'id' => $this->id
+		));
+		
+		$rs_query->delete('postmeta', array(
+			'post' => $this->id
+		));
+		
+		$relationships = $rs_query->select('term_relationships', '*', array(
+			'post' => $this->id
+		));
+		
+		foreach($relationships as $relationship) {
+			$rs_query->delete('term_relationships', array(
+				'id' => $relationship['id']
 			));
 			
-			foreach($relationships as $relationship) {
-				$rs_query->delete('term_relationships', array('id' => $relationship['id']));
-				
-				$count = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
-					'term' => $relationship['term']
-				));
-				
-				$rs_query->update('terms',
-					array('count' => $count),
-					array('id' => $relationship['term'])
-				);
-			}
-			
-			$rs_query->delete('comments', array('post' => $this->id));
-			
-			$menu_items = $rs_query->select('postmeta', 'post', array(
-				'datakey' => 'post_link',
-				'value' => $this->id
+			$count = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
+				'term' => $relationship['term']
 			));
 			
-			// Set any menu items associated with the post to invalid
-			foreach($menu_items as $menu_item) {
-				$rs_query->update($this->table,
-					array('status' => 'invalid'),
-					array('id' => $menu_item['post'])
-				);
-			}
-			
-			redirect($this->type_data['menu_link'] . ($this->type !== 'post' ? '&' : '?') .
-				'status=trash&exit_status=success');
+			$rs_query->update('terms', array(
+				'count' => $count
+			), array(
+				'id' => $relationship['term']
+			));
 		}
+		
+		$rs_query->delete('comments', array(
+			'post' => $this->id
+		));
+		
+		$menu_items = $rs_query->select('postmeta', 'post', array(
+			'datakey' => 'post_link',
+			'value' => $this->id
+		));
+		
+		// Set any menu items associated with the post to invalid
+		foreach($menu_items as $menu_item) {
+			$rs_query->update($this->table, array(
+				'status' => 'invalid'
+			), array(
+				'id' => $menu_item['post']
+			));
+		}
+		
+		redirect($this->type_data['menu_link'] . ($this->type !== 'post' ? '&' : '?') .
+			'status=trash&exit_status=del_success');
 	}
 	
 	/*------------------------------------*\
@@ -1317,30 +1529,37 @@ class Post implements AdminInterface {
 	
 	/**
 	 * Validate the form data.
-	 * @since 1.4.7[a]
+	 * @since 1.4.7-alpha
 	 *
 	 * @access private
 	 * @param array $data -- The submission data.
-	 * @param int $id (optional) -- The post's id.
 	 * @return string
 	 */
-	private function validateSubmission(array $data, int $id = 0): string {
+	private function validateSubmission(array $data): string {
 		global $rs_query;
 		
-		if(empty($data['title']) || empty($data['slug']))
+		if(empty($data['title']) || empty($data['slug'])) {
 			return exitNotice('REQ', -1);
+			exit;
+		}
 		
 		$slug = sanitize($data['slug']);
 		
-		if($this->slugExists($slug, $id))
+		if($this->slugExists($slug))
 			$slug = getUniquePostSlug($slug);
 		
 		if($this->action === 'duplicate') {
 			// Fetch the old post data for duplication
-			$old_post = $rs_query->selectRow($this->table, '*', array('id' => $id));
-			$old_postmeta = $rs_query->select('postmeta', '*', array('post' => $id));
+			$old_post = $rs_query->selectRow($this->table, '*', array(
+				'id' => $this->id
+			));
+			
+			$old_postmeta = $rs_query->select('postmeta', '*', array(
+				'post' => $this->id
+			));
+			
 			$old_term_relationships = $rs_query->select('term_relationships', '*', array(
-				'post' => $id
+				'post' => $this->id
 			));
 		} else {
 			$valid_statuses = array('draft', 'published', 'private');
@@ -1352,7 +1571,8 @@ class Post implements AdminInterface {
 				case 'draft':
 					$is_published = false;
 					break;
-				case 'published': case 'private':
+				case 'published':
+				case 'private':
 					$is_published = true;
 					break;
 			}
@@ -1409,14 +1629,20 @@ class Post implements AdminInterface {
 							'term' => $term,
 							'post' => $insert_id
 						));
+						
 						$count = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
 							'term' => $term
 						));
-						$rs_query->update('terms', array('count' => $count), array('id' => $term));
+						
+						$rs_query->update('terms', array(
+							'count' => $count
+						), array(
+							'id' => $term
+						));
 					}
 				}
 				
-				redirect(ADMIN_URI . '?id=' . $insert_id . '&action=edit');
+				redirect(ADMIN_URI . '?id=' . $insert_id . '&action=edit&exit_status=create_success');
 				break;
 			case 'edit':
 				// Check whether a date has been provided and is valid
@@ -1436,28 +1662,39 @@ class Post implements AdminInterface {
 					'status' => $data['status'],
 					'slug' => $slug,
 					'parent' => $data['parent']
-				), array('id' => $id));
+				), array(
+					'id' => $id
+				));
 				
 				foreach($postmeta as $key => $value) {
-					$rs_query->update('postmeta', array('value' => $value), array(
+					$rs_query->update('postmeta', array(
+						'value' => $value
+					), array(
 						'post' => $id,
 						'datakey' => $key
 					));
 				}
 				
-				$relationships = $rs_query->select('term_relationships', '*', array('post' => $id));
+				$relationships = $rs_query->select('term_relationships', '*', array(
+					'post' => $id
+				));
 				
 				foreach($relationships as $relationship) {
 					// Delete any unused relationships
 					if(empty($data['terms']) || !in_array($relationship['term'], $data['terms'], true)) {
-						$rs_query->delete('term_relationships', array('id' => $relationship['id']));
+						$rs_query->delete('term_relationships', array(
+							'id' => $relationship['id']
+						));
+						
 						$count = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
 							'term' => $relationship['term']
 						));
-						$rs_query->update('terms',
-							array('count' => $count),
-							array('id' => $relationship['term'])
-						);
+						
+						$rs_query->update('terms', array(
+							'count' => $count
+						), array(
+							'id' => $relationship['term']
+						));
 					}
 				}
 				
@@ -1472,21 +1709,27 @@ class Post implements AdminInterface {
 						if($relationship) {
 							continue;
 						} else {
-							$rs_query->insert('term_relationships', array('term' => $term, 'post' => $id));
+							$rs_query->insert('term_relationships', array(
+								'term' => $term,
+								'post' => $id
+							));
+							
 							$count = $rs_query->select('term_relationships', 'COUNT(*)', array(
 								'term' => $term
 							));
-							$rs_query->update('terms', array('count' => $count), array('id' => $term));
+							
+							$rs_query->update('terms', array(
+								'count' => $count
+							), array(
+								'id' => $term
+							));
 						}
 					}
 				}
 				
-				// Update the class variables
 				foreach($data as $key => $value) $this->$key = $value;
 				
-				return exitNotice($this->type_data['labels']['name_singular'] .
-					' updated! <a href="' . ADMIN_URI . ($this->type === 'post' ? '' : '?type=' .
-					$this->type) . '">Return to list</a>?');
+				redirect(ADMIN_URI . '?id=' . $this->id . '&action='. $this->action . '&exit_status=edit_success');
 				break;
 			case 'duplicate':
 				$insert_id = $rs_query->insert($this->table, array(
@@ -1518,10 +1761,16 @@ class Post implements AdminInterface {
 							'term' => $relationship['term'],
 							'post' => $insert_id
 						));
+						
 						$count = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
 							'term' => $relationship['term']
 						));
-						$rs_query->update('terms', array('count' => $count), array('id' => $relationship['term']));
+						
+						$rs_query->update('terms', array(
+							'count' => $count
+						), array(
+							'id' => $relationship['term']
+						));
 					}
 				}
 				
@@ -1536,7 +1785,7 @@ class Post implements AdminInterface {
 	
 	/**
 	 * Construct the page heading.
-	 * @since 1.3.13[b]
+	 * @since 1.3.13-beta
 	 *
 	 * @access public
 	 */
@@ -1548,11 +1797,11 @@ class Post implements AdminInterface {
 				break;
 			case 'edit':
 				$title = $this->type_data['labels']['edit_item'];
-				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST, $this->id) : '';
+				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST) : '';
 				break;
 			case 'duplicate':
 				$title = $this->type_data['labels']['duplicate_item'];
-				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST, $this->id) : '';
+				$message = isset($_POST['submit']) ? $this->validateSubmission($_POST) : '';
 				break;
 			default:
 				$title = $this->type_data['label'];
@@ -1572,11 +1821,13 @@ class Post implements AdminInterface {
 			if(!empty($this->action)) {
 				// Status messages
 				echo $message;
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
 			} else {
 				// Create button
-				if(userHasPrivilege('can_create_' . str_replace(' ', '_',
-					$this->type_data['labels']['name_lowercase']))
-				) {
+				if(userHasPrivilege('can_create_' . str_replace(' ', '_', $this->type_data['labels']['name_lowercase']))) {
 					echo actionLink('create', array(
 						'type' => ($type === 'post' ? null : $type),
 						'classes' => 'button',
@@ -1592,13 +1843,12 @@ class Post implements AdminInterface {
 				
 				// Info
 				adminInfo();
-				?>
-				<hr>
-				<?php
-				if(isset($_GET['exit_status']) && $_GET['exit_status'] === 'success') {
-					echo exitNotice('The ' . strtolower($this->type_data['labels']['name_singular']) .
-						' was successfully deleted.');
-				}
+				
+				echo domTag('hr');
+				
+				// Exit notices
+				if(isset($_GET['exit_status']))
+					echo $this->exitNotice($_GET['exit_status']);
 				?>
 				<ul class="status-nav">
 					<?php
@@ -1619,6 +1869,7 @@ class Post implements AdminInterface {
 						}
 					}
 					
+					// Statuses
 					foreach($count as $key => $value) {
 						echo domTag('li', array(
 							'content' => domTag('a', array(
@@ -1630,25 +1881,26 @@ class Post implements AdminInterface {
 							))
 						));
 						
-						if($key !== array_key_last($count)) {
-							?> &bull; <?php
-						}
+						if($key !== array_key_last($count)) echo ' &bull; ';
 					}
 					?>
 				</ul>
-				<div class="entry-count status">
-					<?php
-					if(!empty($term)) {
-						$t = str_replace('-', '_', $term);
-						$count[$t] = $this->getPostCount($type, '', '', $term);
-						
-						echo $count[$t] . ' ' . ($count[$t] === 1 ? 'entry' : 'entries');
-					} else {
-						echo $count[$status] . ' ' . ($count[$status] === 1 ? 'entry' : 'entries');
-					}
-					?>
-				</div>
 				<?php
+				// Record count
+				if(!empty($term)) {
+					$t = str_replace('-', '_', $term);
+					$count[$t] = $this->getPostCount($type, '', '', $term);
+					
+					$ct = $count[$t] . ' ' . ($count[$t] === 1 ? 'entry' : 'entries');
+				} else {
+					$ct = $count[$status] . ' ' . ($count[$status] === 1 ? 'entry' : 'entries');
+				}
+				
+				echo domTag('div', array(
+					'class' => 'entry-count status',
+					'content' => $ct
+				));
+				
 				$this->paged['count'] = ceil($count[$status] / $this->paged['per_page']);
 			}
 			?>
@@ -1657,392 +1909,34 @@ class Post implements AdminInterface {
 	}
 	
 	/**
-	 * Check whether a slug exists in the database.
-	 * @since 1.4.8[a]
+	 * Generate an exit notice.
+	 * @since 1.3.14-beta
 	 *
-	 * @access protected
-	 * @param string $slug -- The slug.
-	 * @param int $id (optional) -- The post's id.
-	 * @return bool
-	 */
-	protected function slugExists(string $slug, int $id = 0): bool {
-		global $rs_query;
-		
-		if($id === 0) {
-			return $rs_query->selectRow($this->table, 'COUNT(slug)', array('slug' => $slug)) > 0;
-		} else {
-			return $rs_query->selectRow($this->table, 'COUNT(slug)', array(
-				'slug' => $slug,
-				'id' => array('<>', $id)
-			)) > 0;
-		}
-	}
-	
-	/**
-	 * Check whether a post is in the trash.
-	 * @since 1.4.9[a]
-	 *
-	 * @access private
-	 * @param int $id -- The post's id.
-	 * @return bool
-	 */
-	private function isTrash(int $id): bool {
-		global $rs_query;
-		
-		return $rs_query->selectField($this->table, 'status', array('id' => $id)) === 'trash';
-	}
-	
-	/**
-	 * Check whether a post is a descendant of another post.
-	 * @since 1.4.9[a]
-	 *
-	 * @access private
-	 * @param int $id -- The post's id.
-	 * @param int $ancestor -- The post's ancestor.
-	 * @return bool
-	 */
-	private function isDescendant(int $id, int $ancestor): bool {
-		global $rs_query;
-		
-		do {
-			$parent = $rs_query->selectField($this->table, 'parent', array('id' => $id));
-			$id = (int)$parent;
-			
-			if($id === $ancestor) return true;
-		} while($id !== 0);
-		
-		return false;
-	}
-	
-	/**
-	 * Fetch a post's metadata.
-	 * @since 1.4.10[a]
-	 *
-	 * @access protected
-	 * @param int $id -- The post's id.
-	 * @return array
-	 */
-	protected function getPostMeta(int $id): array {
-		global $rs_query;
-		
-		$postmeta = $rs_query->select('postmeta', array('datakey', 'value'), array('post' => $id));
-		$meta = array();
-		
-		foreach($postmeta as $metadata) {
-			$values = array_values($metadata);
-			
-			// Assign the metadata to the meta array
-			for($i = 0; $i < count($metadata); $i += 2)
-				$meta[$values[$i]] = $values[$i + 1];
-		}
-		
-		return $meta;
-	}
-	
-	/**
-	 * Construct a list of statuses.
-	 * @since 1.3.11[b]
-	 *
-	 * @access private
+	 * @param string $exit_status -- The exit status.
+	 * @param int $status_code (optional) -- The type of notice to display.
 	 * @return string
 	 */
-	private function getStatusList(): string {
-		global $rs_query;
+	private function exitNotice(string $exit_status, int $status_code = 1): string {
+		$post_type = $this->type_data['labels']['name_singular'];
 		
-		$list = '';
-		$statuses = array('draft', 'published', 'private');
-		
-		foreach($statuses as $status) {
-			$list .= domTag('option', array(
-				'value' => $status,
-				'selected' => ($status === $this->status),
-				'content' => ucfirst($status)
-			));
-		}
-		
-		return $list;
-	}
-	
-	/**
-	 * Fetch a post's author.
-	 * @since 1.4.0[a]
-	 *
-	 * @access protected
-	 * @param int $id -- The post's id.
-	 * @return string
-	 */
-	protected function getAuthor(int $id): string {
-		global $rs_query;
-		
-		return $rs_query->selectField('usermeta', 'value', array(
-			'user' => $id,
-			'datakey' => 'display_name'
-		));
-	}
-	
-	/**
-	 * Construct a list of authors.
-	 * @since 1.4.4[a]
-	 *
-	 * @access private
-	 * @param int $id (optional) -- The post's id.
-	 * @return string
-	 */
-	private function getAuthorList(int $id = 0): string {
-		global $rs_query;
-		
-		$list = '';
-		$authors = $rs_query->select('users', array('id', 'username'), array(), 'username');
-		
-		foreach($authors as $author) {
-			$display_name = $rs_query->selectField('usermeta', 'value', array(
-				'user' => $author['id'],
-				'datakey' => 'display_name'
-			));
-			
-			$list .= domTag('option', array(
-				'value' => $author['id'],
-				'selected' => ($author['id'] === $id),
-				'content' => ($display_name === $author['username'] ? $display_name :
-					$display_name . ' (' . $author['username'] . ')')
-			));
-		}
-		
-		return $list;
-	}
-	
-	/**
-	 * Fetch a post's terms.
-	 * @since 1.5.0[a]
-	 *
-	 * @access private
-	 * @param string $taxonomy -- The term's taxonomy.
-	 * @param int $id -- The post's id.
-	 * @return string
-	 */
-	private function getTerms(string $taxonomy, int $id): string {
-		global $rs_query;
-		
-		$terms = array();
-		$relationships = $rs_query->select('term_relationships', 'term', array('post' => $id));
-		
-		foreach($relationships as $relationship) {
-			$term = $rs_query->selectRow('terms', '*', array(
-				'id' => $relationship['term'],
-				'taxonomy' => getTaxonomyId($taxonomy)
-			));
-			
-			if($term) {
-				$terms[] = domTag('a', array(
-					'href' => getPermalink($taxonomy, $term['parent'], $term['slug']),
-					'content' => $term['name']
-				));
-			}
-		}
-		
-		return empty($terms) ? '&mdash;' : implode(', ', $terms);
-	}
-	
-	/**
-	 * Construct a list of terms.
-	 * @since 1.5.2[a]
-	 *
-	 * @access private
-	 * @param string $taxonomy -- The term's taxonomy.
-	 * @param int $id (optional) -- The post's id.
-	 * @return string
-	 */
-	private function getTermsList(string $taxonomy, int $id = 0): string {
-		global $rs_query, $taxonomies;
-		
-		$list = '<ul id="terms-list">';
-		$terms = $rs_query->select('terms', array('id', 'name', 'slug'), array(
-			'taxonomy' => getTaxonomyId($taxonomy)
-		), 'name');
-		
-		foreach($terms as $term) {
-			$relationship = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
-				'term' => $term['id'],
-				'post' => $id
-			));
-			
-			$list .= domTag('li', array(
-				'content' => domTag('input', array(
-					'type' => 'checkbox',
-					'class' => 'checkbox-input',
-					'name' => 'terms[]',
-					'value' => $term['id'],
-					'checked' => ($relationship || ($id === 0 &&
-						$term['slug'] === $taxonomies[$taxonomy]['default_term']['slug'])
-					),
-					'label' => array(
-						'class' => 'checkbox-label',
-						'content' => domTag('span', array(
-							'content' => $term['name']
-						))
-					)
-				))
-			));
-		}
-		
-		$list .= '</ul>';
-		
-		return $list;
-	}
-	
-	/**
-	 * Fetch a post's parent.
-	 * @since 1.4.4[a]
-	 *
-	 * @access private
-	 * @param int $id -- The post's id.
-	 * @return string
-	 */
-	private function getParent(int $id): string {
-		global $rs_query;
-		
-		$parent = $rs_query->selectField($this->table, 'title', array('id' => $id));
-		
-		return empty($parent) ? '&mdash;' : $parent;
-	}
-	
-	/**
-	 * Construct a list of parents.
-	 * @since 1.4.4[a]
-	 *
-	 * @access private
-	 * @param string $type -- The post's type.
-	 * @param int $parent (optional) -- The post's parent id.
-	 * @param int $id (optional) -- The post's id.
-	 * @return string
-	 */
-	private function getParentList(string $type, int $parent = 0, int $id = 0): string {
-		global $rs_query;
-		
-		$list = '';
-		$posts = $rs_query->select($this->table, array('id', 'title'), array(
-			'status' => array('<>', 'trash'),
-			'type' => $type
-		));
-		
-		foreach($posts as $post) {
-			if($id !== 0) {
-				// Skip the current post
-				if($post['id'] === $id) continue;
-				
-				// Skip all descendant posts
-				if($this->isDescendant($post['id'], $id)) continue;
-			}
-			
-			$list .= domTag('option', array(
-				'value' => $post['id'],
-				'selected' => ($post['id'] === $parent),
-				'content' => $post['title']
-			));
-		}
-		
-		return $list;
-	}
-	
-	/**
-	 * Construct a list of templates.
-	 * @since 2.3.3[a]
-	 *
-	 * @access private
-	 * @param int $id (optional) -- The post's id.
-	 * @return string
-	 */
-	private function getTemplateList(int $id = 0): string {
-		global $rs_query;
-		
-		$templates_path = slash(PATH . THEMES) . getSetting('theme') . '/templates';
-		
-		if(file_exists($templates_path)) {
-			// Fetch all templates in the directory
-			$templates = array_diff(scandir($templates_path), array('.', '..'));
-			
-			$current = $rs_query->selectField('postmeta', 'value', array('post' => $id, 'datakey' => 'template'));
-			
-			foreach($templates as $template) {
-				$list[] = domTag('option', array(
-					'value' => $template,
-					'selected' => (isset($current) && $current === $template),
-					'content' => ucwords(substr(
-						str_replace('-', ' ', $template), 0,
-						strpos($template, '.')
-					))
-				));
-			}
-			
-			$list = implode('', $list);
-		}
-		
-		return $list ?? '';
-	}
-	
-	/**
-	 * Fetch the post count based on a specific status or term.
-	 * @since 1.4.0[a]
-	 *
-	 * @access private
-	 * @param string $type -- The post's type.
-	 * @param string $status (optional) -- The post's status.
-	 * @param string $search (optional) -- The search query.
-	 * @param string $term (optional) -- The term the post is linked to.
-	 * @return int
-	 */
-	private function getPostCount(
-		string $type,
-		string $status = '',
-		string $search = '',
-		string $term = ''
-	): int {
-		global $rs_query;
-		
-		if(empty($status))
-			$db_status = array('<>', 'trash');
-		else
-			$db_status = $status;
-		
-		if(!empty($term)) {
-			$term_id = (int)$rs_query->selectField('terms', 'id', array('slug' => $term));
-			$relationships = $rs_query->select('term_relationships', 'post', array(
-				'term' => $term_id
-			));
-			
-			if(count($relationships) > 1) {
-				$post_ids = array('IN');
-				
-				foreach($relationships as $rel)
-					$post_ids[] = $rel['post'];
-			} elseif(count($relationships) > 0) {
-				$post_ids = $relationships[0]['post'];
-			} else {
-				$post_ids = 0;
-			}
-			
-			return $rs_query->select($this->table, 'COUNT(*)', array(
-				'id' => $post_ids,
-				'status' => $db_status,
-				'type' => $type
-			));
-		} elseif(!empty($search)) {
-			return $rs_query->select($this->table, 'COUNT(*)', array(
-				'title' => array('LIKE', '%' . $search . '%'),
-				'status' => $db_status,
-				'type' => $type
-			));
-		} else {
-			return $rs_query->select($this->table, 'COUNT(*)', array(
-				'status' => $db_status,
-				'type' => $type
-			));
-		}
+		return exitNotice(match($exit_status) {
+			'create_success' => 'The ' . strtolower($post_type) . ' was successfully created. ' . domTag('a', array(
+				'href' => $this->type_data['menu_link'],
+				'content' => 'Return to list'
+			)) . '?',
+			'edit_success' => $post_type . ' updated! ' . domTag('a', array(
+				'href' => $this->type_data['menu_link'],
+				'content' => 'Return to list'
+			)) . '?',
+			'dup_success' => 'The ' . strtolower($post_type) . ' was successfully duplicated.',
+			'del_success' => 'The ' . strtolower($post_type) . ' was successfully deleted.',
+			default => 'The action was completed successfully.'
+		}, $status_code);
 	}
 	
 	/**
 	 * Construct bulk actions.
-	 * @since 1.2.9[b]
+	 * @since 1.2.9-beta
 	 *
 	 * @access private
 	 */
@@ -2087,5 +1981,413 @@ class Post implements AdminInterface {
 			?>
 		</div>
 		<?php
+	}
+	
+	/**
+	 * Check whether a slug exists in the database.
+	 * @since 1.4.8-alpha
+	 *
+	 * @access protected
+	 * @param string $slug -- The slug.
+	 * @return bool
+	 */
+	protected function slugExists(string $slug): bool {
+		global $rs_query;
+		
+		if($this->id === 0) {
+			return $rs_query->selectRow($this->table, 'COUNT(slug)', array(
+				'slug' => $slug
+			)) > 0;
+		} else {
+			return $rs_query->selectRow($this->table, 'COUNT(slug)', array(
+				'slug' => $slug,
+				'id' => array('<>', $this->id)
+			)) > 0;
+		}
+	}
+	
+	/**
+	 * Check whether a post is in the trash.
+	 * @since 1.4.9-alpha
+	 *
+	 * @access private
+	 * @param int $id -- The post's id.
+	 * @return bool
+	 */
+	private function isTrash(int $id): bool {
+		global $rs_query;
+		
+		return $rs_query->selectField($this->table, 'status', array(
+			'id' => $id
+		)) === 'trash';
+	}
+	
+	/**
+	 * Check whether a post is a descendant of another post.
+	 * @since 1.4.9-alpha
+	 *
+	 * @access private
+	 * @param int $id -- The post's id.
+	 * @param int $ancestor -- The post's ancestor.
+	 * @return bool
+	 */
+	private function isDescendant(int $id, int $ancestor): bool {
+		global $rs_query;
+		
+		do {
+			$parent = $rs_query->selectField($this->table, 'parent', array(
+				'id' => $id
+			));
+			
+			$id = (int)$parent;
+			
+			if($id === $ancestor) return true;
+		} while($id !== 0);
+		
+		return false;
+	}
+	
+	/**
+	 * Fetch a post's metadata.
+	 * @since 1.4.10-alpha
+	 *
+	 * @access protected
+	 * @param int $id -- The post's id.
+	 * @return array
+	 */
+	protected function getPostMeta(int $id): array {
+		global $rs_query;
+		
+		$postmeta = $rs_query->select('postmeta', array('datakey', 'value'), array(
+			'post' => $id
+		));
+		
+		$meta = array();
+		
+		foreach($postmeta as $metadata) {
+			$values = array_values($metadata);
+			
+			for($i = 0; $i < count($metadata); $i += 2)
+				$meta[$values[$i]] = $values[$i + 1];
+		}
+		
+		return $meta;
+	}
+	
+	/**
+	 * Construct a list of statuses.
+	 * @since 1.3.11-beta
+	 *
+	 * @access private
+	 * @return string
+	 */
+	private function getStatusList(): string {
+		$list = '';
+		$statuses = array('draft', 'published', 'private');
+		
+		foreach($statuses as $status) {
+			$list .= domTag('option', array(
+				'value' => $status,
+				'selected' => ($status === $this->status),
+				'content' => ucfirst($status)
+			));
+		}
+		
+		return $list;
+	}
+	
+	/**
+	 * Fetch a post's author.
+	 * @since 1.4.0-alpha
+	 *
+	 * @access protected
+	 * @param int $id -- The post's id.
+	 * @return string
+	 */
+	protected function getAuthor(int $id): string {
+		global $rs_query;
+		
+		return $rs_query->selectField('usermeta', 'value', array(
+			'user' => $id,
+			'datakey' => 'display_name'
+		));
+	}
+	
+	/**
+	 * Construct a list of authors.
+	 * @since 1.4.4-alpha
+	 *
+	 * @access private
+	 * @param int $id (optional) -- The post's id.
+	 * @return string
+	 */
+	private function getAuthorList(int $id = 0): string {
+		global $rs_query;
+		
+		$list = '';
+		
+		$authors = $rs_query->select('users', array('id', 'username'), array(), array(
+			'order_by' => 'username'
+		));
+		
+		foreach($authors as $author) {
+			$display_name = $rs_query->selectField('usermeta', 'value', array(
+				'user' => $author['id'],
+				'datakey' => 'display_name'
+			));
+			
+			$list .= domTag('option', array(
+				'value' => $author['id'],
+				'selected' => ($author['id'] === $id),
+				'content' => ($display_name === $author['username'] ? $display_name :
+					$display_name . ' (' . $author['username'] . ')')
+			));
+		}
+		
+		return $list;
+	}
+	
+	/**
+	 * Fetch a post's terms.
+	 * @since 1.5.0-alpha
+	 *
+	 * @access private
+	 * @param string $taxonomy -- The term's taxonomy.
+	 * @param int $id -- The post's id.
+	 * @return string
+	 */
+	private function getTerms(string $taxonomy, int $id): string {
+		global $rs_query;
+		
+		$terms = array();
+		
+		$relationships = $rs_query->select('term_relationships', 'term', array(
+			'post' => $id
+		));
+		
+		foreach($relationships as $relationship) {
+			$term = $rs_query->selectRow('terms', '*', array(
+				'id' => $relationship['term'],
+				'taxonomy' => getTaxonomyId($taxonomy)
+			));
+			
+			if($term) {
+				$terms[] = domTag('a', array(
+					'href' => getPermalink($taxonomy, $term['parent'], $term['slug']),
+					'content' => $term['name']
+				));
+			}
+		}
+		
+		return empty($terms) ? '&mdash;' : implode(', ', $terms);
+	}
+	
+	/**
+	 * Construct a list of terms.
+	 * @since 1.5.2-alpha
+	 *
+	 * @access private
+	 * @param string $taxonomy -- The term's taxonomy.
+	 * @param int $id (optional) -- The post's id.
+	 * @return string
+	 */
+	private function getTermsList(string $taxonomy, int $id = 0): string {
+		global $rs_query, $rs_taxonomies;
+		
+		$list = '<ul id="terms-list">';
+		
+		$terms = $rs_query->select('terms', array('id', 'name', 'slug'), array(
+			'taxonomy' => getTaxonomyId($taxonomy)
+		), array(
+			'order_by' => 'name'
+		));
+		
+		foreach($terms as $term) {
+			$relationship = $rs_query->selectRow('term_relationships', 'COUNT(*)', array(
+				'term' => $term['id'],
+				'post' => $id
+			));
+			
+			$list .= domTag('li', array(
+				'content' => domTag('input', array(
+					'type' => 'checkbox',
+					'class' => 'checkbox-input',
+					'name' => 'terms[]',
+					'value' => $term['id'],
+					'checked' => ($relationship || ($id === 0 &&
+						$term['slug'] === $rs_taxonomies[$taxonomy]['default_term']['slug'])
+					),
+					'label' => array(
+						'class' => 'checkbox-label',
+						'content' => domTag('span', array(
+							'content' => $term['name']
+						))
+					)
+				))
+			));
+		}
+		
+		$list .= '</ul>';
+		
+		return $list;
+	}
+	
+	/**
+	 * Fetch a post's parent.
+	 * @since 1.4.4-alpha
+	 *
+	 * @access private
+	 * @param int $id -- The post's id.
+	 * @return string
+	 */
+	private function getParent(int $id): string {
+		global $rs_query;
+		
+		$parent = $rs_query->selectField($this->table, 'title', array(
+			'id' => $id
+		));
+		
+		return empty($parent) ? '&mdash;' : $parent;
+	}
+	
+	/**
+	 * Construct a list of parents.
+	 * @since 1.4.4-alpha
+	 *
+	 * @access private
+	 * @param string $type -- The post's type.
+	 * @param int $parent (optional) -- The post's parent id.
+	 * @param int $id (optional) -- The post's id.
+	 * @return string
+	 */
+	private function getParentList(string $type, int $parent = 0, int $id = 0): string {
+		global $rs_query;
+		
+		$list = '';
+		
+		$posts = $rs_query->select($this->table, array('id', 'title'), array(
+			'status' => array('<>', 'trash'),
+			'type' => $type
+		));
+		
+		foreach($posts as $post) {
+			list($p_id, $p_title) = array(
+				$post['id'],
+				$post['title']
+			);
+			
+			if($id !== 0) {
+				// Skip the current post
+				if($p_id === $id) continue;
+				
+				// Skip all descendant posts
+				if($this->isDescendant($p_id, $id)) continue;
+			}
+			
+			$list .= domTag('option', array(
+				'value' => $p_id,
+				'selected' => ($p_id === $parent),
+				'content' => $p_title
+			));
+		}
+		
+		return $list;
+	}
+	
+	/**
+	 * Construct a list of templates.
+	 * @since 2.3.3-alpha
+	 *
+	 * @access private
+	 * @param int $id (optional) -- The post's id.
+	 * @return string
+	 */
+	private function getTemplateList(int $id = 0): string {
+		global $rs_query;
+		
+		$templates_path = slash(PATH . THEMES) . getSetting('theme') . '/templates';
+		
+		if(file_exists($templates_path)) {
+			// Fetch all templates in the directory
+			$templates = array_diff(scandir($templates_path), array('.', '..'));
+			
+			$current = $rs_query->selectField('postmeta', 'value', array(
+				'post' => $id,
+				'datakey' => 'template'
+			));
+			
+			foreach($templates as $template) {
+				$list[] = domTag('option', array(
+					'value' => $template,
+					'selected' => (isset($current) && $current === $template),
+					'content' => ucwords(substr(
+						str_replace('-', ' ', $template), 0,
+						strpos($template, '.')
+					))
+				));
+			}
+			
+			$list = implode('', $list);
+		}
+		
+		return $list ?? '';
+	}
+	
+	/**
+	 * Fetch the post count based on a specific status or term.
+	 * @since 1.4.0-alpha
+	 *
+	 * @access protected
+	 * @param string $type -- The post's type.
+	 * @param string $status (optional) -- The post's status.
+	 * @param string $search (optional) -- The search query.
+	 * @param string $term (optional) -- The term the post is linked to.
+	 * @return int
+	 */
+	protected function getPostCount(string $type, string $status = '', string $search = '', string $term = ''): int {
+		global $rs_query;
+		
+		if(empty($status))
+			$db_status = array('<>', 'trash');
+		else
+			$db_status = $status;
+		
+		if(!empty($term)) {
+			$term_id = (int)$rs_query->selectField('terms', 'id', array(
+				'slug' => $term
+			));
+			
+			$relationships = $rs_query->select('term_relationships', 'post', array(
+				'term' => $term_id
+			));
+			
+			if(count($relationships) > 1) {
+				$post_ids = array('IN');
+				
+				foreach($relationships as $rel)
+					$post_ids[] = $rel['post'];
+			} elseif(count($relationships) > 0) {
+				$post_ids = $relationships[0]['post'];
+			} else {
+				$post_ids = 0;
+			}
+			
+			return $rs_query->select($this->table, 'COUNT(*)', array(
+				'id' => $post_ids,
+				'status' => $db_status,
+				'type' => $type
+			));
+		} elseif(!empty($search)) {
+			return $rs_query->select($this->table, 'COUNT(*)', array(
+				'title' => array('LIKE', '%' . $search . '%'),
+				'status' => $db_status,
+				'type' => $type
+			));
+		} else {
+			return $rs_query->select($this->table, 'COUNT(*)', array(
+				'status' => $db_status,
+				'type' => $type
+			));
+		}
 	}
 }

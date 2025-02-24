@@ -1,13 +1,16 @@
 <?php
 /**
  * Admin about page.
- * @since 1.3.2[b]
+ * @since 1.3.2-beta
+ *
+ * @package ReallySimpleCMS
  */
+
 require_once __DIR__ . '/header.php';
 ?>
 <article class="content">
 	<section class="heading-wrap">
-		<h1>About <?php echo CMS_ENGINE; ?></h1>
+		<h1>About <?php echo RS_ENGINE; ?></h1>
 	</section>
 	<table class="data-table">
 		<tbody>
@@ -16,18 +19,23 @@ require_once __DIR__ . '/header.php';
 			echo tableRow(thCell('Credits', 'heading', 2));
 			
 			echo tableRow(
+				thCell('Developed by'),
+				tdCell(RS_DEVELOPER)
+			);
+			
+			echo tableRow(
 				thCell('Creator/Lead Developer'),
 				tdCell(domTag('a', array(
-					'href' => 'https://jacefincham.com/',
+					'href' => RS_LEAD_DEV['url'],
 					'target' => '_blank',
 					'rel' => 'noreferrer noopener',
-					'content' => 'Jace Fincham'
+					'content' => RS_LEAD_DEV['name']
 				)))
 			);
 			
 			echo tableRow(
 				thCell('Project Start'),
-				tdCell('2019')
+				tdCell(RS_PROJ_START)
 			);
 			
 			echo tableRow(
@@ -46,7 +54,7 @@ require_once __DIR__ . '/header.php';
 				
 				echo tableRow(
 					thCell('CMS Version'),
-					tdCell(CMS_VERSION . ' (Beta)')
+					tdCell(RS_VERSION)
 				);
 				
 				echo tableRow(
@@ -61,8 +69,7 @@ require_once __DIR__ . '/header.php';
 				
 				echo tableRow(
 					thCell('HTTPS Enabled?'),
-					tdCell(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ?
-						'Yes' : 'No')
+					tdCell(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'Yes' : 'No')
 				);
 				
 				echo tableRow(
@@ -115,15 +122,17 @@ require_once __DIR__ . '/header.php';
 					)) . ')')
 				);
 				
-				echo tableRow(
-					thCell('DOMtags Version'),
-					tdCell(DOMTAGS_VERSION . ' (' . domTag('a', array(
-						'href' => 'https://github.com/CaptFredricks/DOMtags',
-						'target' => '_blank',
-						'rel' => 'noreferrer noopener',
-						'content' => 'GitHub Repo'
-					)) . ')')
-				);
+				if(defined('DOMTAGS_VERSION')) {
+					echo tableRow(
+						thCell('DOMtags Version'),
+						tdCell(DOMTAGS_VERSION . ' (' . domTag('a', array(
+							'href' => 'https://github.com/CaptFredricks/DOMtags',
+							'target' => '_blank',
+							'rel' => 'noreferrer noopener',
+							'content' => 'GitHub Repo'
+						)) . ')')
+					);
+				}
 				
 				echo tableRow(
 					thCell('Font Awesome Version'),
@@ -190,4 +199,5 @@ require_once __DIR__ . '/header.php';
 		</tbody>
 	</table>
 </article>
-<?php require_once __DIR__ . '/footer.php'; ?>
+<?php
+require_once __DIR__ . '/footer.php';

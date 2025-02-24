@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class AbbrTag extends \DomTag implements DomTagInterface {
+class AbbrTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.1

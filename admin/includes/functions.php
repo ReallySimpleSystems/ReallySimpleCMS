@@ -1,7 +1,64 @@
 <?php
 /**
  * Administrative functions.
- * @since 1.0.2[a]
+ * @since 1.0.2-alpha
+ *
+ * @package ReallySimpleCMS
+ *
+ * ## CONSTANTS ##
+ * - string ADMIN_STYLES
+ * - string ADMIN_SCRIPTS
+ * - string ADMIN_THEMES
+ * - string ADMIN_URI
+ *
+ * ## FUNCTIONS ##
+ * AUTOLOADERS:
+ * - spl_autoload_register(string $class) [class autoloader]
+ * HEADER, FOOTER, & NAV MENU:
+ * - getCurrentPage(): string
+ * - getPageTitle(): string
+ * - adminScript(string $script, string $version): void
+ * - adminStylesheet(string $stylesheet, string $version): void
+ * - adminThemeStylesheet(string $stylesheet, string $version): void
+ * - adminHeaderScripts(): void
+ * - adminFooterScripts(): void
+ * - RSCopyright(): void
+ * - RSVersion(): void
+ * - adminNavMenuItem(array $item, array $submenu, mixed $icon): void
+ * - adminNavMenu(): void
+ * DASHBOARD:
+ * - ctDraft(string $type): int
+ * - getStatistics(string $table, string $col, string $value): int
+ * - statsBarGraph(): void
+ * - dashboardWidget(string $name): void
+ * TABLES & FORMS:
+ * - tableRow(string|array $cells): string
+ * - tableCell(string $tag, string $content, string $class, int $colspan, int $rowspan): string
+ * - thCell(string $content, string $class, int $colspan, int $rowspan): string
+ * - tdCell(string $content, string $class, int $colspan, int $rowspan): string
+ * - tableHeaderRow(array $items): string
+ * - formRow(string|array $label, string|array ...$args): string
+ * - recordSearch(array $args): void
+ * MEDIA:
+ * - uploadMediaFile(array $data): string
+ * - loadMedia(bool $image_only): void
+ * - mediaLink(int $id, array $args): string
+ * - getUniqueFilename(string $filename): string
+ * - getSizeInBytes(string $val): string
+ * - getFileSize(int $bytes, int $decimals): string
+ * MISCELLANEOUS:
+ * - notice(string $text, int $status, bool $can_dismiss, bool $is_exit): string
+ * - exitNotice(string $text, int $status, bool $can_dismiss): string
+ * - isDismissedNotice(string $text, array|bool $dismissed): bool
+ * - paginate(int $current_page, int $per_page): array
+ * - pagerNav(int $page, int $page_count): void
+ * - actionLink(string $action, mixed $args, mixed $more_args): string
+ * - adminInfo(): void
+ * - postExists(int $id): bool
+ * - termExists(int $id): bool
+ * - getUniqueSlug(string $slug, string $table): string
+ * - getUniquePostSlug(string $slug): string
+ * - getUniqueTermSlug(string $slug): string
  */
 
 // Path to the admin stylesheets directory
@@ -16,9 +73,15 @@ if(!defined('ADMIN_THEMES')) define('ADMIN_THEMES', CONT . '/admin-themes');
 // Current admin page URI
 if(!defined('ADMIN_URI')) define('ADMIN_URI', $_SERVER['PHP_SELF']);
 
+/*------------------------------------*\
+    AUTOLOADERS
+	 (must be placed before any
+	 class declarations)
+\*------------------------------------*/
+
 /**
  * Autoload a class.
- * @since 1.0.2[a]
+ * @since 1.0.2-alpha
  *
  * @param string $class -- The name of the class.
  */
@@ -34,12 +97,12 @@ spl_autoload_register(function(string $class) {
 
 /**
  * Fetch the current admin page.
- * @since 1.5.4[a]
+ * @since 1.5.4-alpha
  *
  * @return string
  */
 function getCurrentPage(): string {
-	global $rs_query, $post_types, $taxonomies;
+	global $rs_query, $rs_post_types, $rs_taxonomies;
 	
 	$current_page = basename($_SERVER['PHP_SELF'], '.php');
 	
@@ -49,13 +112,13 @@ function getCurrentPage(): string {
 		foreach($query_params as $query_param) {
 			if(str_contains($query_param, 'type')) {
 				$current_page = str_replace(' ', '_',
-					$post_types[substr($query_param, strpos($query_param, '=') + 1)]['labels']['name_lowercase']
+					$rs_post_types[substr($query_param, strpos($query_param, '=') + 1)]['labels']['name_lowercase']
 				);
 			}
 			
 			if(str_contains($query_param, 'taxonomy')) {
 				$current_page = str_replace(' ', '_',
-					$taxonomies[substr($query_param, strpos($query_param, '=') + 1)]['labels']['name_lowercase']
+					$rs_taxonomies[substr($query_param, strpos($query_param, '=') + 1)]['labels']['name_lowercase']
 				);
 			}
 			
@@ -65,7 +128,7 @@ function getCurrentPage(): string {
 				
 				$exclude = array('themes', 'menus', 'widgets');
 				
-				foreach($taxonomies as $taxonomy)
+				foreach($rs_taxonomies as $taxonomy)
 					$exclude[] = str_replace(' ', '_', $taxonomy['labels']['name_lowercase']);
 				
 				switch($action) {
@@ -90,26 +153,37 @@ function getCurrentPage(): string {
 		}
 		
 		if($current_page === 'posts' && isset($_GET['id'])) {
-			$count = $rs_query->selectRow('posts', 'COUNT(*)', array('id' => $_GET['id']));
+			$count = $rs_query->selectRow('posts', 'COUNT(*)', array(
+				'id' => $_GET['id']
+			));
 			
 			if($count === 0) {
 				redirect('posts.php');
 			} else {
-				$type = $rs_query->selectField('posts', 'type', array('id' => $_GET['id']));
+				$type = $rs_query->selectField('posts', 'type', array(
+					'id' => $_GET['id']
+				));
 				
-				$current_page = str_replace(' ', '_', $post_types[$type]['labels']['name_lowercase']);
+				$current_page = str_replace(' ', '_', $rs_post_types[$type]['labels']['name_lowercase']);
 			}
 		}
 		elseif($current_page === 'terms' && isset($_GET['id'])) {
-			$count = $rs_query->selectRow('terms', 'COUNT(*)', array('id' => $_GET['id']));
+			$count = $rs_query->selectRow('terms', 'COUNT(*)', array(
+				'id' => $_GET['id']
+			));
 			
 			if($count === 0) {
 				redirect('categories.php');
 			} else {
-				$tax_id = $rs_query->selectField('terms', 'taxonomy', array('id' => $_GET['id']));
-				$taxonomy = $rs_query->selectField('taxonomies', 'name', array('id' => $tax_id));
+				$tax_id = $rs_query->selectField('terms', 'taxonomy', array(
+					'id' => $_GET['id']
+				));
 				
-				$current_page = str_replace(' ', '_', $taxonomies[$taxonomy]['labels']['name_lowercase']);
+				$taxonomy = $rs_query->selectField('taxonomies', 'name', array(
+					'id' => $tax_id
+				));
+				
+				$current_page = str_replace(' ', '_', $rs_taxonomies[$taxonomy]['labels']['name_lowercase']);
 			}
 		}
 	}
@@ -119,26 +193,26 @@ function getCurrentPage(): string {
 
 /**
  * Fetch an admin page's title.
- * @since 2.1.11[a]
+ * @since 2.1.11-alpha
  *
  * @return string
  */
 function getPageTitle(): string {
-	global $rs_query, $post_types, $taxonomies;
+	global $rs_query, $rs_post_types, $rs_taxonomies;
 	
 	// Perform some checks based on what the current page is
 	if(basename($_SERVER['PHP_SELF']) === 'index.php')
 		$title = 'Dashboard';
 	elseif(isset($_GET['type'])) {
-		$title = $post_types[$_GET['type']]['label'] ?? 'Posts';
-	} elseif(basename($_SERVER['PHP_SELF']) === 'posts.php' && isset($_GET['action']) &&
-		$_GET['action'] === 'edit') {
-			
-		$type = $rs_query->selectField('posts', 'type', array('id' => $_GET['id']));
+		$title = $rs_post_types[$_GET['type']]['label'] ?? 'Posts';
+	} elseif(basename($_SERVER['PHP_SELF']) === 'posts.php' && isset($_GET['action']) && $_GET['action'] === 'edit') {
+		$type = $rs_query->selectField('posts', 'type', array(
+			'id' => $_GET['id']
+		));
 		
-		$title = ucwords(str_replace(array('_', '-'), ' ', $type.'s'));
+		$title = ucwords(str_replace(array('_', '-'), ' ', $type . 's'));
 	} elseif(isset($_GET['taxonomy'])) {
-		$title = $taxonomies[$_GET['taxonomy']]['label'] ?? 'Terms';
+		$title = $rs_taxonomies[$_GET['taxonomy']]['label'] ?? 'Terms';
 	} elseif(isset($_GET['page']) && $_GET['page'] === 'user_roles') {
 		$title = ucwords(str_replace('_', ' ', $_GET['page']));
 	} else {
@@ -150,49 +224,50 @@ function getPageTitle(): string {
 
 /**
  * Output an admin script file.
- * @since 1.2.0[a]
+ * @since 1.2.0-alpha
  *
  * @param string $script -- The script to load.
  * @param string $version (optional) -- The script's version.
  */
-function adminScript(string $script, string $version = CMS_VERSION): void {
+function adminScript(string $script, string $version = RS_VERSION): void {
 	echo '<script src="' . slash(ADMIN_SCRIPTS) . $script .
 		(!empty($version) ? '?v=' . $version : '') . '"></script>';
 }
 
 /**
  * Output an admin stylesheet.
- * @since 1.2.0[a]
+ * @since 1.2.0-alpha
  *
  * @param string $stylesheet -- The stylesheet to load.
  * @param string $version (optional) -- The stylesheet's version.
  */
-function adminStylesheet(string $stylesheet, string $version = CMS_VERSION): void {
+function adminStylesheet(string $stylesheet, string $version = RS_VERSION): void {
 	echo '<link href="' . slash(ADMIN_STYLES) . $stylesheet .
 		(!empty($version) ? '?v=' . $version : '') . '" rel="stylesheet">';
 }
 
 /**
  * Output an admin theme's stylesheet.
- * @since 2.3.1[a]
+ * @since 2.3.1-alpha
  *
  * @param string $stylesheet -- The stylesheet to load.
  * @param string $version (optional) -- The stylesheet's version.
  */
-function adminThemeStylesheet(string $stylesheet, string $version = CMS_VERSION): void {
+function adminThemeStylesheet(string $stylesheet, string $version = RS_VERSION): void {
 	echo '<link href="' . slash(ADMIN_THEMES) . $stylesheet . (!empty($version) ? '?v=' .
 		$version : '') . '" rel="stylesheet">';
 }
 
 /**
  * Load all admin header scripts and stylesheets.
- * @since 2.0.7[a]
+ * @since 2.0.7-alpha
  */
 function adminHeaderScripts(): void {
-	global $session;
+	global $rs_session;
 	
 	$debug = false;
-	if(defined('DEBUG_MODE') && DEBUG_MODE) $debug = true;
+	
+	if(isDebugMode()) $debug = true;
 	
 	// Button stylesheet
 	putStylesheet('button' . ($debug ? '' : '.min') . '.css');
@@ -200,8 +275,8 @@ function adminHeaderScripts(): void {
 	// Admin stylesheet
 	adminStylesheet('style' . ($debug ? '' : '.min') . '.css');
 	
-	if($session['theme'] !== 'default') {
-		$filename = $session['theme'] . '.css';
+	if($rs_session['theme'] !== 'default') {
+		$filename = $rs_session['theme'] . '.css';
 		
 		// Admin theme stylesheet
 		if(file_exists(slash(PATH . ADMIN_THEMES) . $filename))
@@ -220,7 +295,7 @@ function adminHeaderScripts(): void {
 
 /**
  * Load all admin footer scripts and stylesheets.
- * @since 2.0.7[a]
+ * @since 2.0.7-alpha
  */
 function adminFooterScripts(): void {
 	// Admin script file
@@ -229,25 +304,32 @@ function adminFooterScripts(): void {
 
 /**
  * Display the copyright information on the admin dashboard.
- * @since 1.2.0[a]
+ * @since 1.2.0-alpha
  */
 function RSCopyright(): void {
-	?>
-	&copy; <?php echo date('Y'); ?> <a href="https://github.com/CaptFredricks/ReallySimpleCMS"><?php echo CMS_ENGINE; ?></a> &bull; Created by <a href="https://jacefincham.com/" target="_blank" rel="noreferrer noopener">Jace Fincham</a>
-	<?php
+	echo domTag('span', array(
+		'content' => '&copy; ' . date('Y') . ' ' . domTag('a', array(
+			'href' => 'https://github.com/CaptFredricks/ReallySimpleCMS',
+			'target' => '_blank',
+			'rel' => 'noreferrer noopener',
+			'content' => RS_ENGINE
+		)) . ' &ndash; ' . domTag('em', array(
+			'content' => 'powered by ' . RS_DEVELOPER
+		)) . ' &bull; All Rights Reserved.'
+	));
 }
 
 /**
  * Display the CMS version on the admin dashboard.
- * @since 1.2.0[a]
+ * @since 1.2.0-alpha
  */
 function RSVersion(): void {
-	echo 'Version ' . CMS_VERSION . ' (&beta;)';
+	echo 'Version ' . RS_VERSION;
 }
 
 /**
  * Create a menu item for the admin navigation.
- * @since 1.2.5[a]
+ * @since 1.2.5-alpha
  *
  * @param array $item (optional) -- The menu item.
  * @param array $submenu (optional) -- The submenu, if applicable.
@@ -281,28 +363,31 @@ function adminNavMenuItem(array $item = array(), array $submenu = array(), mixed
 				if(is_array($icon)) {
 					switch($icon[1]) {
 						case 'regular':
-							?>
-							<i class="fa-regular fa-<?php echo $icon[0]; ?>"></i>
-							<?php
+							echo domTag('i', array(
+								'class' => 'fa-regular fa-' . $icon[0]
+							));
 							break;
 						case 'solid':
 						default:
-							?>
-							<i class="fa-solid fa-<?php echo $icon[0]; ?>"></i>
-							<?php
+							echo domTag('i', array(
+								'class' => 'fa-solid fa-' . $icon[0]
+							));
 					}
 				} else {
-					?>
-					<i class="fa-solid fa-<?php echo $icon; ?>"></i>
-					<?php
+					echo domTag('i', array(
+						'class' => 'fa-solid fa-' . $icon
+					));
 				}
 			} else {
-				?>
-				<i class="fa-solid fa-code-branch"></i>
-				<?php
+				echo domTag('i', array(
+					'class' => 'fa-solid fa-code-branch'
+				));
 			}
+			
+			echo domTag('span', array(
+				'content' => $item_caption
+			));
 			?>
-			<span><?php echo $item_caption; ?></span>
 		</a>
 		<?php
 		if(!empty($submenu)) {
@@ -318,11 +403,14 @@ function adminNavMenuItem(array $item = array(), array $submenu = array(), mixed
 						$sub_item_link = isset($sub_item['link']) ? slash(ADMIN) .
 							$sub_item['link'] : 'javascript:void(0)';
 						$sub_item_caption = $sub_item['caption'] ?? ucwords(str_replace('-', ' ', $sub_item_id));
-						?>
-						<li<?php echo $sub_item_id === $current_page ? ' class="current-submenu-item"' : ''; ?>>
-							<a href="<?php echo $sub_item_link; ?>"><?php echo $sub_item_caption; ?></a>
-						</li>
-						<?php
+						
+						echo domTag('li', array(
+							'class' => ($sub_item_id === $current_page ? 'current-submenu-item' : ''),
+							'content' => domTag('a', array(
+								'href' => $sub_item_link,
+								'content' => $sub_item_caption
+							))
+						));
 					}
 				}
 				?>
@@ -336,16 +424,19 @@ function adminNavMenuItem(array $item = array(), array $submenu = array(), mixed
 
 /**
  * Construct the admin nav menu.
- * @since 1.0.0[b]
+ * @since 1.0.0-beta
  */
 function adminNavMenu(): void {
-	global $post_types, $taxonomies;
+	global $rs_post_types, $rs_taxonomies;
 	
 	// Dashboard
-	adminNavMenuItem(array('id' => 'dashboard', 'link' => 'index.php'), array(), 'gauge-high');
+	adminNavMenuItem(array(
+		'id' => 'dashboard',
+		'link' => 'index.php'
+	), array(), 'gauge-high');
 	
 	// Post types
-	foreach($post_types as $post_type) {
+	foreach($rs_post_types as $post_type) {
 		if(!$post_type['show_in_admin_menu']) continue;
 		
 		$id = str_replace(' ', '_', $post_type['labels']['name_lowercase']);
@@ -356,14 +447,14 @@ function adminNavMenu(): void {
 			
 			if(!empty($post_type['taxonomies'])) {
 				foreach($post_type['taxonomies'] as $tax) {
-					if(array_key_exists($tax, $taxonomies)) {
-						$tax_id = str_replace(' ', '_', $taxonomies[$tax]['labels']['name_lowercase']);
+					if(array_key_exists($tax, $rs_taxonomies)) {
+						$tax_id = str_replace(' ', '_', $rs_taxonomies[$tax]['labels']['name_lowercase']);
 						
-						if(userHasPrivilege('can_view_' . $tax_id) && $taxonomies[$tax]['show_in_admin_menu']) {
+						if(userHasPrivilege('can_view_' . $tax_id) && $rs_taxonomies[$tax]['show_in_admin_menu']) {
 							$taxes[] = array(
 								'id' => $tax_id,
-								'link' => $taxonomies[$tax]['menu_link'],
-								'caption' => $taxonomies[$tax]['labels']['list_items']
+								'link' => $rs_taxonomies[$tax]['menu_link'],
+								'caption' => $rs_taxonomies[$tax]['labels']['list_items']
 							);
 						}
 					}
@@ -383,9 +474,12 @@ function adminNavMenu(): void {
 					'caption' => $post_type['labels']['create_item']
 				) : null)
 			);
+			
 			$submenu = array_merge($submenu, $taxes);
 			
-			adminNavMenuItem(array('id' => $id), $submenu, $post_type['menu_icon']);
+			adminNavMenuItem(array(
+				'id' => $id
+			), $submenu, $post_type['menu_icon']);
 		}
 	}
 	
@@ -399,7 +493,9 @@ function adminNavMenu(): void {
 	
 	// Customization (themes/menus/widgets)
 	if(userHasPrivileges(array('can_view_themes', 'can_view_menus', 'can_view_widgets'), 'OR')) {
-		adminNavMenuItem(array('id' => 'customization'), array( // Submenu
+		adminNavMenuItem(array(
+			'id' => 'customization'
+		), array( // Submenu
 			(userHasPrivilege('can_view_themes') ? array(
 				'id' => 'themes',
 				'link' => 'themes.php',
@@ -419,7 +515,9 @@ function adminNavMenu(): void {
 	}
 	
 	// Users/user profile
-	adminNavMenuItem(array('id' => 'users'), array( // Submenu
+	adminNavMenuItem(array(
+		'id' => 'users'
+	), array( // Submenu
 		(userHasPrivilege('can_view_users') ? array(
 			'link' => 'users.php',
 			'caption' => 'List Users'
@@ -428,8 +526,11 @@ function adminNavMenu(): void {
 			'id' => 'users-create',
 			'link' => 'users.php?action=create',
 			'caption' => 'Create User'
-		) : null),
-		array('id' => 'profile', 'link' => 'profile.php', 'caption' => 'Your Profile')
+		) : null), array(
+			'id' => 'profile',
+			'link' => 'profile.php',
+			'caption' => 'Your Profile'
+		)
 	), 'users');
 	
 	// Logins (attempts/blacklist/rules)
@@ -438,7 +539,9 @@ function adminNavMenu(): void {
 		'can_view_login_blacklist',
 		'can_view_login_rules'
 	), 'OR')) {
-		adminNavMenuItem(array('id' => 'logins'), array( // Submenu
+		adminNavMenuItem(array(
+			'id' => 'logins'
+		), array( // Submenu
 			(userHasPrivilege('can_view_login_attempts') ? array(
 				'link' => 'logins.php',
 				'caption' => 'Attempts'
@@ -458,7 +561,9 @@ function adminNavMenu(): void {
 	
 	// Settings (general/design/user roles)
 	if(userHasPrivileges(array('can_edit_settings', 'can_view_user_roles'), 'OR')) {
-		adminNavMenuItem(array('id' => 'settings'), array( // Submenu
+		adminNavMenuItem(array(
+			'id' => 'settings'
+		), array( // Submenu
 			(userHasPrivilege('can_edit_settings') ? array(
 				'link' => 'settings.php',
 				'caption' => 'General'
@@ -477,7 +582,10 @@ function adminNavMenu(): void {
 	}
 	
 	// About the CMS
-	adminNavMenuItem(array('id' => 'about', 'link' => 'about.php'), array(), 'circle-info');
+	adminNavMenuItem(array(
+		'id' => 'about',
+		'link' => 'about.php'
+	), array(), 'circle-info');
 }
 
 /*------------------------------------*\
@@ -486,7 +594,7 @@ function adminNavMenu(): void {
 
 /**
  * Get the count for posts of status `draft`.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @param string $type (optional) -- The post's type.
  * @return int
@@ -502,7 +610,7 @@ function ctDraft(string $type = 'post'): int {
 
 /**
  * Get statistics for a specific set of table entries.
- * @since 1.2.5[a]
+ * @since 1.2.5-alpha
  *
  * @param string $table -- The table name.
  * @param string $col (optional) -- The column to query.
@@ -512,31 +620,34 @@ function ctDraft(string $type = 'post'): int {
 function getStatistics(string $table, string $col = '', string $value = ''): int {
 	global $rs_query;
 	
-	if(empty($col) || empty($value))
+	if(empty($col) || empty($value)) {
 		return $rs_query->select($table, 'COUNT(*)');
-	else
-		return $rs_query->select($table, 'COUNT(*)', array($col => $value));
+	} else {
+		return $rs_query->select($table, 'COUNT(*)', array(
+			$col => $value
+		));
+	}
 }
 
 /**
  * Create and display a bar graph of site statistics.
- * @since 1.2.4[a]
+ * @since 1.2.4-alpha
  */
 function statsBarGraph(): void {
-	global $post_types, $taxonomies;
+	global $rs_post_types, $rs_taxonomies;
 	
 	$bars = $stats = array();
 	
-	foreach($post_types as $key => $value) {
-		if(!$post_types[$key]['show_in_stats_graph']) continue;
+	foreach($rs_post_types as $key => $value) {
+		if(!$rs_post_types[$key]['show_in_stats_graph']) continue;
 		
 		$bars[$key] = $value;
 		$bars[$key]['stats'] = getStatistics('posts', 'type', $bars[$key]['name']);
 		$stats[] = $bars[$key]['stats'];
 	}
 	
-	foreach($taxonomies as $key => $value) {
-		if(!$taxonomies[$key]['show_in_stats_graph']) continue;
+	foreach($rs_taxonomies as $key => $value) {
+		if(!$rs_taxonomies[$key]['show_in_stats_graph']) continue;
 		
 		$bars[$key] = $value;
 		$bars[$key]['stats'] = getStatistics('terms', 'taxonomy', getTaxonomyId($bars[$key]['name']));
@@ -577,8 +688,7 @@ function statsBarGraph(): void {
 					'content' => domTag('a', array(
 						'class' => 'bar',
 						'href' => $bar['menu_link'],
-						'title' => $bar['label'] . ': ' . $bar['stats'] .
-							($bar['stats'] === 1 ? ' entry' : ' entries'),
+						'title' => $bar['label'] . ': ' . $bar['stats'] . ($bar['stats'] === 1 ? ' entry' : ' entries'),
 						'content' => $bar['stats']
 					))
 				));
@@ -601,8 +711,7 @@ function statsBarGraph(): void {
 					'content' => domTag('a', array(
 						'class' => 'value',
 						'href' => $bar['menu_link'],
-						'title' => $bar['label'] . ': ' . $bar['stats'] .
-							($bar['stats'] === 1 ? ' entry' : ' entries'),
+						'title' => $bar['label'] . ': ' . $bar['stats'] . ($bar['stats'] === 1 ? ' entry' : ' entries'),
 						'content' => $bar['label']
 					))
 				));
@@ -617,7 +726,7 @@ function statsBarGraph(): void {
 
 /**
  * Construct a widget for the admin dashboard.
- * @since 1.2.1[b]
+ * @since 1.2.1-beta
  *
  * @param string $name -- The widget's name.
  */
@@ -628,8 +737,10 @@ function dashboardWidget(string $name): void {
 		<?php
 		switch($name) {
 			case 'comments':
+				echo domTag('h2', array(
+					'content' => 'Comments'
+				));
 				?>
-				<h2>Comments</h2>
 				<ul>
 					<?php
 					$comment_statuses = array('approved', 'pending');
@@ -654,8 +765,10 @@ function dashboardWidget(string $name): void {
 				<?php
 				break;
 			case 'users':
+				echo domTag('h2', array(
+					'content' => 'Users'
+				));
 				?>
-				<h2>Users</h2>
 				<ul>
 					<?php
 					$user_statuses = array('online', 'offline');
@@ -685,8 +798,10 @@ function dashboardWidget(string $name): void {
 				<?php
 				break;
 			case 'logins':
+				echo domTag('h2', array(
+					'content' => 'Logins'
+				));
 				?>
-				<h2>Logins</h2>
 				<ul>
 					<?php
 					$login_statuses = array('success', 'failure', 'blacklisted');
@@ -736,18 +851,20 @@ function dashboardWidget(string $name): void {
 
 /**
  * Construct a table row. Also known as an HTML `tr` tag.
- * @since 1.4.0[a]
+ * @since 1.4.0-alpha
  *
  * @param string|array $cells (optional) -- The table cells.
  * @return string
  */
 function tableRow(string|array ...$cells): string {
-	return '<tr>' . (!empty($cells) ? implode('', $cells) : '') . '</tr>';
+	return domTag('tr', array(
+		'content' => (!empty($cells) ? implode('', $cells) : '')
+	));
 }
 
 /**
  * Construct a table cell, either of the header or data variety.
- * @since 1.2.1[a]
+ * @since 1.2.1-alpha
  *
  * @param string $tag -- The HTML tag.
  * @param string $content -- The cell's content.
@@ -759,14 +876,20 @@ function tableRow(string|array ...$cells): string {
 function tableCell(string $tag, string $content, string $class = '', int $colspan = 1, int $rowspan = 1): string {
 	if($tag !== 'th' && $tag !== 'td') $tag = 'td';
 	
-	return '<' . $tag . ' class="column' . (!empty($class) ? ' ' . $class : '') . '"' .
-		($colspan > 1 ? ' colspan="' . $colspan . '"' : '') .
-		($rowspan > 1 ? ' rowspan="' . $rowspan . '"' : '') . '>' . $content . '</' . $tag . '>';
+	$args = array(
+		'class' => 'column' . (!empty($class) ? ' col-' . $class : ''),
+		'content' => $content
+	);
+	
+	if($colspan > 1) $args['colspan'] = $colspan;
+	if($rowspan > 1) $args['rowspan'] = $rowspan;
+	
+	return domTag($tag, $args);
 }
 
 /**
  * Construct a table header cell. Also known as an HTML `th` tag.
- * @since 1.3.2[b]
+ * @since 1.3.2-beta
  *
  * @param string $content -- The cell's content.
  * @param string $class (optional) -- The cell's CSS class(es).
@@ -780,7 +903,7 @@ function thCell(string $content, string $class = '', int $colspan = 1, int $rows
 
 /**
  * Construct a table data cell. Also known as an HTML `td` tag.
- * @since 1.3.2[b]
+ * @since 1.3.2-beta
  *
  * @param string $content -- The cell's content.
  * @param string $class (optional) -- The cell's CSS class(es).
@@ -794,7 +917,7 @@ function tdCell(string $content, string $class = '', int $colspan = 1, int $rows
 
 /**
  * Construct a table header row.
- * @since 1.2.1[a]
+ * @since 1.2.1-alpha
  *
  * @param array $items -- The row items.
  * @return string
@@ -802,7 +925,7 @@ function tdCell(string $content, string $class = '', int $colspan = 1, int $rows
 function tableHeaderRow(array $items): string {
 	if(count(array_filter(array_keys($items), 'is_string')) > 0) {
 		foreach($items as $key => $value)
-			$row[] = thCell($value, 'col-' . $key);
+			$row[] = thCell($value, $key);
 	} else {
 		foreach($items as $item) $row[] = thCell($item);
 	}
@@ -811,115 +934,8 @@ function tableHeaderRow(array $items): string {
 }
 
 /**
- * Construct a form HTML tag. Phased out in favor of DOMtags.
- * @since 1.2.0[a]
- * @deprecated since 1.3.11[b]
- *
- * @param string $tag_name -- The tag's name.
- * @param array|null $args (optional) -- The tag's args.
- * @return string
- */
-function formTag(string $tag_name, ?array $args = null): string {
-	deprecated();
-	
-	$props = !is_null($args) ? array_keys($args) : array();
-	
-	$always_whitelist = array('id', 'class', 'title');
-	
-	$whitelisted_props = array(
-		'a' => array_merge($always_whitelist, array('href', 'target', 'rel')),
-		'br' => $always_whitelist,
-		'button' => $always_whitelist,
-		'div' => array_merge($always_whitelist, array('style')),
-		'fieldset' => array(),
-		'hr' => $always_whitelist,
-		'i' => $always_whitelist,
-		'img' => array_merge($always_whitelist, array('src', 'width')),
-		'input' => array_merge(
-			array('type'),
-			$always_whitelist,
-			array('name', 'maxlength', 'value', 'placeholder', 'checked', 'disabled')
-		),
-		'label' => array_merge($always_whitelist, array('for')),
-		'option' => array('value', 'selected'),
-		'select' => array_merge($always_whitelist, array('name')),
-		'span' => array_merge($always_whitelist, array('style')),
-		'textarea' => array_merge($always_whitelist, array('name', 'cols', 'rows'))
-	);
-	
-	$whitelisted_tags = array_keys($whitelisted_props);
-	
-	if(in_array($tag_name, $whitelisted_tags, true)) {
-		$tag = '<' . $tag_name;
-		
-		if($tag_name === 'input')
-			if(!in_array('type', $props, true)) $tag .= ' type="text"';
-		
-		if(!is_null($args)) {
-			foreach($args as $key => $value) {
-				if(in_array($key, $whitelisted_props[$tag_name], true) ||
-					str_starts_with($key, 'data-')) {
-						
-					switch($key) {
-						case 'checked':
-						case 'disabled':
-						case 'selected':
-							$tag .= $value ? ' ' . $key : '';
-							break;
-						default:
-							$tag .= ' ' . $key . '="' . $value . '"';
-					}
-				}
-				if($tag_name === 'input' && $key === '*') {
-					$tag .= ' ' . $value;
-				}
-			}
-		}
-		
-		$tag .= '>';
-		
-		$self_closing = array('br', 'hr', 'img', 'input');
-		
-		if(!in_array($tag_name, $self_closing, true)) {
-			$tag .= $args['content'] ?? '';
-			$tag .= '</' . $tag_name . '>';
-		}
-	} else {
-		$tag = '';
-	}
-	
-	if(!empty($args['label'])) {
-		$label = '<label' . (!empty($args['label']['id']) ? ' id="' . $args['label']['id'] .
-			'"' : '') . (!empty($args['label']['class']) ? ' class="' . $args['label']['class'] .
-			'"' : '') . '>';
-		
-		$content = (!empty($args['label']['content']) ? $args['label']['content'] : '') . '</label>';
-		
-		// Put everything together
-		$tag = $label . $tag . $content;
-	}
-	
-	return $tag;
-}
-
-/**
- * Alias for the formTag function.
- * @since 1.2.7[b]
- * @deprecated since 1.3.11[b]
- *
- * @param string $tag_name -- The tag's name.
- * @param array|null $args (optional) -- The tag's args.
- * @return string
- */
-function tag(string $tag_name, ?array $args = null): string {
-	deprecated();
-	
-	return formTag($tag_name, $args);
-}
-
-/**
  * Construct a form row.
- * @since 1.1.2[a]
+ * @since 1.1.2-alpha
  *
  * @param string|array $label (optional) -- The row's label.
  * @param string|array $args (optional) -- The row's args.
@@ -938,7 +954,7 @@ function formRow(string|array $label = '', string|array ...$args): string {
 		}
 		
 		$row_label = domTag('label', array(
-			'for' => (!empty($args[$i]['name']) ? $args[$i]['name'] : ''),
+			'for' => (!empty($args[$i]['id']) ? $args[$i]['id'] : ''),
 			'content' => $label . ' ' . (!empty($required) && $required === true ?
 				domTag('span', array(
 					'class' => 'required',
@@ -981,7 +997,7 @@ function formRow(string|array $label = '', string|array ...$args): string {
 
 /**
  * Record search form.
- * @since 1.3.7[b]
+ * @since 1.3.7-beta
  *
  * @param array $args (optional) -- The args.
  */
@@ -989,7 +1005,9 @@ function recordSearch(array $args = array()): void {
 	button(array(
 		'id' => 'search-toggle',
 		'title' => 'Record search',
-		'label' => '<i class="fa-solid fa-magnifying-glass"></i>'
+		'label' => domTag('i', array(
+			'class' => 'fa-solid fa-magnifying-glass'
+		))
 	));
 	?>
 	<form class="search-form" action="" method="get">
@@ -1027,7 +1045,7 @@ function recordSearch(array $args = array()): void {
 
 /**
  * Upload media to the media library.
- * @since 2.1.6[a]
+ * @since 2.1.6-alpha
  *
  * @param array $data -- The submission data.
  * @return string
@@ -1035,8 +1053,10 @@ function recordSearch(array $args = array()): void {
 function uploadMediaFile(array $data): string {
 	global $rs_query;
 	
-	if(empty($data['name']))
+	if(empty($data['name'])) {
 		return exitNotice('A file must be selected for upload!', -1);
+		exit;
+	}
 	
 	$accepted_mime = array(
 		'image/jpeg',
@@ -1049,8 +1069,10 @@ function uploadMediaFile(array $data): string {
 		'text/plain'
 	);
 	
-	if(!in_array($data['type'], $accepted_mime, true))
+	if(!in_array($data['type'], $accepted_mime, true)) {
 		return exitNotice('The file could not be uploaded.', -1);
+		exit;
+	}
 	
 	$basepath = PATH . UPLOADS;
 	
@@ -1061,7 +1083,7 @@ function uploadMediaFile(array $data): string {
 	if(!file_exists(slash($basepath) . $year))
 		mkdir(slash($basepath) . $year);
 	
-	$filename = str_replace(array('  ', ' ', '_'), '-', sanitize($data['name'], '/[^\w.-]/'));
+	$filename = sanitize(str_replace(array('  ', ' ', '_'), '-', $data['name']), '/[^\w.-]/');
 	$filename = getUniqueFilename($filename);
 	
 	// Strip off the filename's extension for the post's slug
@@ -1092,6 +1114,7 @@ function uploadMediaFile(array $data): string {
 		'author' => $session['id'],
 		'date' => 'NOW()',
 		'modified' => 'NOW()',
+		'content' => '',
 		'slug' => $slug,
 		'type' => 'media'
 	));
@@ -1141,25 +1164,30 @@ function uploadMediaFile(array $data): string {
 
 /**
  * Load the media library.
- * @since 2.1.2[a]
+ * @since 2.1.2-alpha
  *
  * @param bool $image_only (optional) -- Whether to display only images.
  */
 function loadMedia(bool $image_only = false): void {
 	global $rs_query;
 	
-	$mediaa = $rs_query->select('posts', '*', array('type' => 'media'), 'date', 'DESC');
+	$mediaa = $rs_query->select('posts', '*', array(
+		'type' => 'media'
+	), array(
+		'order_by' => 'date',
+		'order' => 'DESC'
+	));
 	
 	if(empty($mediaa)) {
-		?>
-		<p style="margin: 1em;">The media library is empty!</p>
-		<?php
+		echo domTag('p', array(
+			'style' => 'margin: 1em;',
+			'content' => 'The media library is empty!'
+		));
 	} else {
 		foreach($mediaa as $media) {
-			$mediameta = $rs_query->select('postmeta',
-				array('datakey', 'value'),
-				array('post' => $media['id'])
-			);
+			$mediameta = $rs_query->select('postmeta', array('datakey', 'value'), array(
+				'post' => $media['id']
+			));
 			
 			$meta = array();
 			
@@ -1175,15 +1203,17 @@ function loadMedia(bool $image_only = false): void {
 				
 				if(!in_array($meta['mime_type'], $image_mime, true)) continue;
 				
-				list($width, $height) = getimagesize(
-					slash(PATH . UPLOADS) . $meta['filepath']
-				);
+				list($width, $height) = getimagesize(slash(PATH . UPLOADS) . $meta['filepath']);
 			}
 			?>
 			<div class="media-item-wrap">
 				<div class="media-item">
 					<div class="thumb-wrap">
-						<?php echo getMedia($media['id'], array('class' => 'thumb')); ?>
+						<?php
+						echo getMedia($media['id'], array(
+							'class' => 'thumb'
+						));
+						?>
 					</div>
 					<div>
 						<?php
@@ -1244,7 +1274,7 @@ function loadMedia(bool $image_only = false): void {
 
 /**
  * Construct a link to a media item.
- * @since 1.2.9[b]
+ * @since 1.2.9-beta
  *
  * @param int $id -- The media's id.
  * @param array $args (optional) -- The args.
@@ -1253,7 +1283,9 @@ function loadMedia(bool $image_only = false): void {
 function mediaLink(int $id, array $args = array()): string {
 	global $rs_query;
 	
-	$modified = $rs_query->selectField('posts', 'modified', array('id' => $id));
+	$modified = $rs_query->selectField('posts', 'modified', array(
+		'id' => $id
+	));
 	
 	$src = getMediaSrc($id) . '?cached=' . formatDate($modified, 'YmdHis');
 	
@@ -1262,8 +1294,11 @@ function mediaLink(int $id, array $args = array()): string {
 	else
 		$newtab = 0;
 	
-	if(empty($args['link_text']))
-		$args['link_text'] = $rs_query->selectField('posts', 'title', array('id' => $id));
+	if(empty($args['link_text'])) {
+		$args['link_text'] = $rs_query->selectField('posts', 'title', array(
+			'id' => $id
+		));
+	}
 	
 	return domTag('a', array(
 		'class' => (!empty($args['class']) ? $args['class'] : ''),
@@ -1276,7 +1311,7 @@ function mediaLink(int $id, array $args = array()): string {
 
 /**
  * Construct a unique filename.
- * @since 2.1.0[a]
+ * @since 2.1.0-alpha
  *
  * @param string $filename -- The filename.
  * @return string
@@ -1293,8 +1328,7 @@ function getUniqueFilename(string $filename): string {
 		$file_parts = pathinfo($filename);
 		
 		do {
-			$unique_filename = $file_parts['filename'] . '-' . ($count + 1) . '.' .
-				$file_parts['extension'];
+			$unique_filename = $file_parts['filename'] . '-' . ($count + 1) . '.' . $file_parts['extension'];
 			$count++;
 		} while($rs_query->selectRow('postmeta', 'COUNT(*)', array(
 			'datakey' => 'filepath',
@@ -1309,7 +1343,7 @@ function getUniqueFilename(string $filename): string {
 
 /**
  * Convert a string value or file size to bytes.
- * @since 2.1.3[a]
+ * @since 2.1.3-alpha
  *
  * @param string $val -- The value as a string.
  * @return string
@@ -1334,7 +1368,7 @@ function getSizeInBytes(string $val): string {
 
 /**
  * Convert a file size in bytes to its equivalent in kilobytes, metabytes, etc.
- * @since 2.1.0[a]
+ * @since 2.1.0-alpha
  *
  * @param int $bytes -- The number of bytes.
  * @param int $decimals (optional) -- The number of decimal places.
@@ -1353,40 +1387,8 @@ function getFileSize(int $bytes, int $decimals = 1): string {
 \*------------------------------------*/
 
 /**
- * Populate the database tables.
- * @since 1.7.0[a]
- *
- * @param array $user_data -- The user data.
- * @param array $settings_data -- The settings data.
- */
-function populateTables(array $user_data, array $settings_data): void {
-	// Populate `user_roles`
-	populateUserRoles();
-	
-	// Populate `user_privileges` and `user_relationships`
-	populateUserPrivileges();
-	
-	// Populate `users`
-	$user = populateUsers($user_data);
-	
-	// Populate `posts`
-	$post = populatePosts($user);
-	
-	$settings_data['home_page'] = $post['home_page'];
-	
-	// Populate `settings`
-	populateSettings($settings_data);
-	
-	// Populate `taxonomies`
-	populateTaxonomies();
-	
-	// Populate `terms`
-	populateTerms($post['blog_post']);
-}
-
-/**
  * Display a notice.
- * @since 1.2.0[a]
+ * @since 1.2.0-alpha
  *
  * @param string $text -- The notice's text.
  * @param int $status (optional) -- The notice's status.
@@ -1402,7 +1404,7 @@ function notice(string $text, int $status = 2, bool $can_dismiss = true, bool $i
 
 /**
  * Display an exit status notice.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @param string $text -- The notice's text.
  * @param int $status (optional) -- The notice's status.
@@ -1415,7 +1417,7 @@ function exitNotice(string $text, int $status = 1, bool $can_dismiss = true): st
 
 /**
  * Check whether a notice has been dismissed.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @param string $text -- The notice's text.
  * @param array|bool $dismissed -- All dismissed notices.
@@ -1431,7 +1433,7 @@ function isDismissedNotice(string $text, array|bool $dismissed): bool {
 
 /**
  * Enable pagination.
- * @since 1.2.1[a]
+ * @since 1.2.1-alpha
  *
  * @param int $current_page (optional) -- The current page.
  * @param int $per_page (optional) -- The results per page.
@@ -1451,7 +1453,7 @@ function paginate(int $current_page = 1, int $per_page = 20): array {
 
 /**
  * Construct pager navigation.
- * @since 1.2.1[a]
+ * @since 1.2.1-alpha
  *
  * @param int $page -- The page.
  * @param int $page_count -- The total page count.
@@ -1472,14 +1474,12 @@ function pagerNav(int $page, int $page_count): void {
 		if($page > 1) {
 			echo domTag('a', array(
 				'class' => 'pager-nav button',
-				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') .
-					'paged=1',
+				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') . 'paged=1',
 				'title' => 'First Page',
 				'content' => '&laquo;'
 			)) . domTag('a', array(
 				'class' => 'pager-nav button',
-				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') .
-					'paged=' . ($page - 1),
+				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') . 'paged=' . $page - 1,
 				'title' => 'Previous Page',
 				'content' => '&lsaquo;'
 			));
@@ -1490,14 +1490,12 @@ function pagerNav(int $page, int $page_count): void {
 		if($page < $page_count) {
 			echo domTag('a', array(
 				'class' => 'pager-nav button',
-				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') .
-					'paged=' . ($page + 1),
+				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') . 'paged=' . $page + 1,
 				'title' => 'Next Page',
 				'content' => '&rsaquo;'
 			)) . domTag('a', array(
 				'class' => 'pager-nav button',
-				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') .
-					'paged=' . $page_count,
+				'href' => ADMIN_URI . '?' . (!empty($query_string) ? $query_string . '&' : '') . 'paged=' . $page_count,
 				'title' => 'Last Page',
 				'content' => '&raquo;'
 			));
@@ -1509,7 +1507,7 @@ function pagerNav(int $page, int $page_count): void {
 
 /**
  * Construct an action link.
- * @since 1.2.0[b]{ss-01}
+ * @since 1.2.0-beta_snap-01
  *
  * @param string $action -- The action.
  * @param mixed $args (optional) -- The args.
@@ -1542,18 +1540,22 @@ function actionLink(string $action, mixed $args = null, mixed $more_args = null)
 				$more_string .= '&' . $key . '=' . $value;
 		}
 		
-		return '<a' . (!empty($classes) ? ' class="' . $classes . '"' : '') .
-			' href="' . ADMIN_URI . '?' . ($query_string ?? '') . 'action=' . $action .
-			($more_string ?? '') . '"' . (!empty($data_item) ? ' data-item="' . $data_item . '"' :
-			'') . '>' . $caption . '</a>';
+		return domTag('a', array(
+			'class' => (!empty($classes) ? $classes : ''),
+			'href' => ADMIN_URI . '?' . ($query_string ?? '') . 'action=' . $action . ($more_string ?? ''),
+			'data-item' => (!empty($data_item) ? $data_item : ''),
+			'content' => $caption
+		));
 	}
 	
-	return '<span>Invalid action link</span>';
+	return domTag('span', array(
+		'content' => 'Invalid action link'
+	));
 }
 
 /**
  * Display information about each admin page's function.
- * @since 1.2.0[b]
+ * @since 1.2.0-beta
  */
 function adminInfo(): void {
 	?>
@@ -1621,14 +1623,19 @@ function adminInfo(): void {
 			}
 			?>
 		</span>
-		<i class="fa-solid fa-circle-info" title="Information"></i>
+		<?php
+		echo domTag('i', array(
+			'class' => 'fa-solid fa-circle-info',
+			'title' => 'Information'
+		));
+		?>
 	</div>
 	<?php
 }
 
 /**
  * Check whether a post exists in the database.
- * @since 1.0.5[b]
+ * @since 1.0.5-beta
  *
  * @param int $id -- The post's id.
  * @return bool
@@ -1636,12 +1643,14 @@ function adminInfo(): void {
 function postExists(int $id): bool {
 	global $rs_query;
 	
-	return $rs_query->selectRow('posts', 'COUNT(id)', array('id' => $id)) > 0;
+	return $rs_query->selectRow('posts', 'COUNT(id)', array(
+		'id' => $id
+	)) > 0;
 }
 
 /**
  * Check whether a term exists in the database.
- * @since 1.3.7[b]
+ * @since 1.3.7-beta
  *
  * @param int $id -- The term's id.
  * @return bool
@@ -1649,12 +1658,14 @@ function postExists(int $id): bool {
 function termExists(int $id): bool {
 	global $rs_query;
 	
-	return $rs_query->selectRow('terms', 'COUNT(id)', array('id' => $id)) > 0;
+	return $rs_query->selectRow('terms', 'COUNT(id)', array(
+		'id' => $id
+	)) > 0;
 }
 
 /**
  * Construct a unique slug.
- * @since 1.0.9[b]
+ * @since 1.0.9-beta
  *
  * @param string $slug -- The slug.
  * @param string $table -- The database table.
@@ -1663,15 +1674,19 @@ function termExists(int $id): bool {
 function getUniqueSlug(string $slug, string $table): string {
 	global $rs_query;
 	
-	$count = $rs_query->selectRow($table, 'COUNT(slug)', array('slug' => $slug));
+	$count = $rs_query->selectRow($table, 'COUNT(slug)', array(
+		'slug' => $slug
+	));
 	
 	if($count > 0) {
 		do {
 			// Try to construct a unique slug
-			$unique_slug = $slug . '-' . ($count + 1);
+			$unique_slug = $slug . '-' . $count + 1;
 			
 			$count++;
-		} while($rs_query->selectRow($table, 'COUNT(slug)', array('slug' => $unique_slug)) > 0);
+		} while($rs_query->selectRow($table, 'COUNT(slug)', array(
+			'slug' => $unique_slug
+		)) > 0);
 		
 		return $unique_slug;
 	} else {
@@ -1681,7 +1696,7 @@ function getUniqueSlug(string $slug, string $table): string {
 
 /**
  * Construct a unique post slug.
- * @since 1.0.9[b]
+ * @since 1.0.9-beta
  *
  * @param string $slug -- The post's slug.
  * @return string
@@ -1692,7 +1707,7 @@ function getUniquePostSlug(string $slug): string {
 
 /**
  * Construct a unique term slug.
- * @since 1.0.9[b]
+ * @since 1.0.9-beta
  *
  * @param string $slug -- The term's slug.
  * @return string

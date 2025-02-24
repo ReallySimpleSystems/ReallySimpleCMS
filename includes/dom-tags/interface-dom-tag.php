@@ -10,6 +10,15 @@ namespace DomTags;
 
 interface DomTagInterface {
 	/**
+	 * The tag types (optional).
+	 * @since 1.1.2
+	 *
+	 * @access private
+	 * @var array
+	 */
+	# private const TAG_TYPES = array('h1', 'h2', 'h3', 'h4', 'h5', 'h6');
+	
+	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0
 	 *

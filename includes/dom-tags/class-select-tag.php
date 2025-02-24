@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class SelectTag extends \DomTag implements DomTagInterface {
+class SelectTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0

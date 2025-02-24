@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class StrongTag extends \DomTag implements DomTagInterface {
+class StrongTag extends \DomTags implements DomTagInterface {
 	/**
 	 * The tag types.
 	 * @since 1.0.2

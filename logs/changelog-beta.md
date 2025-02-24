@@ -13,20 +13,255 @@
 - x.x.X (standard/minor release)
 - x.x.x.X (bug fix/emergency patch release)
 - x.x.x_snap-xx (snapshot release)
+- \*-alpha (Alpha version)
+- \*-beta (Beta version)
 
-**Other**
-- [a] = alpha
-- [b] = beta
+## Version 1.3.14-beta (2025-02-24)
 
-## Version 1.3.13.1[b] (2023-12-25)
+**General changes:**
+- **WARNING!** This update contains many potentially breaking changes. Back up your database before updating.
+- Implemented several bugfixes and feature changes from snapshot releases
+- Changes from `v1.4.0-beta_snap_01`:
+  - The `polyfill-functions.php` file is now loaded in the `critical-functions.php` file
+  - Created a new file to hold backward compatibility functions
+  - Removed the `deprecated.php` file
+- Changes from `v1.4.0-beta_snap_02`:
+  - General cleanup
+    - Optimized code in all core files
+	- Reorganized the database schema
+    - Added more documentation throughout and cleaned up unnecessary documentation
+	  - Added documentation of class variables and methods to the top of all class and function files
+    - Renamed various system constants to align with other ReallySimpleSystems projects
+	- Moved all setup-related files to a new `/setup` directory and overhauled the code
+	- Moved all CSS and JS files related to system setup out of the `/admin` subdirectory
+	- Organized and deprecated several items in the `Query` class (this is a major breaking change)
+	- Added more exit statuses to various admin pages and simplified how they are created
+    - Removed the `DOMTAGS_VERSION` constant from core code; it is now defined within the DOMtags library
+	- The `DEBUG_MODE` and `MAINT_MODE` constants are now defined in the default config file
+	- Replaced numerous instances of hardcoded HTML with DOMtags
+	- Optimized code in the database updater
+  - Text changes
+    - Added "Developed by" credit to the admin about page
+    - Updated admin footer copyright text
+    - Added sister projects to README and updated the copyright
+	- The README copyright text now links to the ReallySimpleSystems API
+  - Added support for a `homepage.php` template file in themes
+  - Added an `is_default` column to the `user_privileges` table
+    - Default and custom privileges are now listed under different columns on the dashboard
+  - Added two new possible labels for custom post types and taxonomies:
+    - `no_items` (displays on the list page when no records can be found in the database)
+    - `title_placeholder` (displays in the title field; post types only)
+  - The `unregisterPostType` and `unregisterTaxonomy` functions no longer erase post and taxonomy data by default
+    - Post metadata is now cleared if the associated post is deleted in this way
+  - The `populateTables` function has been moved to `global-functions.php`
+  - Added `upvotes` and `downvotes` columns to the List Comments table
+  - Added a `slug` column to the List Menus table
+  - Media can now be replaced from the List Media page
+  - The `Comment::getAuthor` function now returns 'Anonymous' instead of a dash when the author is blank
+  - Updated DOMtags to v1.1.4.2
+  - Added SQL debugging to several methods in the `Query` class
+  - The Forgot Password form now tries to use the admin email to send email notifications to the user
+  - Added `IF EXISTS` check to the `Query::dropTable` and `::dropTables` methods
+  - Added missing field ids to various forms
+- Moved the `errorHandler` and `logError` functions to a new class, `ErrorHandler`
+  - All error handling will now be executed here
+- Overhauled the maintenance page
+- All superglobal vars are now prefixed with `rs_` for easier regognition and consistency with other global vars and constants, e.g., `$session` becomes `$rs_session`
+- Changelog entries will now be split into *general* and *programmatic* sections
+- Added missing minified versions of JS files
+- Added comparison operators to the `Query::update` method
+- Added renamed constants and global vars to the backward compat file
+- Removed the `deprecated.php` file
 
+**Programmatic changes:**
+- New constants/global vars:
+  - `RS_DEVELOPER`, `RS_LEAD_DEV`, `RS_PROJ_START`, `SETUP`
+  - `$rs_error`
+- Renamed constants/global vars:
+  - `CMS_ENGINE` -> `RS_ENGINE`, `CMS_VERSION` -> `RS_VERSION`, `CRIT_FUNC` -> `RS_CRIT_FUNC`, `DB_CONFIG` -> `RS_CONFIG`, `DB_SCHEMA` -> `RS_SCHEMA`, `DEBUG_FUNC` -> `RS_DEBUG_FUNC`, `FUNC` -> `RS_FUNC`
+  - `$post_types` -> `$rs_post_types`, `$session` -> `$rs_session`, `$taxonomies` -> `$rs_taxonomies`
+- Removed constants/global vars:
+  - `DOMTAGS_VERSION`, `QUERY_CLASS`
+- New classes:
+  - `ErrorHandler`
+- New functions/methods:
+  - Admin `Comment` class (`exitNotice`, `pageHeading`)
+  - Admin `Login` class (`exitNotice`, `pageHeading`)
+  - Admin `Media` class (`exitNotice`, `pageHeading`)
+  - Admin `Menu` class (`exitNotice`, `getMenuCount`, `pageHeading`)
+  - Admin `Post` class (`exitNotice`)
+  - Admin `Profile` class (`exitNotice`, `pageHeading`)
+  - Admin `Settings` class (`exitNotice`, `pageHeading`)
+  - Admin `Term` class (`exitNotice`, `getTermCount`, `pageHeading`)
+  - Admin `Theme` class (`exitNotice`, `pageHeading`)
+  - Admin `User` class (`exitNotice`, `pageHeading`)
+  - Admin `UserRole` class (`exitNotice`, `getUserRoleCount`, `pageHeading`)
+  - Admin `Widget` class (`exitNotice`, `getWidgetCount`, `pageHeading`)
+  - `ErrorHandler` class (`generateDeprecation`, `generateError`, `getErrorType`, `triggerError`)
+  - `Query` class (`createTable`)
+  - `critical-functions.php` (`baseSetup`, `checkDBConfig`, `includeFile`, `includeFiles`, `isDebugMode`, `isSecureConnection`, `requireFile`, `requireFiles`)
+- Renamed functions/methods:
+  - Admin `Comment` class (`validateData` -> `validateSubmission`)
+  - Admin `Login` class (`blacklistExits` -> `blacklistExists`, `validateBlacklistData` -> `validateBlacklistSubmission`, `validateRuleData` -> `validateRuleSubmission`)
+  - Admin `Media` class (`deleteMedia` -> `deleteRecordMedia`, `editMedia` -> `editRecordMedia`, `listMedia` -> `listRecordsMedia`, `replaceMedia` -> `replaceRecordMedia`, `uploadMedia` -> `uploadRecordMedia`, `validateData` -> `validateSubmission`)
+  - Admin `Menu` class (`validateMenuData` -> `validateMenuSubmission`, `validateMenuItemData` -> `validateMenuItemSubmission`)
+  - Admin `Profile` class (`validateData` -> `validateSubmission`)
+  - Admin `Settings` class (`validateSettingsData` -> `validateSubmission`)
+  - Admin `Term` class (`validateData` -> `validateSubmission`)
+  - Admin `Theme` class (`validateData` -> `validateSubmission`)
+  - Admin `User` class (`validateData` -> `validateSubmission`)
+  - Admin `UserRole` class (`validateUserRoleData`, -> `validateSubmission`)
+  - Admin `Widget` class (`validateData` -> `validateSubmission`)
+  - `Login` class (`validateForgotPasswordData` -> `validateForgotPasswordSubmission`, `validateLoginData` -> `validateLoginSubmission`, `validateResetPasswordData` -> `validateResetPasswordSubmission`)
+- Deprecated functions/methods:
+  - `Query` class (`errorMsg`)
+- Removed functions/methods:
+  - Admin `Profile` class (`validatePasswordData`)
+  - Admin `User` class (`validatePasswordData`, `validateReassignContentData`)
+  - Admin `functions.php` (`formTag`, `tag`)
+  - `global-functions.php` (`trailingSlash`)
+
+**Bug fixes:**
+- An error is generated if a null value is passed to the `Query::insert` and `Query::update` methods
+- An error is generated on the List Media page if a media file doesn't exist in the `uploads` directory
+- Blank avatars don't display correctly on the admin bar or on the List Users page
+- An error is generated if an avatar or featured image can't be loaded
+- The `getUserRoleId` function doesn't properly sanitize the role name
+- From `v1.4.0-beta_snap_01`:
+  - An external link on the admin footer doesn't open in a new tab
+- From `v1.4.0-beta_snap_02`:
+  - The database setup fails because the `isAdmin` function isn't loaded in `critical-functions.php`
+  - Custom user roles can neither be edited nor deleted
+  - Post metadata doesn't update properly when a post is saved
+  - Dashes are not being added to filenames of uploaded files
+  - The `index_post` metadata is being added to non-content post types
+  - Indexing for posts isn't set during installation
+  - An error can occur in the `getOnlineUser` function if database tables are missing or have old column names (this can occur during database updates)
+  - Bulk actions can fail if the passed id is not an integer
+  - Form row labels target the `name` prop instead of the `id` prop
+  - The admin `Comment::deleteSpamComments` method doesn't specify a return type
+
+**Modified files:**
+- 404.php
+- README.md
+- admin/about.php
+- admin/categories.php (M)
+- admin/comments.php (M)
+- admin/footer.php (M)
+- admin/header.php (M)
+- admin/includes/ajax-upload.php (M)
+- admin/includes/ajax.php (M)
+- admin/includes/bulk-actions.php
+- admin/includes/class-comment.php
+- admin/includes/class-login.php
+- admin/includes/class-media.php
+- admin/includes/class-menu.php
+- admin/includes/class-notice.php (M)
+- admin/includes/class-post.php
+- admin/includes/class-profile.php
+- admin/includes/class-settings.php
+- admin/includes/class-term.php
+- admin/includes/class-theme.php
+- admin/includes/class-user-role.php
+- admin/includes/class-user.php
+- admin/includes/class-widget.php
+- admin/includes/functions.php
+- admin/includes/interface-admin.php (M)
+- admin/includes/load-media.php (M)
+- admin/includes/modal-delete.php (M)
+- admin/includes/modal-upload.php (M)
+- admin/index.php (M)
+- admin/logins.php (M)
+- admin/media.php (M)
+- admin/menus.php (M)
+- admin/posts.php (M)
+- admin/profile.php (M)
+- admin/settings.php (M)
+- admin/terms.php (M)
+- admin/themes.php (M)
+- admin/users.php (M)
+- admin/widgets.php (M)
+- content/admin-themes/forest.css (M)
+- content/admin-themes/harvest.css (M)
+- content/admin-themes/light.css (M)
+- content/admin-themes/ocean.css (M)
+- content/admin-themes/sunset.css (M)
+- content/themes/carbon/category.php (M)
+- content/themes/carbon/footer.php (M)
+- content/themes/carbon/functions.php (M)
+- content/themes/carbon/header.php (M)
+- content/themes/carbon/index.php (M)
+- content/themes/carbon/post.php (M)
+- content/themes/carbon/script.js (M)
+- content/themes/carbon/style.css (M)
+- content/themes/carbon/taxonomy.php (M)
+- includes/ajax.php (M)
+- includes/backward-compat.php (N)
+- includes/captcha.php (M)
+- includes/class-comment.php
+- includes/class-dom-tags.php
+- includes/class-error-handler.php (N)
+- includes/class-login.php
+- includes/class-menu.php (M)
+- includes/class-post.php (M)
+- includes/class-query.php
+- includes/class-term.php (M)
+- includes/constants.php
+- includes/critical-functions.php
+- includes/debug.php
+- includes/deprecated.php (X)
+- includes/dom-tags/\*
+- includes/domtags.php
+- includes/error.php (N)
+- includes/fallback-theme.php
+- includes/functions.php
+- includes/global-functions.php
+- includes/load-template.php
+- includes/load-theme.php (M)
+- includes/maintenance.php
+- includes/polyfill-functions.php
+- includes/schema.php
+- includes/sitemap-index.php (M)
+- includes/sitemap-posts.php (M)
+- includes/sitemap-terms.php (M)
+- includes/theme-functions.php
+- includes/update-db.php
+- includes/update.php (M)
+- index.php (M)
+- init.php
+- login.php (M)
+- resources/css/admin/style.css
+- resources/css/admin/style.min.css
+- resources/css/button.css (M)
+- resources/css/button.min.css (M)
+- resources/css/setup.css (M)
+- resources/css/setup.min.css (M)
+- resources/css/style.css (M)
+- resources/css/style.min.css (M)
+- resources/js/admin/modal.js (M)
+- resources/js/admin/modal.min.js (N)
+- resources/js/admin/script.js (M)
+- resources/js/admin/script.min.js (N)
+- resources/js/script.js
+- resources/js/script.min.js (N)
+- resources/js/setup.js (R,M)
+- resources/js/setup.min.js (R,M)
+- setup/default-config.php (R)
+- setup/rsdb-config.php (R)
+- setup/rsdb-install.php (R)
+- setup/run-install.php
+
+## Version 1.3.13.1-beta (2023-12-25)
+
+**General changes:**
 - Incremented the CMS version
 
 **Modified files:**
 - n/a
 
-## Version 1.3.13[b] (2023-12-24)
+## Version 1.3.13-beta (2023-12-24)
 
+**General changes:**
 - Cleaned up documentation in multiple files
   - A new, detailed comment about the loading order of core files has been added to the top of the file
 - Reamed the `backward-compat.php` file to `polyfill-functions.php`
@@ -35,10 +270,12 @@
 - Cleaned up code in the admin `Post` class
 - Tweaked styling of the Carbon theme
 - Cleaned up code in various functions
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Post` class (`pageHeading`)
   - `critical-functions.php` (`checkDBStatus`)
-- Renamed functions:
+- Renamed functions/methods:
   - Admin `Post` class (`validateData` -> `validateSubmission`)
 
 **Modified files:**
@@ -61,8 +298,9 @@
 - index.php (M)
 - init.php
 
-## Version 1.3.12.1[b] (2023-12-13)
+## Version 1.3.12.1-beta (2023-12-13)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - Tweaked title tags on all front end pages
 - The maintenance page now has a more descriptive title tag
@@ -79,14 +317,15 @@
 - init.php (M)
 - login.php (M)
 
-## Version 1.3.12[b] (2023-12-13)
+## Version 1.3.12-beta (2023-12-13)
 
+**General changes:**
 - Added the following to the admin about page:
   - Added a link to the changelog on the GitHub repo
   - Added DOMtags version information
   - Added links to sources and documentation for included libraries
 - Comments with `unapproved` status are now changed to `pending`
-- Removed old scripts from the `update-db.php` file for versions prior to `1.2.0[b]`
+- Removed old scripts from the `update-db.php` file for versions prior to `1.2.0-beta`
 - Cleaned up code in the `dashboardWidget` and `statsBarGraph` functions
 - Updated jQuery to v3.7.1
 - Added a new global constant for the `resources` directory
@@ -105,7 +344,9 @@
   - `user_roles` table (`_default` -> `is_default`)
   - The database will automatically update to accommodate these changes
 - Changed the format of snapshot versions from `x.x.x[x]{ss-xx}` to `x.x.x[x]_snap-xx`
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `debug.php` (`deprecated`, `errorHandler`)
   - `functions.php` (`handleSecureLogin`)
 
@@ -149,8 +390,9 @@
 - resources/css/font-awesome-rules.min.css (M)
 - resources/js/jquery.min.js
 
-## Version 1.3.11.2[b] (2023-11-06)
+## Version 1.3.11.2-beta (2023-11-06)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 
 **Bug fixes:**
@@ -159,15 +401,17 @@
 **Modified files:**
 - includes/functions.php (M)
 
-## Version 1.3.11.1[b] (2023-11-06)
+## Version 1.3.11.1-beta (2023-11-06)
 
+**General changes:**
 - Incremented the CMS version
 
 **Modified files:**
 - n/a
 
-## Version 1.3.11[b] (2023-11-06)
+## Version 1.3.11-beta (2023-11-06)
 
+**General changes:**
 - Only admins can now see the Software and Database sections of the admin About page
 - Removed a deprecated constant
 - The minimum PHP version that the CMS supports is now `8.0` and the recommended version is `8.1` or higher
@@ -182,7 +426,9 @@
 - Code cleanup in the `init.php` file
 - Added a new post status: `private`, which allows for privately publishing pages (they will be accessible to logged in visitors only)
 - Improved validation in the admin `Post` class
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Post` class (`getStatusList`)
   - `functions.php` (`guessPageType`)
 
@@ -223,8 +469,9 @@
 - includes/update.php
 - init.php
 
-## Version 1.3.10.2[b] (2023-09-21)
+## Version 1.3.10.2-beta (2023-09-21)
 
+**General changes:**
 - n/a
 
 **Bug fixes:**
@@ -234,16 +481,18 @@
 - admin/setup.php (M)
 - includes/update.php
 
-## Version 1.3.10.1[b] (2023-09-20)
+## Version 1.3.10.1-beta (2023-09-20)
 
+**General changes:**
 - Incremented the CMS version
 - Tweaked a previous entry in the changelog
 
 **Modified files:**
 - n/a
 
-## Version 1.3.10[b] (2023-09-20)
+## Version 1.3.10-beta (2023-09-20)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - When the record search button is clicked, the form field now receives focus
 - Admin classes cleanup
@@ -257,7 +506,9 @@
 - Tweaked styling of the database setup and installation pages
 - The `DB_CHAR` constant has been renamed to `DB_CHARSET`
 - Added a new database constant, `DB_COLLATE`, which stores the database collation
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `Query` class (`getAttr`, `hasCap`, `initCharset`, `setCharset`)
   - `AdminInterface` interface (`createRecord`, `deleteRecord`, `editRecord`, `listRecords`)
     - Applied to the following classes: `Comment`, `Menu`, `Post`, `Term`, `UserRole`, `User`, `Widget`
@@ -307,8 +558,9 @@
 - includes/global-functions.php (M)
 - init.php (M)
 
-## Version 1.3.9[b] (2023-09-01)
+## Version 1.3.9-beta (2023-09-01)
 
+**General changes:**
 - Tweaked the readme file
 - General code cleanup
 - Improving internal documentation
@@ -325,9 +577,11 @@
 - Broken themes can no longer be activated through the dashboard
 - Individual posts can now be noindexed
 - Added an interface for admin pages (non-functional)
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `critical-functions.php` (`checkPHPVersion`, `formatPathFragment`, `getClassFilename`)
-- Renamed functions and methods:
+- Renamed functions/methods:
   - `Login` class (`statusMessage` -> `statusMsg`)
 
 **Bug fixes:**
@@ -360,8 +614,9 @@
 - includes/update-db.php
 - init.php
 
-## Version 1.3.8[b] (2023-01-27)
+## Version 1.3.8-beta (2023-01-27)
 
+**General changes:**
 - Cleaned up internal documentation throughout the CMS
 - Removed some test code from the `Query` class
 - Updated a link in the admin footer
@@ -378,12 +633,14 @@
 - When a user replies to a comment, a note indicating which comment is being replied to now displays above the comment box
 - Updated Font Awesome to v6.2.1
 - Updated jQuery to v3.6.3
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Notice` class (`defaultMsg`, `isDismissed`, `msg`, `unhide`)
   - Admin `Profile` class (`getDisplayNames`)
   - Admin `functions.php` (`ctDraft`, `exitNotice`, `isDismissedNotice`)
   - `theme-functions.php` file (`queryDelete`, `queryInsert`, `querySelect`, `querySelectField`, `querySelectRow`, `queryUpdate`)
-- Renamed functions:
+- Renamed functions/methods:
   - Admin `functions.php` (`statusMessage` -> `notice`)
 
 **Bug fixes:**
@@ -450,8 +707,9 @@
 - includes/theme-functions.php
 - includes/update-db.php
 
-## Version 1.3.7.1[b] (2022-12-18)
+## Version 1.3.7.1-beta (2022-12-18)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - Removed an unused block of admin CSS
 - Optimized some code in the admin `functions.php`
@@ -463,15 +721,18 @@
 - admin/includes/functions.php
 - includes/class-query.php (M)
 
-## Version 1.3.7[b] (2022-12-18)
+## Version 1.3.7-beta (2022-12-18)
 
+**General changes:**
 - Cleaned up internal documentation throughout the CMS
 - Posts of any type can now be duplicated
 - Most records can now be searched on the dashboard
 - The `button` function now supports the `id` field
 - Comments can now be sent to spam and spam can be mass deleted, no questions asked
 - Renamed a param in the `actionLink` function
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Comment` class (`deleteSpamComments`, `spamComment`)
   - Admin `Post` class (`duplicatePost`)
   - Admin `functions.php` (`recordSearch`, `termExists`)
@@ -517,16 +778,18 @@
 - includes/global-functions.php
 - init.php (M)
 
-## Version 1.3.6.1[b] (2022-09-09)
+## Version 1.3.6.1-beta (2022-09-09)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - Incremented the CMS version
 
 **Modified files:**
 - n/a
 
-## Version 1.3.6[b] (2022-09-09)
+## Version 1.3.6-beta (2022-09-09)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - Tweaked styles in the default front end stylesheet
 - Removed a deprecated parameter from the `getThemeStylesheet` function
@@ -536,7 +799,9 @@
 - The `headerScripts` function now uses unminified CSS files when the CMS is in debug mode
 - Tweaked styling of the fallback theme
 - Added a new maintenance mode feature with a basic maintenance page that will only display on the front end for logged out users (the text on the screen cannot be customized as of now)
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `global-functions.php` (`slash`, `unslash`)
 
 **Bug fixes:**
@@ -560,8 +825,9 @@
 - includes/update-db.php (M)
 - init.php
 
-## Version 1.3.5[b] (2022-07-07)
+## Version 1.3.5-beta (2022-07-07)
 
+**General changes:**
 - Updated Font Awesome to v6.1.1
 - Cleaned up internal documentation throughout the CMS
 - Moved all code out of the `update.php` file and into a new file called `update-db.php`
@@ -573,7 +839,9 @@
   - All existing media on the site is retroactively updated
 - Created a new global constant named `CMS_VERSION` which will eventually replace `VERSION`
 - Updated the URL that permanently blacklisted users are redirected to ;)
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `Query` class (`columnExists`)
 
 **Modified files:**
@@ -615,7 +883,10 @@
 - includes/update.php
 - init.php
 
-## Version 1.3.4.1[b] (2022-05-31)
+## Version 1.3.4.1-beta (2022-05-31)
+
+**General changes:**
+- n/a
 
 **Bug fixes:**
 - Certain items are not displaying on the admin menu and the admin bar
@@ -623,8 +894,9 @@
 **Modified files:**
 - includes/global-functions.php (M)
 
-## Version 1.3.4[b] (2022-05-31)
+## Version 1.3.4-beta (2022-05-31)
 
+**General changes:**
 - Cleaned up internal documentation throughout the CMS
 - Added a new arg to the `registerTaxonomy` function for specifying the post type the taxonomy links to
 - Posts can now be filtered by the term they belong to, by clicking on the `count` field on the term page
@@ -659,8 +931,9 @@
 - includes/constants.php
 - includes/global-functions.php
 
-## Version 1.3.3.1[b] (2022-05-26)
+## Version 1.3.3.1-beta (2022-05-26)
 
+**General changes:**
 - Incremented the CMS version
 
 **Bug fixes:**
@@ -669,8 +942,9 @@
 **Modified files:**
 - includes/global-functions.php (M)
 
-## Version 1.3.3[b] (2022-05-26)
+## Version 1.3.3-beta (2022-05-26)
 
+**General changes:**
 - Cleaned up internal documentation throughout the CMS (not every line needs to be documented, so this will be cut back quite a bit from here on)
 - The `role` parameter of the `userHasPrivilege` and `userHasPrivileges` functions are now optional (the functions will default to the currently active user's role)
 - Cleaned up code in the `Login::validateForgotPasswordData` function
@@ -725,8 +999,9 @@
 - init.php
 - login.php (M)
 
-## Version 1.3.2[b] (2022-02-15)
+## Version 1.3.2-beta (2022-02-15)
 
+**General changes:**
 - Cleaned up some internal documentation
 - Added bulk actions to the "List Users" page
 - Added the `IS NULL` and `IS NOT NULL` operators to the list of allowed operators in the `Query::select` function
@@ -739,7 +1014,9 @@
 - Replaced all old instances of the `tableCell` function with the new `tdCell` function
 - Cleaned up code in several functions
 - The login page's password toggle button's height should now match the password field's height on mobile
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Login` class (`getLoginCount`)
   - Admin `User` class (`updateUserRole`, `getUserCount`, `bulkActions`)
   - Admin `functions.php` (`thCell`, `tdCell`)
@@ -765,8 +1042,9 @@
 - includes/css/style.min.css (M)
 - includes/js/script.js
 
-## Version 1.3.1[b] (2022-02-14)
+## Version 1.3.1-beta (2022-02-14)
 
+**General changes:**
 - Fixed a typo in the README file
 - The default menu link arg in the `registerPostType` function is now `'posts.php?type='.$name` (previously it was simply `'posts.php'`)
 - The default menu link arg in the `registerTaxonomy` function is now `'terms.php?taxonomy='.$name` (previously it was simply `'terms.php'`)
@@ -804,9 +1082,10 @@
 - includes/sitemap-index.php (M)
 - init.php
 
-## Version 1.3.0[b] (2022-02-10)
+## Version 1.3.0-beta (2022-02-10)
 *Feature Update: QoL Improvements*
 
+**General changes:**
 - Tweaked the README file
 - Tweaked a previous entry in the changelog
 - When a media item is replaced, the modified date is no longer set to `null` if the filename and date are updated
@@ -830,12 +1109,13 @@
 - Reordered the file loading sequence in `init.php` so that the page content can be shown on the fallback theme
 - Added new term-related functions for theme creators
 - Tweaked code in the `getPermalink` function
-- The `Comment::getCommentStatus` now actually returns a value
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `functions.php` (`putThemeScript`, `putThemeStylesheet`)
   - `global-functions.php` (`putScript`, `putStylesheet`)
   - `theme-functions.php` (`getTermTaxName`, `putTermTaxName`, `putTermPosts`)
-- Renamed functions:
+- Renamed functions/methods:
   - `theme-functions.php` (`getPostsWithTerm` -> `getTermPosts`)
   - Admin `functions.php` (`getAdminScript` -> `adminScript`, `getAdminStylesheet` -> `adminStylesheet`, `getAdminTheme` -> `adminThemeStylesheet`)
 
@@ -846,6 +1126,7 @@
 - A JavaScript error occurs if a user tries to click on an anchor link to a comment that has been deleted
 - A variable in the admin `Menu::isNextSibling` tries to access a non-existent array index when a menu item is moved down
 - The "Login Blacklist" admin page displays an empty table if the only existing blacklist expires as the page is loaded
+- The `Comment::getCommentStatus` doesn't return a value
 
 **Modified files:**
 - 404.php (M)
@@ -901,8 +1182,9 @@
 - init.php
 - login.php
 
-## Version 1.2.9[b] (2022-02-04)
+## Version 1.2.9-beta (2022-02-04)
 
+**General changes:**
 - Added bulk actions to the "List \<post_type>" page
   - Post statuses can be changed between `published`, `draft`, and `trash`
 - Added a `modified` class variable to the `Post` class
@@ -920,7 +1202,9 @@
 - The publish date and modified date values will be dynamically updated upon installation of this update (making a database backup is highly recommended!)
 - Improved the logic of the "Replace Media" functionality
   - A media item's filename is no longer updated when it's replaced and the 'update filename and date' checkbox is left unchecked (unless the file type changes)
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Comment` class (`updateCommentStatus`)
   - Admin `Post` class (`updatePostStatus`, `bulkActions`)
   - Admin `Widget` class (`updateWidgetStatus`, `bulkActions`)
@@ -948,15 +1232,17 @@
 - includes/theme-functions.php
 - includes/update.php
 
-## Version 1.2.8.1[b] (2022-02-02)
+## Version 1.2.8.1-beta (2022-02-02)
 
+**General changes:**
 - Incremented the version from 1.2.7 to 1.2.8
 
 **Modified files:**
 - n/a
 
-## Version 1.2.8[b] (2022-02-02)
+## Version 1.2.8-beta (2022-02-02)
 
+**General changes:**
 - Significantly revised changelog formatting
   - Functions are now listed at the bottom of the updates section (not complete)
   - Bug fixes are now listed in their own section of each update, above the list of modified files
@@ -976,9 +1262,11 @@
 - The `getCategory` function has been converted into an alias for the `getTerm` function
 - The front end `Category` class has been removed, as it is no longer necessary
 - The `Comment` class' bulk actions are now hidden if there are no comments in the database
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `theme-functions.php` (`isPost`, `getPostId`, `putPostId`, `getPostTitle`, `putPostTitle`, `getPostAuthor`, `putPostAuthor`, `getPostDate`, `putPostDate`, `getPostModDate`, `putPostModDate`, `getPostContent`, `putPostContent`, `getPostStatus`, `putPostStatus`, `getPostSlug`, `putPostSlug`, `getPostParent`, `putPostParent`, `getPostType`, `putPostType`, `getPostFeaturedImage`, `putPostFeaturedImage`, `getPostMeta`, `putPostMeta`, `getPostTerms`, `putPostTerms`, `getPostComments`, `getPostUrl`, `putPostUrl`, `postHasFeaturedImage`, `isTerm`, `getTermId`, `putTermId`, `getTermName`, `putTermName`, `getTermSlug`, `putTermSlug`, `getTermTaxonomy`, `putTermTaxonomy`, `getTermParent`, `putTermParent`, `getTermUrl`, `putTermUrl`, `getCategoryId`, `putCategoryId`, `getCategoryName`, `putCategoryName`, `getCategorySlug`, `putCategorySlug`, `getCategoryParent`, `putCategoryParent`, `getCategoryUrl`, `putCategoryUrl`)
-- Renamed functions:
+- Renamed functions/methods:
   - `Post` class (`getPostFeatImage` -> `getPostFeaturedImage`, `postHasFeatImage` -> `postHasFeaturedImage`)
 
 **Modified files:**
@@ -1005,8 +1293,9 @@
 - includes/update.php
 - init.php
 
-## Version 1.2.7[b] (2021-11-27)
+## Version 1.2.7-beta (2021-11-27)
 
+**General changes:**
 - Tweaked the `install.css` styles
 - Optimized some code in the admin `Post` class
 - Improved code readability in several files
@@ -1021,7 +1310,9 @@
 - Buttons can now be created dynamically
 - Comments can now be approved/unapproved in bulk (bulk delete is not enabled yet)
 - Tweaked the Carbon theme's `script.js` code
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Comment` class (`bulkActions`)
   - Admin `functions.php` (`tag`)
   - `globals.php` (`button`)
@@ -1058,8 +1349,9 @@
 - index.php (M)
 - init.php (M)
 
-## Version 1.2.6[b] (2021-10-24)
+## Version 1.2.6-beta (2021-10-24)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - Completely overhauled the database installation code
   - Added AJAX submission to the form, allowing for more dynamic database setup
@@ -1067,7 +1359,9 @@
 - Tweaked the Light admin theme
 - Tweaked the Beta Snapshots changelog formatting
 - Code cleanup in several admin files
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `run-install.php` (`runInstall`)
 
 **Modified files:**
@@ -1083,8 +1377,9 @@
 - admin/terms.php (M)
 - content/admin-themes/light.css (M)
 
-## Version 1.2.5[b] (2021-10-13)
+## Version 1.2.5-beta (2021-10-13)
 
+**General changes:**
 - Tweaked the Beta changelog formatting
 - Updated the copyright year in the README file
 - Updated Font Awesome to v5.15.4
@@ -1118,17 +1413,19 @@
 - includes/js/jquery.min.js
 - init.php (M)
 
-## Version 1.2.4.1[b] (2021-10-12)
+## Version 1.2.4.1-beta (2021-10-12)
 
-- Incremented the version from 1.2.3 to 1.2.4
+**General changes:**
+- Incremented the CMS version
 - Updated the minified stylesheet for the admin dashboard
 
 **Modified files:**
 - admin/includes/css/style.min.css
 - admin/includes/functions.php (M)
 
-## Version 1.2.4[b] (2021-04-26)
+## Version 1.2.4-beta (2021-04-26)
 
+**General changes:**
 - Improved the way the `init.php` file checks the current PHP version
 - Updated Font Awesome to v5.15.3
 - Added custom properties to the admin `style.css` file
@@ -1153,8 +1450,9 @@
 - includes/functions.php (M)
 - init.php
 
-## Version 1.2.3[b] (2021-02-01)
+## Version 1.2.3-beta (2021-02-01)
 
+**General changes:**
 - Added a "Replace Media" button to the "Edit Media" form
 - Cleaned up code in the `Media` class
 - Media can now be replaced
@@ -1162,9 +1460,11 @@
 - Media entries in the database can now be deleted even if the associated file can't be found in the `uploads` directory
 - The newest posts and terms are now ordered first in the menu items sidebar
 - Optimized code in the `User` and `Profile` classes for the `pass_saved` checkboxes
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Media` class (`replaceMedia`)
-- Renamed functions:
+- Renamed functions/methods:
   - Admin `Menu` class (`getMenuItemsLists` -> `getMenuItemsSidebar`)
 
 **Bug fixes:**
@@ -1179,8 +1479,9 @@
 - admin/includes/css/style.min.css (M)
 - admin/media.php
 
-## Version 1.2.2[b] (2021-01-31)
+## Version 1.2.2-beta (2021-01-31)
 
+**General changes:**
 - Added a box shadow to the admin widgets
 - Comment feeds now only load the ten most recent comments by default
 - Added a button to load more comments (loads ten at a time)
@@ -1188,7 +1489,9 @@
 - Tweaked documentation in the front end `script.js` file
 - Cleaned up code in the `ajax.php` file
 - Tweaked front end styling
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `Comment` class (`loadComments`)
 
 **Modified files:**
@@ -1202,8 +1505,9 @@
 - includes/functions.php (M)
 - includes/js/script.js
 
-## Version 1.2.1[b] (2021-01-20)
+## Version 1.2.1-beta (2021-01-20)
 
+**General changes:**
 - The active theme is now listed first on the "List Themes" page
 - Created widgets for the admin dashboard
   - Added three dashboard widgets: "Comments", "Users", and "Logins", which display information about each
@@ -1214,7 +1518,9 @@
 - Removed an unnecessary comment from the admin `functions.php` file
 - Added the `themes` directory to the `.gitignore` file, excluding the Carbon theme
 - Cleaned up the `.gitignore` file
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `functions.php` (`dashboardWidget`)
   - `Query` class (`showIndexes`)
 
@@ -1238,11 +1544,12 @@
 - includes/js/script.js
 - includes/update.php
 
-## Version 1.2.0[b] (2021-01-16)
+## Version 1.2.0-beta (2021-01-16)
 *Feature Update: Login Tracking*
 
 ### Dedicated to my grandmother, "Nam" (1940 - 2021)
 
+**General changes:**
 - For a full list of changes, see: `changelog-beta-snapshots.md`
 - Added the `actionLink` function to numerous admin classes
 - Added the `ADMIN_URI` constant to numerous admin classes
@@ -1252,7 +1559,9 @@
 - Added a "select all" checkbox to the "Create User Roles" and "Edit User Roles" forms
 - Database tables can now be dropped using the `Query` class
   - Replaced all instances of the `DROP TABLE` statement with the new functions
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `functions.php` (`adminInfo`)
   - `Query` class (`dropTable`, `dropTables`)
 
@@ -1282,8 +1591,9 @@
 - includes/schema.php (M)
 - includes/update.php
 
-## Version 1.1.7[b] (2020-12-03)
+## Version 1.1.7-beta (2020-12-03)
 
+**General changes:**
 - Canonical links for the home page no longer include the page's slug and point to the actual home URL
 - Added a default error message for the `Query::errorMsg` function
 - Renamed two settings in the database to better clarify their usage (existing databases will have these settings updated automatically):
@@ -1308,7 +1618,9 @@
 - Reduced the comment feed update timer from 60 seconds to 15 (note: this is how often the feed checks for updates, not how often it actually refreshes)
 - The `Settings::getPageList` function now checks whether the home page exists and displays a blank option in the dropdown if it doesn't
 - Tweaked various previous entries in the changelogs
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Comment` class (`getCommentCount`)
 
 **Modified files:**
@@ -1324,8 +1636,9 @@
 - includes/js/script.js (M)
 - includes/update.php
 
-## Version 1.1.6[b] (2020-11-15)
+## Version 1.1.6-beta (2020-11-15)
 
+**General changes:**
 - The `sitemap-index.php` file is now loaded after the theme (this allows for custom post type and taxonomy sitemaps to be generated)
 - The `sitemap-posts.php` and `sitemap-terms.php` files are now loaded at the top of the `sitemap-index.php` file
 - Sitemaps are now deleted if the post type or taxonomy they are associated with is unregistered
@@ -1340,8 +1653,9 @@
 - includes/sitemap-index.php
 - init.php (M)
 
-## Version 1.1.5[b] (2020-11-14)
+## Version 1.1.5-beta (2020-11-14)
 
+**General changes:**
 - Removed an unnecessary `if` statement from the `ajax.php` file
 - Menu items can no longer be linked to unpublished posts
 - Menu items that link to external sites now open the link in a new tab
@@ -1374,8 +1688,9 @@
 - includes/sitemap.xsl (N)
 - init.php (M)
 
-## Version 1.1.4[b] (2020-11-10)
+## Version 1.1.4-beta (2020-11-10)
 
+**General changes:**
 - Improved security for the `session` and `pw-reset` cookies
 - Created a variable for the `Login` class that stores whether HTTPS is enabled
 - Created a constructor for the `Login` class
@@ -1407,8 +1722,9 @@
 - includes/sitemap-terms.php (M)
 - init.php
 
-## Version 1.1.3[b] (2020-11-07)
+## Version 1.1.3-beta (2020-11-07)
 
+**General changes:**
 - Meta tags can now be dynamically added to the `head` section in themes
 - Added canonical tags to the list of meta tags included in the `head` section
 - Deleted the Carbon theme's `header-cat.php` and `header-tax.php` files
@@ -1417,7 +1733,9 @@
 - Moved a check for the theme `index.php` file from the `load-theme.php` file to the `load-template.php` file
 - Category pages fallback to the generic taxonomy template if a category template does not exist
 - Cleaned up some entries in the Alpha changelog
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `functions.php` (`pageTitle`, `metaTags`)
 
 **Bug fixes:**
@@ -1435,8 +1753,9 @@
 - includes/load-theme.php
 - includes/sitemap-index.php (M)
 
-## Version 1.1.2[b] (2020-11-04)
+## Version 1.1.2-beta (2020-11-04)
 
+**General changes:**
 - Added validation in the `init.php` file that checks whether the `BASE_INIT` constant has been defined (if so, it only loads the basic initialization files, otherwise it loads everything)
 - Cleaned up code in the `ajax.php` file
 - Cleaned up some entries in the Alpha changelog
@@ -1464,8 +1783,9 @@
 - includes/sitemap-terms.php (N)
 - init.php
 
-## Version 1.1.1[b] (2020-10-24)
+## Version 1.1.1-beta (2020-10-24)
 
+**General changes:**
 - Fixed the mobile sizing of media thumbnails on the "Edit Media" page
 - Updated Font Awesome to v5.15.1
 - Cleaned up some entries in the Alpha changelog
@@ -1517,9 +1837,10 @@
 - includes/functions.php
 - includes/js/script.js
 
-## Version 1.1.0[b] (2020-10-22)
+## Version 1.1.0-beta (2020-10-22)
 *Feature Update: Comments*
 
+**General changes:**
 - For a full list of changes, see: `changelog-beta-snapshots.md`
 - Optimized and improved the action links functionality for all of the "List \<item>" pages
 - Users who don't have the `can_edit_comments` or `can_delete_comments` privileges can no longer see the "Approve/Unapprove", "Edit", or "Delete" action links
@@ -1553,8 +1874,9 @@
 - content/themes/carbon/script.js
 - includes/globals.php (M)
 
-## Version 1.0.9[b] (2020-09-10)
+## Version 1.0.9-beta (2020-09-10)
 
+**General changes:**
 - The current post's `type` is now added to the `body` tag as a CSS class
 - Replaced `section` tags with `div` tags in several Carbon theme files
 - The `id` parameter in the `Post::slugExists` function is now optional (default value is `0`)
@@ -1567,9 +1889,11 @@
 - The menu item link dropdowns now only include posts and terms of the same post type or taxonomy as their menu item
 - Added multiple CSS classes to the `body` tag on term pages (e.g., `class="<slug> <taxonomy> <taxonomy>-id-<id>"`)
 - Cleaned up some entries in the Alpha changelog
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `functions.php` (`getUniqueSlug`, `getUniquePostSlug`, `getUniqueTermSlug`)
-- Deprecated functions:
+- Deprecated functions/methods:
   - Admin `Media` class (`filenameExists`)
 
 **Bug fixes:**
@@ -1598,8 +1922,9 @@
 - includes/deprecated.php
 - includes/functions.php
 
-## Version 1.0.8[b] (2020-08-11)
+## Version 1.0.8-beta (2020-08-11)
 
+**General changes:**
 - The `Query::showTables` function now has an optional `table` parameter
 - The existence of a specific database table can now be checked using the `Query` class
 - Essential database tables are now recreated individually if they are accidentally deleted instead of prompting the user to reinstall the entire database
@@ -1610,10 +1935,12 @@
 - Moved the `getUserRoleId` and `getUserPrivilegeId` functions to the `globals.php` file
 - Missing core database tables are now dynamically recreated
 - Cleaned up some entries in the Alpha changelog
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `Query` class (`tableExists`)
   - `globals.php` (`populateTable`, `populateUserRoles`, `populateUserPrivileges`)
-- Undeprecated functions:
+- Undeprecated functions/methods:
   - `globals.php` (`populatePosts`, `populateUsers`, `populateSettings`, `populateTaxonomies`, `populateTerms`)
 
 **Modified files:**
@@ -1625,8 +1952,9 @@
 - includes/globals.php
 - init.php
 
-## Version 1.0.7[b] (2020-07-30)
+## Version 1.0.7-beta (2020-07-30)
 
+**General changes:**
 - Tweaked a previous entry in the changelog
 - The `parent` parameter of the `getPermalink` function is now optional (default value is 0)
 - The permalink base is now added to permalinks on the "Create \<post_type>" forms (this only affects custom post types)
@@ -1652,8 +1980,9 @@
 - includes/globals.php
 - includes/load-template.php
 
-## Version 1.0.6[b] (2020-07-25)
+## Version 1.0.6-beta (2020-07-25)
 
+**General changes:**
 - Improved how permalinks are structured for custom post types and taxonomies (this fixed an issue with all taxonomies having `term` as their base url)
 - Tweaked a previous entry in the changelog
 - Created a new class variable in the `Post` class to hold taxonomy data
@@ -1670,14 +1999,16 @@
 - The `getRecentPosts` function can now be used to load posts associated with any taxonomy and of any post type
 - Taxonomies are now displayed on the admin statistics bar graph if they have `show_in_stats_graph` set to true
 - Custom taxonomies will now display in nav menus if `show_in_nav_menus` is set to true
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `functions.php` (`getTerm`)
   - `globals.php` (`isAdmin`, `isLogin`, `is404`)
-- Renamed functions:
+- Renamed functions/methods:
   - Admin `Post` class (`getCategories` -> `getTerms`, `getCategoriesList` -> `getTermsList`)
   - `Post` class (`getPostCategories` -> `getPostTerms`)
   - `functions.php` (`getPostsInCategory` -> `getPostsWithTerm`)
-- Deprecated functions:
+- Deprecated functions/methods:
   - `functions.php` (`isCategory`)
 
 **Bug fixes:**
@@ -1703,8 +2034,9 @@
 - index.php
 - init.php
 
-## Version 1.0.5[b] (2020-07-23)
+## Version 1.0.5-beta (2020-07-23)
 
+**General changes:**
 - Added the `can_upload_media` permission to the admin nav menu
 - Post types can now be unregistered (this only applies to custom post types)
 - User role and privilege ids can now be fetched
@@ -1726,7 +2058,9 @@
 - Added an inner content wrapper to all admin pages to fix a floating issue with page content presented by the overflow fix
 - Current page functionality now works properly for custom post types and taxonomies
 - Tweaked the admin themes
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - Admin `Term` class (`listTerms`, `createTerm`, `editTerm`, `deleteTerm`, `getTaxonomy`)
   - Admin `functions.php` (`postExists`)
   - `functions.php` (`postTypeExists`, `taxonomyExists`)
@@ -1766,8 +2100,9 @@
 - includes/functions.php
 - includes/globals.php
 
-## Version 1.0.4[b] (2020-07-12)
+## Version 1.0.4-beta (2020-07-12)
 
+**General changes:**
 - Tweaked the max width of select inputs in data form sidebars
 - Permalinks no longer redirect to the 404 not found page if they contain query parameters
 - Cleaned up some entries in the Alpha changelog
@@ -1786,7 +2121,9 @@
 - Added privilege checking for items on the admin bar
 - Improved privilege checking for the admin "List \<item>" pages
 - The `getPrivileges` function now orders privileges by their ids
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `globals.php` (`getTaxonomyLabels`, `registerDefaultTaxonomies`)
 
 **Bug fixes:**
@@ -1813,8 +2150,9 @@
 - includes/globals.php
 - init.php (M)
 
-## Version 1.0.3[b] (2020-07-04)
+## Version 1.0.3-beta (2020-07-04)
 
+**General changes:**
 - Tweaked previous entries in the changelog
 - Whitelisted the `style` attribute for divs and spans in the `formTag` function
 - The remove icon now moves based on the avatar's width on the "Create User", "Edit User", and "Edit Profile" pages
@@ -1846,8 +2184,9 @@
 - includes/class-menu.php
 - includes/globals.php
 
-## Version 1.0.2[b] (2020-07-02)
+## Version 1.0.2-beta (2020-07-02)
 
+**General changes:**
 - Code cleanup in the `Post` class
 - The `Post` class variables are now updated by the `Post::validateData` function
 - Custom posts will now display on the admin bar if `show_in_admin_bar` is set to true
@@ -1875,8 +2214,9 @@
 - includes/functions.php
 - includes/globals.php
 
-## Version 1.0.1[b] (2020-06-25)
+## Version 1.0.1-beta (2020-06-25)
 
+**General changes:**
 - Tweaked the readme
 - Tweaked a previous entry in the changelog
 - Images of `x-icon` MIME type can now be accessed through the upload modal
@@ -1901,7 +2241,9 @@
   - `menu_link` (base link for the post type's admin menu item)
   - `taxonomy` (allows for connecting a custom taxonomy to the post type)
 - Default and custom post types are now dynamically added to the admin nav menu
-- New functions:
+
+**Programmatic changes:**
+- New functions/methods:
   - `globals.php` (`getPostTypeLabels`, `registerDefaultPostTypes`, `registerTaxonomy`)
 
 **Bug fixes:**
@@ -1922,9 +2264,10 @@
 - includes/globals.php
 - init.php (M)
 
-## Version 1.0.0[b] (2020-06-21)
+## Version 1.0.0-beta (2020-06-21)
 *Feature Update: Custom Post Types*
 
+**General changes:**
 - Created content for the readme
 - Renamed `changelog.md` to `changelog-alpha.md`
 - Created a new changelog for Beta
@@ -1947,7 +2290,9 @@
 - Tweaked how slugs are sanitized in several back end classes
 - If the site's home page is accessed from its full permalink, it now redirects to the home URL (e.g., `www.mydomain.com`)
 - Admin menu items are now hidden if a logged in user does not have sufficient privileges to view them
-- Deprecated functions:
+
+**Programmatic changes:**
+- Deprecated functions/methods:
   - Admin `Post` class (`getPermalink`)
   - Admin `functions.php` (`adminNavMenu`)
   - `functions.php` (`registerMenu`, `registerWidget`)

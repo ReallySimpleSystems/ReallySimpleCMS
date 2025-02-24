@@ -1,21 +1,20 @@
 <?php
 /**
  * Handle AJAX requests to the server.
- * @since 1.1.0[b]{ss-03}
+ * @since 1.1.0-beta_snap-03
+ *
+ * @package ReallySimpleCMS
  */
 
 // Only initialize the base files and functions
 define('BASE_INIT', true);
 
-// Initialization file
 require_once dirname(__DIR__) . '/init.php';
-
-// Functions
-require_once FUNC;
+require_once RS_FUNC;
 
 // Fetch the user's session data if they're logged in
 if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session']))
-	$session = getOnlineUser($_COOKIE['session']);
+	$rs_session = getOnlineUser($_COOKIE['session']);
 
 if(isset($_POST)) {
 	// Check whether a comment reply has been passed to the server

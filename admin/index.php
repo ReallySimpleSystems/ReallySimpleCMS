@@ -1,20 +1,22 @@
 <?php
 /**
  * Admin dashboard page.
- * @since 1.0.2[a]
+ * @since 1.0.2-alpha
+ *
+ * @package ReallySimpleCMS
  */
+
 require_once __DIR__ . '/header.php';
+
+$action = $_GET['action'] ?? '';
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'unhide_notices':
 			$rs_notice = new Notice;
 			
-			$rs_notice->unhide($session['id']);
+			$rs_notice->unhide($rs_session['id']);
 			
 			redirect(ADMIN_URI);
 			break;
@@ -32,8 +34,8 @@ require_once __DIR__ . '/header.php';
 				if(!file_exists($theme_path . '/index.php'))
 					echo notice('Your current theme is broken. View your themes on the <a href="' . ADMIN . '/themes.php">themes page</a>.', 0, false, true);
 				
-				if($session['dismissed_notices'] !== false) {
-					$hidden = count($session['dismissed_notices']);
+				if($rs_session['dismissed_notices'] !== false) {
+					$hidden = count($rs_session['dismissed_notices']);
 					
 					$message = 'You have ' . $hidden . ' hidden ' . ($hidden === 1 ? 'notice' : 'notices') .
 						'. <a href="' . ADMIN_URI . '?action=unhide_notices">Click here</a> to unhide ' . ($hidden === 1 ? 'it' : 'them') . '.';
@@ -44,7 +46,7 @@ require_once __DIR__ . '/header.php';
 				if(ctDraft() > 0 || ctDraft('page') > 0) {
 					$message = 'You have ' . ctDraft('page') . ' unpublished <a href="/admin/posts.php?type=page&status=draft">pages</a> and ' . ctDraft() . ' unpublished <a href="/admin/posts.php?status=draft">posts</a>.';
 					
-					if(!isDismissedNotice($message, $session['dismissed_notices']))
+					if(!isDismissedNotice($message, $rs_session['dismissed_notices']))
 						echo notice($message, 0);
 				}
 				?>

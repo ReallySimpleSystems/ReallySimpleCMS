@@ -16,14 +16,14 @@
 
 **Other**
 - [a] = alpha
-- [b] = beta
+- -beta = beta
 
 ## Version 1.4.0-beta_snap-xx (xxxx-xx-xx)
 
 - Changed the format of snapshot versions from `x.x.x[x]_snap-xx` to `x.x.x-xxxx_snap-xx`
 - Coming soon!
 
-## Version 1.2.0[b]{ss-05} (2020-12-28)
+## Version 1.2.0-beta_snap-05 (2020-12-28)
 
 - Tweaked the schema for the `login_rules` database table
 - Login rules can now be viewed, created, edited, and deleted
@@ -47,12 +47,12 @@
 - includes/class-query.php
 - includes/schema.php
 
-## Version 1.2.0[b]{ss-04} (2020-12-20)
+## Version 1.2.0-beta_snap-04 (2020-12-20)
 
 - Added two new settings:
   - `track_login_attempts` (whether login attempts should be logged in the database or not)
   - `delete_old_login_attempts` (whether to delete login attempts more than 30 days old)
-- The new settings are added to the database automatically for sites updating from `1.1.7[b]`
+- The new settings are added to the database automatically for sites updating from `1.1.7-beta`
 - Added support for conditionally hidden fields in admin forms
   - The "Comments" and "Logins" settings groups are now conditionally hidden if the "Enable comments" or "Keep track of login attempts" settings are unchecked, respectively
 - Cleaned up code in the `Settings::validateSettingsData` function
@@ -67,7 +67,7 @@
 - includes/globals.php (M)
 - includes/update.php
 
-## Version 1.2.0[b]{ss-03} (2020-12-10)
+## Version 1.2.0-beta_snap-03 (2020-12-10)
 
 - Tweaked a previous entry in the changelog
 - All `select`, `update`, and `delete` queries can now use `OR` logic in their `where` clauses by supplying `'logic'=>'OR'` as an element of the `where` clause array
@@ -85,7 +85,7 @@
 - admin/logins.php
 - includes/class-query.php
 
-## Version 1.2.0[b]{ss-02} (2020-12-08)
+## Version 1.2.0-beta_snap-02 (2020-12-08)
 
 - Blacklisted logins can now be edited and whitelisted
 - Expired blacklisted logins are now deleted when a user views the "Login Blacklist" page
@@ -117,7 +117,7 @@
 - includes/update.php
 - init.php (M)
 
-## Version 1.2.0[b]{ss-01} (2020-12-05)
+## Version 1.2.0-beta_snap-01 (2020-12-05)
 *Feature Update: Login Tracking*
 
 - Tweaked a previous entry in the changelog
@@ -147,7 +147,7 @@
 - includes/schema.php
 - includes/update.php
 
-## Version 1.1.0[b]{ss-05} (2020-10-21)
+## Version 1.1.0-beta_snap-05 (2020-10-21)
 
 - Tweaked documentation in the Carbon theme's `script.js` file
 - Tweaked documentation in the front end `script.js` file
@@ -174,7 +174,7 @@
 - includes/js/script.js
 - init.php (M)
 
-## Version 1.1.0[b]{ss-04} (2020-09-23)
+## Version 1.1.0-beta_snap-04 (2020-09-23)
 
 - Added comments to the "Admin" admin bar dropdown
 - Reply links are now hidden on existing comments if comments are disabled on the post, post type, or global level (existing comments are not hidden, however)
@@ -201,12 +201,12 @@
 - includes/functions.php
 - includes/js/script.js
 
-## Version 1.1.0[b]{ss-03} (2020-09-22)
+## Version 1.1.0-beta_snap-03 (2020-09-22)
 
 - Added two new settings:
   - `comment_status` (whether comments are enabled)
   - `comment_approval` (whether comments are automatically approved)
-- The new settings are added to the database automatically for sites updating from `1.0.9[b]`
+- The new settings are added to the database automatically for sites updating from `1.0.9-beta`
 - Comments are now hidden if the global `comment_status` setting is turned off, including on post types that have them enabled
 - Created a front end class that handles comments
   - Added comment feeds
@@ -236,7 +236,7 @@
 - includes/js/script.js
 - includes/update.php
 
-## Version 1.1.0[b]{ss-02} (2020-09-21)
+## Version 1.1.0-beta_snap-02 (2020-09-21)
 
 - Tweaked a previous entry in the changelog
 - Tweaked documentation in the `update.php` file
@@ -262,13 +262,13 @@
 - includes/schema.php (M)
 - includes/update.php (M)
 
-## Version 1.1.0[b][ss-01] (2020-09-20)
+## Version 1.1.0-beta[ss-01] (2020-09-20)
 *Feature Update: Comments*
 
 - Created a database schema for the `comments` table
 - Created a file that will handle safely updating things such as the database schema
 - The `update.php` file is included in the `init.php` file
-- The `comments` database table is now created when the version is higher than `1.0.9[b]`
+- The `comments` database table is now created when the version is higher than `1.0.9-beta`
 - Added a new `comments` argument to the `registerPostType` function (if set to true, comments will be allowed for that post type; default is false)
 - Set comments to display for the `post` post type
 - Two new metadata entries are now created for posts of any type that has comments enabled (`comment_status` and `comment_count`)

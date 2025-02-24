@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class SeparatorTag extends \DomTag implements DomTagInterface {
+class SeparatorTag extends \DomTags implements DomTagInterface {
 	/**
 	 * The tag types.
 	 * @since 1.0.0

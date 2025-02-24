@@ -1,21 +1,20 @@
 <?php
 /**
  * Admin users page.
- * @since 1.1.0[a]
+ * @since 1.1.0-alpha
+ *
+ * @package ReallySimpleCMS
  */
+
 require_once __DIR__ . '/header.php';
 
-// Fetch the user's id
 $id = (int)($_GET['id'] ?? 0);
+$action = $_GET['action'] ?? '';
 
-// Create a User object
-$rs_user = new User($id);
+$rs_user = new User($id, $action);
 ?>
 <article class="content">
 	<?php
-	// Fetch the current action
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'create':
 			// Create a new user

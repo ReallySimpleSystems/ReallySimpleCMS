@@ -8,7 +8,7 @@
  */
 namespace DomTags;
 
-class ParagraphTag extends \DomTag implements DomTagInterface {
+class ParagraphTag extends \DomTags implements DomTagInterface {
 	/**
 	 * Construct the DOMtag.
 	 * @since 1.0.0

@@ -1,7 +1,86 @@
 <?php
 /**
- * Theme-specific functions.
- * @since 1.2.8[b]
+ * Theme-specific functions. Most functions in here are aliases for internal class methods.
+ * @since 1.2.8-beta
+ *
+ * @package ReallySimpleCMS
+ *
+ * ## FUNCTIONS ##
+ * POSTS:
+ * - isPost(): bool
+ * - getPostId(): int
+ * - putPostId(): void
+ * - getPostTitle(): string
+ * - putPostTitle(): void
+ * - getPostAuthor(): string
+ * - putPostAuthor(): void
+ * - getPostDate(): string
+ * - putPostDate(): void
+ * - getPostModDate(): string
+ * - putPostModDate(): void
+ * - getPostContent(): string
+ * - putPostContent(): void
+ * - getPostStatus(): string
+ * - putPostStatus(): void
+ * - getPostSlug(int $id): string
+ * - putPostSlug(int $id): void
+ * - getPostParent(): int
+ * - putPostParent(): void
+ * - getPostType(): string
+ * - putPostType(): void
+ * - getPostFeaturedImage(): string
+ * - putPostFeaturedImage(): void
+ * - getPostMeta(string $key): string
+ * - putPostMeta(string $key): void
+ * - getPostTerms(string $taxonomy, bool $linked): array
+ * - putPostTerms(string $taxonomy, bool $linked): void
+ * - getPostComments(bool $feed_only): void
+ * - getPostUrl(): string
+ * - putPostUrl(): void
+ * - postHasFeaturedImage(): bool
+ * - getPostExcerpt(int $num_words): string
+ * - putPostExcerpt(int $num_words): void
+ * TERMS:
+ * - isTerm(): bool
+ * - getTermId(): int
+ * - putTermId(): void
+ * - getTermName(): string
+ * - putTermName(): void
+ * - getTermSlug(int $id): string
+ * - putTermSlug(int $id): void
+ * - getTermTaxonomy(): string
+ * - putTermTaxonomy(): void
+ * - getTermParent(): int
+ * - putTermParent(): void
+ * - getTermUrl(): string
+ * - putTermUrl(): void
+ * - getCategoryId(): int
+ * - putCategoryId(): void
+ * - getCategoryName(): string
+ * - putCategoryName(): void
+ * - getCategorySlug(int $id): string
+ * - putCategorySlug(int $id): void
+ * - getCategoryParent(): int
+ * - putCategoryParent(): void
+ * - getCategoryUrl(): string
+ * - putCategoryUrl(): void
+ * - getTermTaxName(): string
+ * - putTermTaxName(): void
+ * - getTermPosts(mixed $_term, string $order_by, string $order, int $limit): array
+ * - putTermPosts(mixed $_term, string $order_by, string $order, int $limit): void
+ * QUERIES:
+ * - querySelect(string $table, string|array $cols, array $where, array $args): int|array
+ * - querySelectRow(string $table, string|array $cols, array $where, array $args): int|array
+ * - querySelectField(string $table, string $col, array $where, array $args): string
+ * - queryInsert(string $table, array $data, array $args): int
+ * - queryUpdate(string $table, array $data, array $where, array $args): void
+ * - queryDelete(string $table, array $where, array $args): void
+ * MISCELLANEOUS:
+ * - templateExists(string $template, string $dir): bool
+ * - getHeader(string $template): bool
+ * - getFooter(string $template): bool
+ * - pageTitle(): void
+ * - metaTags(): void
  */
 
 /*------------------------------------*\
@@ -10,12 +89,11 @@
 
 /**
  * Check whether the currently viewed page is a post.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @return bool
  */
 function isPost(): bool {
-	// Extend the Post object
 	global $rs_post;
 	
 	return isset($rs_post);
@@ -23,13 +101,12 @@ function isPost(): bool {
 
 /**
  * Alias for the Post class' getPostId function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostId()
  * @return int
  */
 function getPostId(): int {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostId();
@@ -37,19 +114,18 @@ function getPostId(): int {
 
 /**
  * Display the post's id.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostId(): void { echo getPostId(); }
 
 /**
  * Alias for the Post class' getPostTitle function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostTitle()
  * @return string
  */
 function getPostTitle(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostTitle();
@@ -57,19 +133,18 @@ function getPostTitle(): string {
 
 /**
  * Display the post's title.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostTitle(): void { echo getPostTitle(); }
 
 /**
  * Alias for the Post class' getPostAuthor function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostAuthor()
  * @return string
  */
 function getPostAuthor(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostAuthor();
@@ -77,19 +152,18 @@ function getPostAuthor(): string {
 
 /**
  * Display the post's author.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostAuthor(): void { echo getPostAuthor(); }
 
 /**
  * Alias for the Post class' getPostDate function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostDate()
  * @return string
  */
 function getPostDate(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostDate();
@@ -97,19 +171,18 @@ function getPostDate(): string {
 
 /**
  * Display the post's publish date.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostDate(): void { echo getPostDate(); }
 
 /**
  * Alias for the Post class' getPostModDate function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostModDate()
  * @return string
  */
 function getPostModDate(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostModDate();
@@ -117,19 +190,18 @@ function getPostModDate(): string {
 
 /**
  * Display the post's modified date.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostModDate(): void { echo getPostModDate(); }
 
 /**
  * Alias for the Post class' getPostContent function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostContent()
  * @return string
  */
 function getPostContent(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostContent();
@@ -137,19 +209,18 @@ function getPostContent(): string {
 
 /**
  * Display the post's content.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostContent(): void { echo getPostContent(); }
 
 /**
  * Alias for the Post class' getPostStatus function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostStatus()
  * @return string
  */
 function getPostStatus(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostStatus();
@@ -157,20 +228,19 @@ function getPostStatus(): string {
 
 /**
  * Display the post's status.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostStatus(): void { echo getPostStatus(); }
 
 /**
  * Alias for the Post class' getPostSlug function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostSlug()
- * @param int $id
+ * @param int $id -- The post's id.
  * @return string
  */
-function getPostSlug($id): string {
-	// Extend the Post object
+function getPostSlug(int $id): string {
 	global $rs_post;
 	
 	return $rs_post->getPostSlug($id);
@@ -178,21 +248,20 @@ function getPostSlug($id): string {
 
 /**
  * Display the post's slug.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
- * @param int $id
+ * @param int $id -- The post's id.
  */
-function putPostSlug($id): void { echo getPostSlug($id); }
+function putPostSlug(int $id): void { echo getPostSlug($id); }
 
 /**
  * Alias for the Post class' getPostParent function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostParent()
  * @return int
  */
 function getPostParent(): int {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostParent();
@@ -200,19 +269,18 @@ function getPostParent(): int {
 
 /**
  * Display the post's parent.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostParent(): void { echo getPostParent(); }
 
 /**
  * Alias for the Post class' getPostType function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostType()
  * @return string
  */
 function getPostType(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostType();
@@ -220,19 +288,18 @@ function getPostType(): string {
 
 /**
  * Display the post's type.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostType(): void { echo getPostType(); }
 
 /**
  * Alias for the Post class' getPostFeaturedImage function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostFeaturedImage()
  * @return string
  */
 function getPostFeaturedImage(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostFeaturedImage();
@@ -240,20 +307,19 @@ function getPostFeaturedImage(): string {
 
 /**
  * Display the post's featured image.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostFeaturedImage(): void { echo getPostFeaturedImage(); }
 
 /**
  * Alias for the Post class' getPostMeta function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostMeta()
- * @param string $key
+ * @param string $key -- The metadata key.
  * @return string
  */
-function getPostMeta($key): string {
-	// Extend the Post object
+function getPostMeta(string $key): string {
 	global $rs_post;
 	
 	return $rs_post->getPostMeta($key);
@@ -261,19 +327,19 @@ function getPostMeta($key): string {
 
 /**
  * Display the post's metadata.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
- * @param string $key
+ * @param string $key -- The metadata key.
  */
-function putPostMeta($key): void { echo getPostMeta($key); }
+function putPostMeta(string $key): void { echo getPostMeta($key); }
 
 /**
  * Alias for the Post class' getPostTerms function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostTerms()
  * @param string $taxonomy -- The term's taxonomy.
- * @param bool $linked (optional; default: true)
+ * @param bool $linked (optional) -- Whether to link the terms.
  * @return array
  */
 function getPostTerms(string $taxonomy = 'category', bool $linked = true): array {
@@ -284,10 +350,10 @@ function getPostTerms(string $taxonomy = 'category', bool $linked = true): array
 
 /**
  * Display the post's terms.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
- * @param string $taxonomy (optional) -- The term's taxonomy.
- * @param bool $linked (optional; default: true)
+ * @param string $taxonomy -- The term's taxonomy.
+ * @param bool $linked (optional) -- Whether to link the terms.
  */
 function putPostTerms(string $taxonomy = 'category', bool $linked = true): void {
 	echo empty(getPostTerms($taxonomy)) ? 'None' : implode(', ', getPostTerms($taxonomy, $linked));
@@ -295,13 +361,12 @@ function putPostTerms(string $taxonomy = 'category', bool $linked = true): void 
 
 /**
  * Alias for the Post class' getPostComments function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostComments()
- * @param bool $feed_only (optional; default: false)
+ * @param bool $feed_only (optional) -- Whether to only display the comment feed.
  */
-function getPostComments($feed_only = false): void {
-	// Extend the Post object
+function getPostComments(bool $feed_only = false): void {
 	global $rs_post;
 	
 	$rs_post->getPostComments($feed_only);
@@ -309,13 +374,12 @@ function getPostComments($feed_only = false): void {
 
 /**
  * Alias for the Post class' getPostUrl function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::getPostUrl()
  * @return string
  */
 function getPostUrl(): string {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->getPostUrl();
@@ -323,19 +387,18 @@ function getPostUrl(): string {
 
 /**
  * Display the post's full URL.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putPostUrl(): void { echo getPostUrl(); }
 
 /**
  * Alias for the Post class' postHasFeaturedImage function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Post::postHasFeaturedImage()
  * @return bool
  */
 function postHasFeaturedImage(): bool {
-	// Extend the Post object
 	global $rs_post;
 	
 	return $rs_post->postHasFeaturedImage();
@@ -343,22 +406,22 @@ function postHasFeaturedImage(): bool {
 
 /**
  * Construct the post's excerpt text.
- * @since 1.2.9[b]
+ * @since 1.2.9-beta
  *
- * @param int $num_words (optional; default: 25)
+ * @param int $num_words (optional) -- The number of words to include before trimming.
  * @return string
  */
-function getPostExcerpt($num_words = 25): string {
+function getPostExcerpt(int $num_words = 25): string {
 	return trimWords(str_replace(array("\n", "\r", "  "), ' ', strip_tags(getPostContent())), $num_words, '...');
 }
 
 /**
  * Display the post's excerpt text.
- * @since 1.2.9[b]
+ * @since 1.2.9-beta
  *
- * @param int $num_words (optional; default: 25)
+ * @param int $num_words (optional) -- The number of words to include before trimming.
  */
-function putPostExcerpt($num_words = 25): void { echo getPostExcerpt($num_words); }
+function putPostExcerpt(int $num_words = 25): void { echo getPostExcerpt($num_words); }
 
 /*------------------------------------*\
     TERMS
@@ -366,12 +429,11 @@ function putPostExcerpt($num_words = 25): void { echo getPostExcerpt($num_words)
 
 /**
  * Check whether the currently viewed page is a term.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @return bool
  */
 function isTerm(): bool {
-	// Extend the Term object
 	global $rs_term;
 	
 	return isset($rs_term);
@@ -379,13 +441,12 @@ function isTerm(): bool {
 
 /**
  * Alias for the Term class' getTermId function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Term::getTermId()
  * @return int
  */
 function getTermId(): int {
-	// Extend the Term object
 	global $rs_term;
 	
 	return $rs_term->getTermId();
@@ -393,19 +454,18 @@ function getTermId(): int {
 
 /**
  * Display the term's id.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putTermId(): void { echo getTermId(); }
 
 /**
  * Alias for the Term class' getTermName function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Term::getTermName()
  * @return string
  */
 function getTermName(): string {
-	// Extend the Term object
 	global $rs_term;
 	
 	return $rs_term->getTermName();
@@ -413,20 +473,19 @@ function getTermName(): string {
 
 /**
  * Display the term's name.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putTermName(): void { echo getTermName(); }
 
 /**
  * Alias for the Term class' getTermSlug function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Term::getTermSlug()
- * @param int $id
+ * @param int $id -- The term's id.
  * @return string
  */
-function getTermSlug($id): string {
-	// Extend the Term object
+function getTermSlug(int $id): string {
 	global $rs_term;
 	
 	return $rs_term->getTermSlug($id);
@@ -434,21 +493,20 @@ function getTermSlug($id): string {
 
 /**
  * Display the term's slug.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
- * @param int $id
+ * @param int $id -- The term's id.
  */
-function putTermSlug($id): void { echo getTermSlug($id); }
+function putTermSlug(int $id): void { echo getTermSlug($id); }
 
 /**
  * Alias for the Term class' getTermTaxonomy function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Term::getTermTaxonomy()
  * @return string
  */
 function getTermTaxonomy(): string {
-	// Extend the Term object
 	global $rs_term;
 	
 	return $rs_term->getTermTaxonomy();
@@ -456,19 +514,18 @@ function getTermTaxonomy(): string {
 
 /**
  * Display the term's taxonomy.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putTermTaxonomy(): void { echo getTermTaxonomy(); }
 
 /**
  * Alias for the Term class' getTermParent function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Term::getTermParent()
  * @return int
  */
 function getTermParent(): int {
-	// Extend the Term object
 	global $rs_term;
 	
 	return $rs_term->getTermParent();
@@ -476,19 +533,18 @@ function getTermParent(): int {
 
 /**
  * Display the term's parent.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putTermParent(): void { echo getTermParent(); }
 
 /**
  * Alias for the Term class' getTermUrl function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see Term::getTermUrl()
  * @return string
  */
 function getTermUrl(): string {
-	// Extend the Term object
 	global $rs_term;
 	
 	return $rs_term->getTermUrl();
@@ -496,13 +552,13 @@ function getTermUrl(): string {
 
 /**
  * Display the term's full URL.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  */
 function putTermUrl(): void { echo getTermUrl(); }
 
 /**
  * Alias for the getTermId function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see getTermId()
  * @return int
@@ -511,7 +567,7 @@ function getCategoryId(): int { return getTermId(); }
 
 /**
  * Alias for the putTermId function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see putTermId()
  */
@@ -519,7 +575,7 @@ function putCategoryId(): void { putTermId(); }
 
 /**
  * Alias for the getTermName function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see getTermName()
  * @return string
@@ -528,7 +584,7 @@ function getCategoryName(): string { return getTermName(); }
 
 /**
  * Alias for the putTermName function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see putTermName()
  */
@@ -536,26 +592,26 @@ function putCategoryName(): void { putTermName(); }
 
 /**
  * Alias for the getTermSlug function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see getTermSlug()
- * @param int $id
+ * @param int $id -- The term's id.
  * @return string
  */
-function getCategorySlug($id): string { return getTermSlug($id); }
+function getCategorySlug(int $id): string { return getTermSlug($id); }
 
 /**
  * Alias for the putTermSlug function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see putTermSlug()
- * @param int $id
+ * @param int $id -- The term's id.
  */
-function putCategorySlug($id): void { putTermSlug($id); }
+function putCategorySlug(int $id): void { putTermSlug($id); }
 
 /**
  * Alias for the getTermParent function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see getTermParent()
  * @return int
@@ -564,7 +620,7 @@ function getCategoryParent(): int { return getTermParent(); }
 
 /**
  * Alias for the putTermParent function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see putTermParent()
  */
@@ -572,7 +628,7 @@ function putCategoryParent(): void { putTermParent(); }
 
 /**
  * Alias for the getTermUrl function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see getTermUrl()
  * @return string
@@ -581,7 +637,7 @@ function getCategoryUrl(): string { return getTermUrl(); }
 
 /**
  * Alias for the putTermUrl function.
- * @since 1.2.8[b]
+ * @since 1.2.8-beta
  *
  * @see putTermUrl()
  */
@@ -589,26 +645,25 @@ function putCategoryUrl(): void { putTermUrl(); }
 
 /**
  * Fetch a user-friendly version of the term's taxonomy name.
- * @since 1.3.0[b]
+ * @since 1.3.0-beta
  *
  * @return string
  */
 function getTermTaxName(): string {
-	// Extend the taxonomies array
-	global $taxonomies;
+	global $rs_taxonomies;
 	
-	return $taxonomies[getTermTaxonomy()]['labels']['name_singular'];
+	return $rs_taxonomies[getTermTaxonomy()]['labels']['name_singular'];
 }
 
 /**
  * Display a user-friendly version of the term's taxonomy name.
- * @since 1.3.0[b]
+ * @since 1.3.0-beta
  */
 function putTermTaxName(): void { echo getTermTaxName(); }
 
 /**
  * Fetch all posts associated with the current term.
- * @since 2.4.1[a]
+ * @since 2.4.1-alpha
  *
  * @param mixed $_term (optional) -- The term.
  * @param string $order_by (optional) -- The column to order by.
@@ -630,16 +685,26 @@ function getTermPosts(mixed $_term = null, string $order_by = 'date', string $or
 		$term = getTermId();
 	}
 	
-	$relationships = $rs_query->select('term_relationships', 'post', array('term' => $term));
+	$relationships = $rs_query->select('term_relationships', 'post', array(
+		'term' => $term
+	));
 	
 	foreach($relationships as $relationship) {
 		// Skip the post if it isn't published
-		if(!$rs_query->selectRow('posts', 'id', array('id' => $relationship['post'], 'status' => 'published')))
+		if(!$rs_query->selectRow('posts', 'id', array(
+			'id' => $relationship['post'],
+			'status' => 'published'
+		))) {
 			continue;
+		}
 		
 		$posts[] = $rs_query->selectRow('posts', '*', array(
 			'id' => $relationship['post']
-		), $order_by, $order, $limit);
+		), array(
+			'order_by' => $order_by,
+			'order' => $order,
+			'limit' => $limit
+		));
 	}
 	
 	return $posts;
@@ -647,7 +712,7 @@ function getTermPosts(mixed $_term = null, string $order_by = 'date', string $or
 
 /**
  * Display all posts associated with the current term.
- * @since 1.3.0[b]
+ * @since 1.3.0-beta
  *
  * @param mixed $_term (optional) -- The term.
  * @param string $order_by (optional) -- The column to order by.
@@ -658,14 +723,21 @@ function putTermPosts(mixed $_term = null, string $order_by = 'date', string $or
 	$posts = getTermPosts($_term, $order_by, $order, $limit);
 	
 	if(empty($posts)) {
-		echo '<p>There are no posts to display!</p>';
+		echo domTag('p', array(
+			'content' => 'There are no posts to display!'
+		));
 	} else {
 		$content = '<ul>';
 		
 		foreach($posts as $post) {
 			$permalink = getPost($post['slug'])->getPostPermalink($post['type'], $post['parent'], $post['slug']);
 			
-			$content .= '<li><a href="' . $permalink . '">' . $post['title'] . '</a></li>';
+			$content .= domTag('li', array(
+				'content' => domTag('a', array(
+					'href' => $permalink,
+					'content' => $post['title']
+				))
+			));
 		}
 		
 		echo $content . '</ul>';
@@ -678,113 +750,100 @@ function putTermPosts(mixed $_term = null, string $order_by = 'date', string $or
 
 /**
  * Alias for the Query class' select function.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @see Query::select()
- * @param string $table
- * @param string|array $data (optional; default: '*')
- * @param array $where (optional; default: array())
- * @param string $order_by (optional; default: '')
- * @param string $order (optional; default: 'ASC')
- * @param string|array $limit (optional; default: '')
+ * @param string $table -- The table name.
+ * @param string|array $cols (optional) -- The column(s) to query.
+ * @param array $where (optional) -- The where clause.
+ * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
  * @return int|array
  */
-function querySelect($table, $data = '*', $where = array(), $order_by = '', $order = 'ASC', $limit = ''
-	): int|array {
-		
-	// Extend the Query object
+function querySelect(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
 	global $rs_query;
 	
-	return $rs_query->select($table, $data, $where, $order_by, $order, $limit);
+	return $rs_query->select($table, $data, $where, $args);
 }
 
 /**
  * Alias for the Query class' selectRow function.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @see Query::selectRow()
- * @param string $table
- * @param string|array $data (optional; default: '*')
- * @param array $where (optional; default: array())
- * @param string $order_by (optional; default: '')
- * @param string $order (optional; default: 'ASC')
- * @param string|array $limit (optional; default: '')
+ * @param string $table -- The table name.
+ * @param string|array $cols (optional) -- The column(s) to query.
+ * @param array $where (optional) -- The where clause.
+ * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
  * @return int|array
  */
-function querySelectRow($table, $data = '*', $where = array(), $order_by = '', $order = 'ASC', $limit = ''
-	): int|array {
-		
-	// Extend the Query object
+function querySelectRow(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
 	global $rs_query;
 	
-	return $rs_query->selectRow($table, $data, $where, $order_by, $order, $limit);
+	return $rs_query->selectRow($table, $data, $where, $args);
 }
 
 /**
  * Alias for the Query class' selectField function.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @see Query::selectField()
- * @param string $table
- * @param string $field
- * @param array $where (optional; default: array())
- * @param string $order_by (optional; default: '')
- * @param string $order (optional; default: 'ASC')
- * @param string|array $limit (optional; default: '')
+ * @param string $table -- The table name.
+ * @param string $col -- The column to query.
+ * @param array $where (optional) -- The where clause.
+ * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
  * @return string
  */
-function querySelectField($table, $field, $where = array(), $order_by = '', $order = 'ASC', $limit = ''): string {
-	// Extend the Query object
+function querySelectField(string $table, string $col, array $where = array(), array $args = array()): string {
 	global $rs_query;
 	
-	return $rs_query->selectField($table, $field, $where, $order_by, $order, $limit);
+	return $rs_query->selectField($table, $col, $where, $args);
 }
 
 /**
  * Alias for the Query class' insert function.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @see Query::insert()
- * @param string $table
- * @param array $data
+ * @param string $table -- The table name.
+ * @param array $data -- The data to insert.
+ * @param array $args (optional) -- Additional args.
  * @return int
  */
-function queryInsert($table, $data): int {
-	// Extend the Query object
+function queryInsert(string $table, array $data, array $args = array()): int {
 	global $rs_query;
 	
-	return $rs_query->insert($table, $data);
+	return $rs_query->insert($table, $data, $args);
 }
 
 /**
  * Alias for the Query class' update function.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @see Query::update()
- * @param string $table
- * @param array $data
- * @param array $where (optional; default: array())
+ * @param string $table -- The table name.
+ * @param array $data -- The data to update.
+ * @param array $where (optional) -- The where clause.
+ * @param array $args (optional) -- Additional args.
  */
-function queryUpdate($table, $data, $where = array()): void {
-	// Extend the Query object
+function queryUpdate(string $table, array $data, array $where = array(), array $args = array()): void {
 	global $rs_query;
 	
-	$rs_query->update($table, $data, $where);
+	$rs_query->update($table, $data, $where, $args);
 }
 
 /**
  * Alias for the Query class' delete function.
- * @since 1.3.8[b]
+ * @since 1.3.8-beta
  *
  * @see Query::delete()
- * @param string $table
- * @param array $where (optional; default: array())
+ * @param string $table -- The table name.
+ * @param array $where (optional) -- The where clause.
+ * @param array $args (optional) -- Additional args.
  */
-function queryDelete($table, $where = array()): void {
-	// Extend the Query object
+function queryDelete(string $table, array $where = array(), array $args = array()): void {
 	global $rs_query;
 	
-	$rs_query->delete($table, $where);
+	$rs_query->delete($table, $where, $args);
 }
 
 /*------------------------------------*\
@@ -793,65 +852,63 @@ function queryDelete($table, $where = array()): void {
 
 /**
  * Check whether a page template exists.
- * @since 2.3.3[a]
+ * @since 2.3.3-alpha
  *
- * @param string $template
- * @param string $dir
+ * @param string $template -- The template's name.
+ * @param string $dir -- The template's directory.
  * @return bool
  */
-function templateExists($template, $dir): bool {
+function templateExists(string $template, string $dir): bool {
     return file_exists(slash($dir) . $template);
 }
 
 /**
  * Fetch the theme's header template.
- * @since 1.5.5[a]
+ * @since 1.5.5-alpha
  *
- * @param string $template (optional; default: '')
- * @return null (when no template exists)
+ * @param string $template (optional) -- The template's name.
+ * @return bool
  */
-function getHeader($template = '') {
-	// Extend the user's session data
-	global $session;
+function getHeader(string $template = ''): bool {
+	global $rs_session;
 	
 	$theme_path = slash(PATH . THEMES) . getSetting('theme');
 	
-	// Check whether the template file exists
 	if(!file_exists($theme_path . '/header.php') && !file_exists(slash($theme_path) . $template . '.php')) {
-		// Don't load anything
-		return null;
+		// Don't load anything; our header template doesn't exist
+		return false;
 	} else {
 		// Include the header template
 		require_once slash($theme_path) . (!empty($template) ? $template : 'header') . '.php';
+		return true;
 	}
 }
 
 /**
  * Fetch the theme's footer template.
- * @since 1.5.5[a]
+ * @since 1.5.5-alpha
  *
- * @param string $template (optional; default: '')
- * @return null (when no template exists)
+ * @param string $template (optional) -- The template's name.
+ * @return bool
  */
-function getFooter($template = '') {
-	// Extend the user's session data
-	global $session;
+function getFooter(string $template = ''): bool {
+	global $rs_session;
 	
 	$theme_path = slash(PATH . THEMES) . getSetting('theme');
 	
-	// Check whether the template file exists
 	if(!file_exists($theme_path . '/footer.php') && !file_exists(slash($theme_path) . $template . '.php')) {
-		// Don't load anything
-		return null;
+		// Don't load anything; our footer template doesn't exist
+		return false;
 	} else {
 		// Include the footer template
 		require_once slash($theme_path) . (!empty($template) ? $template : 'footer') . '.php';
+		return true;
 	}
 }
 
 /**
  * Construct and display the page title.
- * @since 1.1.3[b]
+ * @since 1.1.3-beta
  */
 function pageTitle(): void {
 	if(isPost())
@@ -863,7 +920,7 @@ function pageTitle(): void {
 
 /**
  * Set up all of the meta tags for the <head> section.
- * @since 1.1.3[b]
+ * @since 1.1.3-beta
  */
 function metaTags(): void {
 	?>
