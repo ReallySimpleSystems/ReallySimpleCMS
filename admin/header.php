@@ -7,8 +7,7 @@
  */
 
 require_once dirname(__DIR__) . '/init.php';
-require_once ADMIN_FUNC;
-require_once RS_FUNC;
+requireFiles(array(RS_ADMIN_FUNC, RS_FUNC));
 
 if(file_exists(slash(PATH . THEMES) . getSetting('theme') . '/functions.php'))
 	require_once slash(PATH . THEMES) . getSetting('theme') . '/functions.php';
@@ -20,6 +19,7 @@ if(!isset($_COOKIE['session']) || !isValidSession($_COOKIE['session'])) {
 	$login_slug = getSetting('login_slug');
 	$redirect = ($_SERVER['REQUEST_URI'] !== '/admin/' ? 'redirect=' . urlencode($_SERVER['PHP_SELF']) : '');
 	
+	// If not, redirect to the login page
 	if(!empty($login_slug))
 		redirect('/login.php?secure_login=' . $login_slug . (!empty($redirect) ? '&' . $redirect : ''));
 	else
@@ -30,7 +30,7 @@ $current_page = getCurrentPage();
 $notices = array();
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
 		<title><?php echo getPageTitle(); ?> ▸ <?php putSetting('site_title'); ?> &mdash; <?php echo RS_ENGINE; ?></title>
 		<meta charset="UTF-8">
@@ -42,14 +42,27 @@ $notices = array();
 	</head>
 	<body class="<?php echo $current_page; ?>">
 		<header id="admin-header">
-			<a id="site-title" href="/">
-				<i class="fa-solid fa-house-chimney"></i>
-				<span><?php putSetting('site_title'); ?></span>
-			</a>
+			<?php
+			// Site title
+			echo domTag('a', array(
+				'id' => 'site-title',
+				'href' => '/',
+				'content' => domTag('i', array(
+					'class' => 'fa-solid fa-house-chimney'
+				)) . domTag('span', array(
+					'content' => getSetting('site_title')
+				))
+			));
+			?>
 			<div class="user-dropdown">
-				<span>Welcome, <?php echo $session['display_name']; ?></span>
 				<?php
-				echo getMedia($session['avatar'], array(
+				// Display name
+				echo domTag('span', array(
+					'content' => 'Welcome, ' . $rs_session['display_name']
+				));
+				
+				// Small avatar
+				echo getMedia($rs_session['avatar'], array(
 					'class' => 'avatar',
 					'width' => 20,
 					'height' => 20
@@ -57,21 +70,36 @@ $notices = array();
 				?>
 				<ul class="user-dropdown-menu">
 					<?php
-					echo getMedia($session['avatar'], array(
+					// Large avatar
+					echo getMedia($rs_session['avatar'], array(
 						'class' => 'avatar-large',
 						'width' => 100,
 						'height' => 100
 					));
+					
+					// User profile
+					echo domTag('li', array(
+						'content' => domTag('a', array(
+							'href' => slash(ADMIN) . 'profile.php',
+							'content' => 'My Profile'
+						))
+					));
+					
+					// Log out
+					echo domTag('li', array(
+						'content' => domTag('a', array(
+							'href' => '../login.php?action=logout',
+							'content' => 'Log Out'
+						))
+					));
 					?>
-					<li><a href="profile.php">My Profile</a></li>
-					<li><a href="../login.php?action=logout">Log Out</a></li>
 				</ul>
 			</div>
 		</header>
 		<div id="admin-nav-wrap"></div>
 		<nav id="admin-nav-menu">
 			<ul class="menu">
-				<?php adminNavMenu(); ?>
+				<?php registerAdminMenu(); ?>
 			</ul>
 		</nav>
 		<noscript id="no-js" class="header-notice">Warning! Your browser either does not support or is set to disable <a href="https://www.w3schools.com/js/default.asp" target="_blank" rel="noreferrer noopener">JavaScript</a>. Some features may not work as expected.</noscript>

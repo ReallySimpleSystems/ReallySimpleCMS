@@ -2,6 +2,8 @@
 /**
  * Admin categories page.
  * @since 1.5.0-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
 require_once __DIR__ . '/header.php';
@@ -9,7 +11,7 @@ require_once __DIR__ . '/header.php';
 $id = (int)($_GET['id'] ?? 0);
 $action = $_GET['action'] ?? '';
 
-$rs_category = new Term($id, $action, $taxonomies['category']);
+$rs_category = new \Admin\Term($id, $action, $rs_taxonomies['category']);
 ?>
 <article class="content">
 	<?php

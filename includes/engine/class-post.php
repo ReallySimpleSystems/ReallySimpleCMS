@@ -94,7 +94,7 @@ class Post {
 	 * @param string $slug (optional) -- The post's slug.
 	 */
 	public function __construct(string $slug = '') {
-		global $rs_query, $session, $post_types, $taxonomies;
+		global $rs_query, $rs_session, $rs_post_types, $rs_taxonomies;
 		
 		if(!empty($slug)) {
 			$this->slug = $slug;
@@ -104,8 +104,8 @@ class Post {
 			
 			// Home page
 			if($raw_uri === '/' || (str_starts_with($raw_uri, '/?') && !isset($_GET['preview']))) {
-				$home_page = $rs_query->selectField('settings', 's_value', array(
-					's_name' => 'home_page'
+				$home_page = $rs_query->selectField(array('settings', 's_'), 'value', array(
+					'name' => 'home_page'
 				));
 				
 				$this->slug = $this->getPostSlug($home_page);
@@ -121,12 +121,12 @@ class Post {
 				}
 				
 				if(!$is_published) {
-					if($status === 'draft' && isset($session))
+					if($status === 'draft' && isset($rs_session))
 						redirect('/?id=' . $home_page . '&preview=true');
 					else
 						redirect('/404.php');
 				} else {
-					if($status === 'private' && !isset($session))
+					if($status === 'private' && !isset($rs_session))
 						redirect('/404.php');
 				}
 			} // All other pages
@@ -158,7 +158,7 @@ class Post {
 						}
 					}
 					
-					if(!isset($session)) redirect('/404.php');
+					if(!isset($rs_session)) redirect('/404.php');
 				} else {
 					$uri = explode('/', $raw_uri);
 					
@@ -185,12 +185,12 @@ class Post {
 					}
 					
 					if(!$is_published) {
-						if($status === 'draft' && isset($session) && !empty($id))
+						if($status === 'draft' && isset($rs_session) && !empty($id))
 							redirect('/?id=' . $id . '&preview=true');
 						else
 							redirect('/404.php');
 					} else {
-						if($status === 'private' && !isset($session))
+						if($status === 'private' && !isset($rs_session))
 							redirect('/404.php');
 						
 						if(isHomePage($id)) {
@@ -210,14 +210,14 @@ class Post {
 			}
 		}
 		
-		if(array_key_exists($this->getPostType(), $post_types)) {
-			$this->type_data = $post_types[$this->getPostType()];
+		if(array_key_exists($this->getPostType(), $rs_post_types)) {
+			$this->type_data = $rs_post_types[$this->getPostType()];
 			
 			// Fetch any associated taxonomy data
 			if(!empty($this->type_data['taxonomies'])) {
 				foreach($this->type_data['taxonomies'] as $tax) {
-					if(array_key_exists($tax, $taxonomies))
-						$this->tax_data[] = $taxonomies[$tax];
+					if(array_key_exists($tax, $rs_taxonomies))
+						$this->tax_data[] = $rs_taxonomies[$tax];
 				}
 			}
 		} else {

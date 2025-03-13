@@ -9,6 +9,14 @@
 
 define('THEME_VERSION', '1.12');
 
+registerTheme('carbon', array(
+	'author' => array(
+		'name' => 'Jace Fincham',
+		'url' => 'https://jacefincham.com/'
+	),
+	'version' => THEME_VERSION
+));
+
 /**
  * Register custom post types.
  * @since 1.0.0-beta

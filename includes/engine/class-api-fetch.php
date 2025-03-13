@@ -6,10 +6,10 @@
  * @package ReallySimpleCMS
  * @subpackage Engine
  *
- * ## VARIABLES ##
+ * ## VARIABLES [1] ##
  * - private string $endpoint
  *
- * ## METHODS ##
+ * ## METHODS [3] ##
  * - public __construct(string $project)
  * - public getVersion(): string
  * - public getDownload(): string

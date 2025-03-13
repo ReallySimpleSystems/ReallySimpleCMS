@@ -2,14 +2,17 @@
 /**
  * Admin logins page.
  * @since 1.2.0-beta_snap-01
+ *
+ * @package ReallySimpleCMS
  */
+
 require_once __DIR__ . '/header.php';
 
-$page = $_GET['page'] ?? 'attempts';
 $id = (int)($_GET['id'] ?? 0);
 $action = $_GET['action'] ?? '';
+$page = $_GET['page'] ?? 'attempts';
 
-$rs_login = new Login($id, $action, $page);
+$rs_login = new \Admin\Login($id, $action, $page);
 ?>
 <article class="content">
 	<?php

@@ -1,0 +1,103 @@
+<?php
+/**
+ * Taxonomy registry functions.
+ * @since 1.4.0-beta_snap-03
+ *
+ * @package ReallySimpleCMS
+ *
+ * ## FUNCTIONS [5] ##
+ * - registerTaxonomy(string $name, string $post_type, array $args): ?array
+ * - unregisterTaxonomy(string $name, bool $del_terms): bool
+ * - registerDefaultTaxonomies(): void
+ * - taxonomyExists(string $name): bool
+ * - getTaxonomyId(string $name): int
+ */
+
+/**
+ * Register a taxonomy.
+ * @since 1.4.0-beta_snap-03
+ *
+ * @param string $name -- The taxonomy's name.
+ * @param string $post_type -- The associated post type.
+ * @param array $args (optional) -- The args.
+ * @return null|array
+ */
+function registerTaxonomy(string $name, string $post_type, array $args = array()): ?array {
+	global $rs_register;
+	
+	return $rs_register->registerTaxonomy($name, $post_type, $args);
+}
+
+/**
+ * Unregister a taxonomy.
+ * @since 1.4.0-beta_snap-03
+ *
+ * @param string $name -- The taxonomy's name.
+ * @param bool $del_terms -- Whether to delete all term data from the database.
+ * @return bool
+ */
+function unregisterTaxonomy(string $name, bool $del_terms = false): bool {
+	global $rs_register;
+	
+	return $rs_register->unregisterTaxonomy($name, $del_terms);
+}
+
+/**
+ * Register default taxonomies.
+ * @since 1.0.4-beta
+ */
+function registerDefaultTaxonomies(): void {
+	// Category
+	registerTaxonomy('category', 'post', array(
+		'menu_link' => 'categories.php',
+		'default_term' => array(
+			'name' => 'Uncategorized',
+			'slug' => 'uncategorized'
+		)
+	));
+	
+	// Nav_menu
+	registerTaxonomy('nav_menu', '', array(
+		'labels' => array(
+			'name' => 'Menus',
+			'name_lowercase' => 'menus',
+			'name_singular' => 'Menu',
+			'list_items' => 'List Menus',
+			'create_item' => 'Create Menu',
+			'edit_item' => 'Edit Menu'
+		),
+		'public' => false,
+		'create_privileges' => false,
+		'menu_link' => 'menus.php'
+	));
+}
+
+/**
+ * Check whether a taxonomy exists in the database.
+ * @since 1.0.5-beta
+ *
+ * @param string $name -- The taxonomy's name.
+ * @return bool
+ */
+function taxonomyExists(string $name): bool {
+	global $rs_taxonomies;
+	
+	return !empty($rs_taxonomies) && array_key_exists($name, $rs_taxonomies);
+}
+
+/**
+ * Fetch a taxonomy's id.
+ * @since 1.5.0-alpha
+ *
+ * @param string $name -- The taxonomy's name.
+ * @return int
+ */
+function getTaxonomyId(string $name): int {
+	global $rs_query;
+	
+	$name = sanitize($name);
+	
+	return (int)$rs_query->selectField(array('taxonomies', 'ta_'), 'id', array(
+		'name' => $name
+	)) ?? 0;
+}

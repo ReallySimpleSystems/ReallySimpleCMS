@@ -1,4 +1,4 @@
-/**
+/*!
  * Script file for the front end of the CMS.
  * @since 2.2.1-alpha
  *
@@ -91,7 +91,7 @@ jQuery(document).ready($ => {
 				
 				refreshFeed();
 			},
-			url: '/includes/ajax.php'
+			url: '/includes/ajax/ajax.php'
 		});
 	});
 	
@@ -143,7 +143,7 @@ jQuery(document).ready($ => {
 			success: result => {
 				refreshFeed();
 			},
-			url: '/includes/ajax.php'
+			url: '/includes/ajax/ajax.php'
 		});
 	});
 	
@@ -171,7 +171,7 @@ jQuery(document).ready($ => {
 				
 				refreshFeed();
 			},
-			url: '/includes/ajax.php'
+			url: '/includes/ajax/ajax.php'
 		});
 	});
 	
@@ -268,7 +268,7 @@ jQuery(document).ready($ => {
 			success: result => {
 				$(elem).siblings('span').text(result);
 			},
-			url: '/includes/ajax.php'
+			url: '/includes/ajax/ajax.php'
 		});
 	}
 	
@@ -294,7 +294,7 @@ jQuery(document).ready($ => {
 				
 				feed_start += 10;
 			},
-			url: '/includes/ajax.php'
+			url: '/includes/ajax/ajax.php'
 		});
 	});
 	
@@ -322,7 +322,7 @@ jQuery(document).ready($ => {
 			success: result => {
 				$(result).appendTo('.comments-wrap');
 			},
-			url: '/includes/ajax.php'
+			url: '/includes/ajax/ajax.php'
 		});
 	}
 	
@@ -363,7 +363,7 @@ jQuery(document).ready($ => {
 						comment_count = result;
 					}
 				},
-				url: '/includes/ajax.php'
+				url: '/includes/ajax/ajax.php'
 			});
 		}, 1000 * 15);
 	}

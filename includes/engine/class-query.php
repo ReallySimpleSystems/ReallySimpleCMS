@@ -18,12 +18,12 @@
  * ## METHODS ##
  * - public __construct()
  * BASIC QUERIES:
- * - public select(string $table, string|array $cols, array $where, array $args): int|array
- * - public selectRow(string $table, string|array $cols, array $where, array $args): int|array
- * - public selectField(string $table, string $col, array $where, array $args): string
- * - public insert(string $table, array $data, array $args): int
- * - public update(string $table, array $data, array $where, array $args): void
- * - public delete(string $table, array $where, array $args): void
+ * - public select(string|array $table, string|array $cols, array $where, array $args): int|array
+ * - public selectRow(string|array $table, string|array $cols, array $where, array $args): int|array
+ * - public selectField(string|array $table, string $col, array $where, array $args): string
+ * - public insert(string|array $table, array $data, array $args): int
+ * - public update(string|array $table, array $data, array $where, array $args): void
+ * - public delete(string|array $table, array $where, array $args): void
  * - public doQuery(string $sql): void
  * ADVANCED QUERIES & ACTIONS:
  * - public showTables(string $table): int|array
@@ -38,7 +38,6 @@
  * - private initCharset(): void
  * - private setCharset(?string $charset, ?string $collate): void
  * - public hasCap(string $cap): bool
- * - private errorMsg(string $type): void [DEPRECATED]
  */
 namespace Engine;
 
@@ -48,7 +47,7 @@ class Query {
 	 * @since 1.0.0-alpha
 	 *
 	 * @access private
-	 * @var object
+	 * @var null|object
 	 */
 	private $conn = null;
 	
@@ -104,6 +103,8 @@ class Query {
 	 * @access public
 	 */
 	public function __construct() {
+		global $rs_error;
+		
 		try {
 			// Create a PDO object and plug in the database constant values
 			$this->conn = new \PDO('mysql' .
@@ -128,8 +129,11 @@ class Query {
 			$this->conn_status = true;
 			$this->setCharset();
 		} catch(\PDOException $e) {
-			logError($e);
 			$this->conn_status = false;
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
@@ -142,16 +146,26 @@ class Query {
 	 * @since 1.1.0-alpha
 	 *
 	 * @access public
-	 * @param string $table -- The table name.
+	 * @param string|array $table -- The table name and optionally, table prefix.
 	 * @param string|array $cols (optional) -- The column(s) to query.
 	 * @param array $where (optional) -- The where clause.
 	 * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
 	 * @return int|array
 	 */
-	public function select(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
+	public function select(
+		string|array $table, string|array $cols = '*', array $where = array(), array $args = array()
+	): int|array {
+		global $rs_error;
+		
 		$debug = false;
 		
 		if(isset($args['debug']) && $args['debug']) $debug = true;
+		
+		// Check if the table is prefixed
+		if(is_array($table)) {
+			$px = array_pop($table);
+			$table = implode('', $table);
+		}
 		
 		if(is_array($cols)) {
 			// DISTINCT CLAUSE
@@ -162,9 +176,26 @@ class Query {
 				array_splice($cols, array_search('DISTINCT', $cols), 1);
 			}
 			
-			$cols = implode(', ', $cols);
+			// Prefix cols
+			if(isset($px)) {
+				$px_cols = array();
+				
+				foreach($cols as $col)
+					$px_cols[] = $px . $col;
+			}
+			
+			$cols = implode(', ', ($px_cols ?? $cols));
+		} else {
+			// Prefix col
+			if(isset($px)) {
+				if(str_starts_with($cols, 'COUNT('))
+					$cols = preg_replace('/(COUNT\()(\w+\))/', '$1' . $px . '$2', $cols);
+				elseif($cols !== '*')
+					$cols = $px . $cols;
+			}
 		}
 		
+		// SELECT FROM CLAUSE
 		$sql = 'SELECT ' . (isset($distinct) ? 'DISTINCT ' : '') . $cols . ' FROM `' . $table . '`';
 		
 		// WHERE CLAUSE
@@ -187,6 +218,10 @@ class Query {
 					$logic = strtoupper($value);
 					continue;
 				}
+				
+				// Prefix fields
+				if(isset($px))
+					$field = $px . $field;
 				
 				if(is_array($value)) {
 					foreach($value as $val) {
@@ -247,7 +282,7 @@ class Query {
 			
 			if($order !== 'ASC' && $order !== 'DESC') $order = 'ASC';
 			
-			$sql .= ' ORDER BY ' . $order_by . ' ' . $order;
+			$sql .= ' ORDER BY ' . (isset($px) ? $px . $order_by : $order_by) . ' ' . $order;
 		}
 		
 		// LIMIT CLAUSE
@@ -274,7 +309,11 @@ class Query {
                 return $data;
             }
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return array();
 		}
 	}
@@ -284,13 +323,15 @@ class Query {
 	 * @since 1.1.1-alpha
 	 *
 	 * @access public
-	 * @param string $table -- The table name.
+	 * @param string|array $table -- The table name and optionally, table prefix.
 	 * @param string|array $cols (optional) -- The column(s) to query.
 	 * @param array $where (optional) -- The where clause.
 	 * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
 	 * @return int|array
 	 */
-	public function selectRow(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
+	public function selectRow(
+		string|array $table, string|array $cols = '*', array $where = array(), array $args = array()
+	): int|array {
 		$data = $this->select($table, $cols, $where, $args);
 		
 		if(is_array($data) && !empty($data))
@@ -304,13 +345,13 @@ class Query {
 	 * @since 1.8.10-alpha
 	 *
 	 * @access public
-	 * @param string $table -- The table name.
+	 * @param string|array $table -- The table name and optionally, table prefix.
 	 * @param string $col -- The column to query.
 	 * @param array $where (optional) -- The where clause.
 	 * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
 	 * @return string
 	 */
-	public function selectField(string $table, string $col, array $where = array(), array $args = array()): string {
+	public function selectField(string|array $table, string $col, array $where = array(), array $args = array()): string {
 		$data = $this->selectRow($table, $col, $where, $args);
 		
 		if(is_array($data))
@@ -324,19 +365,31 @@ class Query {
 	 * @since 1.1.0-alpha
 	 *
 	 * @access public
-	 * @param string $table -- The table name.
+	 * @param string|array $table -- The table name and optionally, table prefix.
 	 * @param array $data -- The data to insert.
 	 * @param array $args (optional) -- Additional args.
 	 * @return int
 	 */
-	public function insert(string $table, array $data, array $args = array()): int {
+	public function insert(string|array $table, array $data, array $args = array()): int {
+		global $rs_error;
+		
 		$debug = false;
 		
 		if(isset($args['debug']) && $args['debug']) $debug = true;
 		
+		// Check if the table is prefixed
+		if(is_array($table)) {
+			$px = array_pop($table);
+			$table = implode('', $table);
+		}
+		
 		$fields = $values = $placeholders = array();
 		
 		foreach($data as $field => $value) {
+			// Prefix fields
+			if(isset($px))
+				$field = $px . $field;
+			
 			if(!is_null($value) && strtoupper($value) === 'NOW()') {
 				$fields[] = $field;
 				$placeholders[] = $value;
@@ -349,6 +402,8 @@ class Query {
 		
 		$fields = implode(', ', $fields);
 		$placeholders = implode(', ', $placeholders);
+		
+		// INSERT INTO CLAUSE
 		$sql = 'INSERT INTO `' . $table . '` (' . $fields . ') VALUES (' . $placeholders . ')';
 		
 		try {
@@ -359,7 +414,11 @@ class Query {
 			
 			return $this->conn->lastInsertId();
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
@@ -369,19 +428,31 @@ class Query {
 	 * @since 1.1.0-alpha
 	 *
 	 * @access public
-	 * @param string $table -- The table name.
+	 * @param string|array $table -- The table name and optionally, table prefix.
 	 * @param array $data -- The data to update.
 	 * @param array $where (optional) -- The where clause.
 	 * @param array $args (optional) -- Additional args.
 	 */
-	public function update(string $table, array $data, array $where = array(), array $args = array()): void {
+	public function update(string|array $table, array $data, array $where = array(), array $args = array()): void {
+		global $rs_error;
+		
 		$debug = false;
 		
 		if(isset($args['debug']) && $args['debug']) $debug = true;
 		
+		// Check if the table is prefixed
+		if(is_array($table)) {
+			$px = array_pop($table);
+			$table = implode('', $table);
+		}
+		
 		$fields = $values = array();
 		
 		foreach($data as $field => $value) {
+			// Prefix fields
+			if(isset($px))
+				$field = $px . $field;
+			
 			if(!is_null($value) && strtoupper($value) === 'NOW()') {
 				$fields[] = $field . ' = ' . $value;
 			} else {
@@ -391,11 +462,19 @@ class Query {
 		}
 		
 		$fields = implode(', ', $fields);
+		
+		// UPDATE SET CLAUSE
 		$sql = 'UPDATE `' . $table . '` SET ' . $fields;
 		
 		// WHERE CLAUSE
 		if(!empty($where)) {
 			$conditions = $vals = $placeholders = array();
+			
+			// Accepted operators
+			$operators = array(
+				'=', '>', '<', '>=', '<=', '<>',
+				'LIKE', 'IN', 'NOT IN'
+			);
 			
 			// Defaults
 			list($operator, $logic) = array('IN', 'AND');
@@ -406,21 +485,33 @@ class Query {
 					continue;
 				}
 				
+				// Prefix fields
+				if(isset($px))
+					$field = $px . $field;
+				
 				if(is_array($value)) {
 					foreach($value as $val) {
-						if($val === 'IN' || $val === 'NOT IN') {
-							$operator = $val;
-						} else {
-							$vals[] = $val;
-							$placeholders[] = '?';
+						if(is_string($val)) {
+							// Check whether the value is an operator
+							if(in_array(strtoupper($val), $operators, true))
+								$operator = strtoupper($val);
 						}
+						
+						// Skip over the operator value
+						if(strtoupper($val) === $operator) continue;
+						
+						$vals[] = $val;
+						$placeholders[] = '?';
 					}
 					
-					$conditions[] = $field . ' ' . $operator . ' (' .
-						implode(', ', $placeholders) . ')';
+					$conditions[] = match($operator) {
+						'IN', 'NOT IN' => $field . ' ' . $operator . ' (' . implode(', ', $placeholders) . ')',
+						default => $field . ' ' . $operator . ' ?'
+					};
 					
 					// Merge the two values arrays into one
 					$values = array_merge($values, $vals);
+					$vals = array();
 				} else {
 					$conditions[] = $field . ' = ?';
 					$values[] = $value;
@@ -436,7 +527,10 @@ class Query {
 			$update_query = $this->conn->prepare($sql);
 			$update_query->execute($values);
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
@@ -445,15 +539,24 @@ class Query {
 	 * @since 1.0.3-alpha
 	 *
 	 * @access public
-	 * @param string $table -- The table name.
+	 * @param string|array $table -- The table name and optionally, table prefix.
 	 * @param array $where (optional) -- The where clause.
 	 * @param array $args (optional) -- Additional args.
 	 */
-	public function delete(string $table, array $where = array(), array $args = array()): void {
+	public function delete(string|array $table, array $where = array(), array $args = array()): void {
+		global $rs_error;
+		
 		$debug = false;
 		
 		if(isset($args['debug']) && $args['debug']) $debug = true;
 		
+		// Check if the table is prefixed
+		if(is_array($table)) {
+			$px = array_pop($table);
+			$table = implode('', $table);
+		}
+		
+		// DELETE FROM CLAUSE
 		$sql = 'DELETE FROM `' . $table . '`';
 		
 		// WHERE CLAUSE
@@ -469,6 +572,10 @@ class Query {
 					continue;
 				}
 				
+				// Prefix fields
+				if(isset($px))
+					$field = $px . $field;
+				
 				if(is_array($value)) {
 					foreach($value as $val) {
 						if($val === 'IN' || $val === 'NOT IN') {
@@ -479,11 +586,11 @@ class Query {
 						}
 					}
 					
-					$conditions[] = $field . ' ' . $operator . ' (' .
-						implode(', ', $placeholders) . ')';
+					$conditions[] = $field . ' ' . $operator . ' (' . implode(', ', $placeholders) . ')';
 					
 					// Merge the two values arrays into one
 					$values = array_merge($values, $vals);
+					$vals = array();
 				} else {
 					$conditions[] = $field . ' = ?';
 					$values[] = $value;
@@ -499,7 +606,10 @@ class Query {
 			$delete_query = $this->conn->prepare($sql);
 			isset($values) ? $delete_query->execute($values) : $delete_query->execute();
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
@@ -511,11 +621,16 @@ class Query {
 	 * @param string $sql -- The SQL statement to execute.
 	 */
 	public function doQuery(string $sql): void {
+		global $rs_error;
+		
 		try {
 			$query = $this->conn->prepare($sql);
 			$query->execute();
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
 		}
 	}
 	
@@ -532,6 +647,8 @@ class Query {
 	 * @return int|array
 	 */
 	public function showTables(string $table = ''): int|array {
+		global $rs_error;
+		
 		$data = array();
 		$sql = 'SHOW TABLES';
 		
@@ -545,7 +662,11 @@ class Query {
 			
 			return $data;
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
@@ -559,6 +680,8 @@ class Query {
 	 * @return int|array
 	 */
 	public function showIndexes(string $table): int|array {
+		global $rs_error;
+		
 		$sql = 'SHOW INDEXES FROM `' . $table . '`;';
 		
 		try {
@@ -569,7 +692,11 @@ class Query {
 			
 			return $data;
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
@@ -596,6 +723,8 @@ class Query {
 	 * @return int|bool
 	 */
 	public function columnExists(string $table, string $col): int|bool {
+		global $rs_error;
+		
 		$sql = 'SHOW COLUMNS FROM `' . $table . '` LIKE \'' . $col . '\';';
 		
 		try {
@@ -604,14 +733,18 @@ class Query {
 			
 			return !empty($query->fetch());
 		} catch(\PDOException $e) {
-			logError($e);
+			$rs_error->logError($e);
+			
+			if(isDebugMode())
+				$rs_error->triggerError();
+			
 			return -1;
 		}
 	}
 	
 	/**
 	 * Create a database table.
-	 * @since 1.4.0-beta_snap-02
+	 * @since 1.3.14-beta
 	 *
 	 * @access public
 	 * @param string $table -- The table name.
@@ -715,6 +848,8 @@ class Query {
 	 * @param string|null $collate (optional) -- The collation.
 	 */
 	private function setCharset(?string $charset = null, ?string $collate = null): void {
+		global $rs_error;
+		
 		if(!isset($charset)) $charset = $this->charset;
 		if(!isset($collate)) $collate = $this->collate;
 		
@@ -767,8 +902,15 @@ class Query {
 					
 					if(!empty($collate)) $sql .= ' COLLATE ' . $collate . ';';
 					
-					$query = $this->conn->prepare($sql);
-					$query->execute();
+					try {
+						$query = $this->conn->prepare($sql);
+						$query->execute();
+					} catch(\PDOException $e) {
+						$rs_error->logError($e);
+						
+						if(isDebugMode())
+							$rs_error->triggerError();
+					}
 				}
 			}
 		}
@@ -805,35 +947,5 @@ class Query {
 		}
 		
 		return false;
-	}
-	
-	/**
-	 * Return an error message for poorly executed queries.
-	 * @since 1.0.3-alpha
-	 * @deprecated since 1.4.0-beta_snap-02
-	 *
-	 * @access private
-	 * @param string $type -- The type of error.
-	 */
-	private function errorMsg(string $type): void {
-		deprecated();
-		
-		$error = 'Query Error: ';
-		
-		switch($type) {
-			case 'table':
-				$error .= 'A table or tables must be specified!';
-				break;
-			case 'column': case 'field':
-				$error .= 'A column or field must be specified!';
-				break;
-			case 'data':
-				$error .= 'Missing required data!';
-				break;
-			default:
-				$error .= 'An error of type `' . $type . '` occurred.';
-		}
-		
-		echo $error;
 	}
 }

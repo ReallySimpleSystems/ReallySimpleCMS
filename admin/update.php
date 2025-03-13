@@ -10,10 +10,31 @@ require_once __DIR__ . '/header.php';
 ?>
 <article class="content">
 	<section class="heading-wrap">
-		<h1>Update <?php echo RS_ENGINE; ?></h1>
+		<?php
+		echo domTag('h1', array(
+			'content' => 'Update ' . RS_ENGINE
+		));
+		?>
 	</section>
 	<section>
 		<?php
+		echo domTag('p', array(
+			'content' => 'Updating software is critical in order to patch vulnerabilities in code and access the latest features. Updates can take up to several minutes to complete, so please be patient.'
+		)) . domTag('hr', array(
+			'class' => 'separator'
+		));
+		
+		// Core software
+		echo domTag('h2', array(
+			'content' => 'Core Software'
+		));
+		
+		echo domTag('p', array(
+			'content' => domTag('strong', array(
+				'content' => 'Current version: ' . RS_VERSION
+			))
+		));
+		
 		if(version_compare(RS_VERSION, $rs_api_fetch->getVersion(), '<')) {
 			// Update available
 			echo domTag('p', array(
@@ -43,6 +64,24 @@ require_once __DIR__ . '/header.php';
 				'content' => RS_ENGINE . ' is up to date.'
 			));
 		}
+		
+		echo domTag('hr', array(
+			'class' => 'separator'
+		));
+		
+		// Modules
+		echo domTag('h2', array(
+			'content' => 'Modules'
+		));
+		
+		echo domTag('hr', array(
+			'class' => 'separator'
+		));
+		
+		// Themes
+		echo domTag('h2', array(
+			'content' => 'Themes'
+		));
 		?>
 	</section>
 </article>

@@ -2,6 +2,8 @@
 /**
  * Admin widgets page.
  * @since 1.6.0-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
 require_once __DIR__ . '/header.php';
@@ -9,7 +11,7 @@ require_once __DIR__ . '/header.php';
 $id = (int)($_GET['id'] ?? 0);
 $action = $_GET['action'] ?? '';
 
-$rs_widget = new Widget($id, $action);
+$rs_widget = new \Admin\Widget($id, $action);
 ?>
 <article class="content">
 	<?php

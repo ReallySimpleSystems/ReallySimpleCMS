@@ -19,14 +19,12 @@ if(isset($_POST['submit_ajax']) && $_POST['submit_ajax']) {
 	
 	checkPHPVersion();
 	
-	require_once RS_CONFIG;
-	require_once RS_DEBUG_FUNC;
-	require_once GLOBAL_FUNC;
+	requireFiles(array(RS_CONFIG, RS_DEBUG_FUNC, GLOBAL_FUNC));
 	
 	$rs_query = new \Engine\Query;
 	checkDBStatus();
 	
-	require_once RS_SCHEMA;
+	requireFile(RS_SCHEMA);
 	
 	$result = runInstall($_POST);
 	
@@ -81,8 +79,7 @@ function runInstall(array $data): array {
 		'email' => $data['admin_email']
 	);
 	
-	$site_url = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ?
-		'https://' : 'http://') . $_SERVER['HTTP_HOST'];
+	$site_url = (isSecureConnection() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];
 	
 	$settings_data = array(
 		'site_title' => $data['site_title'],
@@ -120,6 +117,6 @@ function runInstall(array $data): array {
 			'class' => 'button',
 			'href' => '/login.php',
 			'content' => 'Log In'
-		)) # data-h="Urm75uNsIn#"
+		))
 	)));
 }

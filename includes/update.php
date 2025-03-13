@@ -1,19 +1,16 @@
 <?php
 /**
- * Update the CMS.
+ * Perform system updates.
  * @since 1.1.0-beta_snap-01
  *
  * @package ReallySimpleCMS
  */
 
-require_once PATH . INC . '/update-db.php';
-require_once PATH . INC . '/backward-compat.php';
+global $rs_update;
 
-$rs_api_fetch = new \Engine\ApiFetch;
+requireFiles(array(
+	PATH . INC . '/update-db.php', // Database updater
+	PATH . INC . '/backward-compat.php' // Backward compatibility changes
+));
 
-/* var_dump($rs_api_fetch->getVersion());
-var_dump(RS_VERSION);
-
-var_dump(version_compare(RS_VERSION, $rs_api_fetch->getVersion(), '<')); */
-
-# if do_update then UPDATE
+$rs_update = new \Engine\Update;

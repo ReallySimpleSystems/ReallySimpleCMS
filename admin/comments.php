@@ -2,6 +2,8 @@
 /**
  * Admin comments page.
  * @since 1.1.0-beta_snap-01
+ *
+ * @package ReallySimpleCMS
  */
 
 require_once __DIR__ . '/header.php';
@@ -9,7 +11,7 @@ require_once __DIR__ . '/header.php';
 $id = (int)($_GET['id'] ?? 0);
 $action = $_GET['action'] ?? '';
 
-$rs_comment = new Comment($id, $action);
+$rs_comment = new \Admin\Comment($id, $action);
 ?>
 <article class="content">
 	<?php

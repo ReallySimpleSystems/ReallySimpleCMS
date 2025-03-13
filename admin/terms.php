@@ -2,6 +2,8 @@
 /**
  * Admin terms page.
  * @since 1.0.4-beta
+ *
+ * @package ReallySimpleCMS
  */
 
 require_once __DIR__ . '/header.php';
@@ -19,12 +21,12 @@ if(isset($_GET['taxonomy'])) {
 			redirect('categories.php');
 		} else {
 			// Set the taxonomy if it exists in the database
-			$db_tax = $rs_query->selectField('terms', 't_taxonomy', array(
-				't_id' => $id
+			$db_tax = $rs_query->selectField(array('terms', 't_'), 'taxonomy', array(
+				'id' => $id
 			));
 			
-			$taxonomy = $rs_query->selectField('taxonomies', 'ta_name', array(
-				'ta_id' => $db_tax
+			$taxonomy = $rs_query->selectField(array('taxonomies', 'ta_'), 'name', array(
+				'id' => $db_tax
 			)) ?? 'category';
 		}
 	}
@@ -33,28 +35,28 @@ if(isset($_GET['taxonomy'])) {
 // Redirect 'category' taxonomy
 if($taxonomy === 'category') redirect('categories.php');
 
-$rs_term = new Term($id, $action, $taxonomies[$taxonomy] ?? array());
+$rs_term = new \Admin\Term($id, $action, $rs_taxonomies[$taxonomy] ?? array());
 ?>
 <article class="content">
 	<?php
 	// Create an id from the taxonomy's label
-	$tax_id = str_replace(' ', '_', $taxonomies[$taxonomy]['labels']['name_lowercase']);
+	$tax_id = str_replace(' ', '_', $rs_taxonomies[$taxonomy]['labels']['name_lowercase']);
 	
 	switch($action) {
 		case 'create':
 			// Create a new term
 			userHasPrivilege('can_create_' . $tax_id) ? $rs_term->createRecord() :
-				redirect($taxonomies[$taxonomy]['menu_link']);
+				redirect($rs_taxonomies[$taxonomy]['menu_link']);
 			break;
 		case 'edit':
 			// Edit an existing term
 			userHasPrivilege('can_edit_' . $tax_id) ? $rs_term->editRecord() :
-				redirect($taxonomies[$taxonomy]['menu_link']);
+				redirect($rs_taxonomies[$taxonomy]['menu_link']);
 			break;
 		case 'delete':
 			// Delete an existing term
 			userHasPrivilege('can_delete_' . $tax_id) ? $rs_term->deleteRecord() :
-				redirect($taxonomies[$taxonomy]['menu_link']);
+				redirect($rs_taxonomies[$taxonomy]['menu_link']);
 			break;
 		default:
 			// List all terms

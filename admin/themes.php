@@ -2,6 +2,8 @@
 /**
  * Admin themes page.
  * @since 2.3.0-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
 require_once __DIR__ . '/header.php';
@@ -9,7 +11,7 @@ require_once __DIR__ . '/header.php';
 $name = $_GET['name'] ?? '';
 $action = $_GET['action'] ?? '';
 
-$rs_theme = new Theme($name, $action);
+$rs_theme = new \Admin\Theme($name, $action);
 ?>
 <article class="content">
 	<?php

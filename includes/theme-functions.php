@@ -5,7 +5,7 @@
  *
  * @package ReallySimpleCMS
  *
- * ## FUNCTIONS ##
+ * ## FUNCTIONS [71] ##
  * POSTS:
  * - isPost(): bool
  * - getPostId(): int
@@ -870,16 +870,14 @@ function templateExists(string $template, string $dir): bool {
  * @return bool
  */
 function getHeader(string $template = ''): bool {
-	global $session;
+	global $rs_theme_path;
 	
-	$theme_path = slash(PATH . THEMES) . getSetting('theme');
-	
-	if(!file_exists($theme_path . '/header.php') && !file_exists(slash($theme_path) . $template . '.php')) {
+	if(!file_exists($rs_theme_path . '/header.php') && !file_exists(slash($rs_theme_path) . $template . '.php')) {
 		// Don't load anything; our header template doesn't exist
 		return false;
 	} else {
 		// Include the header template
-		require_once slash($theme_path) . (!empty($template) ? $template : 'header') . '.php';
+		requireFile(slash($rs_theme_path) . (!empty($template) ? $template : 'header') . '.php');
 		return true;
 	}
 }
@@ -892,16 +890,14 @@ function getHeader(string $template = ''): bool {
  * @return bool
  */
 function getFooter(string $template = ''): bool {
-	global $session;
+	global $rs_theme_path;
 	
-	$theme_path = slash(PATH . THEMES) . getSetting('theme');
-	
-	if(!file_exists($theme_path . '/footer.php') && !file_exists(slash($theme_path) . $template . '.php')) {
+	if(!file_exists($rs_theme_path . '/footer.php') && !file_exists(slash($rs_theme_path) . $template . '.php')) {
 		// Don't load anything; our footer template doesn't exist
 		return false;
 	} else {
 		// Include the footer template
-		require_once slash($theme_path) . (!empty($template) ? $template : 'footer') . '.php';
+		requireFile(slash($rs_theme_path) . (!empty($template) ? $template : 'footer') . '.php');
 		return true;
 	}
 }

@@ -10,12 +10,12 @@ require_once dirname(__DIR__) . '/includes/constants.php';
 require_once RS_CRIT_FUNC;
 
 checkPHPVersion();
-checkDBConfig();
+checkDBConfig(); // Hiding this will bypass config checks, allowing for debugging
 
 $step = (int)($_GET['step'] ?? 0);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
 		<title><?php echo RS_ENGINE; ?> Config Setup</title>
 		<meta charset="UTF-8">
@@ -70,7 +70,7 @@ $step = (int)($_GET['step'] ?? 0);
 						<?php
 						break;
 					case 2:
-						require_once RS_DEBUG_FUNC;
+						requireFile(RS_DEBUG_FUNC);
 						
 						if(isset($_POST['submit'])) {
 							define('DB_NAME', trim(strip_tags($_POST['db_name'])));
@@ -93,59 +93,66 @@ $step = (int)($_GET['step'] ?? 0);
 							
 							$config_file = file(PATH . SETUP . '/default-config.php');
 							
-							foreach($config_file as $line_num => $line) {
-								// Skip over unmatched lines
-								if(!preg_match('/^define\(\s*\'(DB_[A-Z_]+)\'/', $line, $match)) continue;
-								
-								$constant = $match[1];
-								
-								// Replace the sample text
-								switch($constant) {
-									case 'DB_NAME':
-									case 'DB_USER':
-									case 'DB_PASS':
-									case 'DB_HOST':
-										$config_file[$line_num] = "define('" . $constant . "', '" .
-											addcslashes(constant($constant), "\\'") . "');" . chr(10);
-										break;
-									case 'DB_CHARSET':
-										if($rs_query->charset === 'utf8mb4' || (!$rs_query->charset && $rs_query->hasCap('utf8mb4'))) {
-											$config_file[$line_num] = "define('" . $constant . "', 'utf8mb4');" . chr(10);
-										}
-										break;
+							if($config_file) {
+								foreach($config_file as $line_num => $line) {
+									// Skip over unmatched lines
+									if(!preg_match('/^define\(\s*\'(DB_[A-Z_]+)\'/', $line, $match)) continue;
+									
+									$constant = $match[1];
+									
+									// Replace the sample text
+									switch($constant) {
+										case 'DB_NAME':
+										case 'DB_USER':
+										case 'DB_PASS':
+										case 'DB_HOST':
+											$config_file[$line_num] = "define('" . $constant . "', '" .
+												addcslashes(constant($constant), "\\'") . "');" . chr(10);
+											break;
+										case 'DB_CHARSET':
+											if($rs_query->charset === 'utf8mb4' || (!$rs_query->charset &&
+												$rs_query->hasCap('utf8mb4'))
+											) {
+												$config_file[$line_num] = "define('" . $constant . "', 'utf8mb4');" . chr(10);
+											}
+											break;
+									}
 								}
-							}
-							
-							unset($line);
-							
-							if(!is_writable(PATH)) {
-								?>
-								<p><strong>Error!</strong> The <code>config.php</code> file cannot be created. Write permissions may be disabled on your server.</p>
-								<p>If that's the case, just copy the code below and create <code>config.php</code> in the <code>root</code> directory of <?php echo RS_ENGINE; ?>.</p>
-								<?php
-								$text = '';
 								
-								foreach($config_file as $line)
-									$text .= htmlentities($line, ENT_COMPAT, 'UTF-8');
-								?>
-								<textarea class="no-resize" rows="15" readonly><?php echo $text; ?></textarea>
-								<p>Once you're done, you can run the installation.</p>
-								<div class="button-wrap"><a class="button" href="rsdb-install.php">Run installation</a></div>
-								<?php
+								unset($line);
+								
+								if(!is_writable(PATH)) {
+									?>
+									<p><strong>Error!</strong> The <code>config.php</code> file cannot be created. Write permissions may be disabled on your server.</p>
+									<p>If that's the case, just copy the code below and create <code>config.php</code> in the <code>root</code> directory of <?php echo RS_ENGINE; ?>.</p>
+									<?php
+									$text = '';
+									
+									foreach($config_file as $line)
+										$text .= htmlentities($line, ENT_COMPAT, 'UTF-8');
+									?>
+									<textarea class="no-resize" rows="15" readonly><?php echo $text; ?></textarea>
+									<p>Once you're done, you can run the installation.</p>
+									<div class="button-wrap"><a class="button" href="rsdb-install.php">Run installation</a></div>
+									<?php
+								} else {
+									$handle = fopen(RS_CONFIG, 'w');
+									
+									foreach($config_file as $line) fwrite($handle, $line);
+									
+									fclose($handle);
+									
+									// Set file permissions
+									chmod($config_file_path, 0666);
+									?>
+									<p>The <code>config.php</code> file was successfully created! The database connection is all set up. You may now proceed with the installation.</p>
+									<div class="button-wrap"><a class="button" href="rsdb-install.php">Run installation</a></div>
+									<?php
+								}
 							} else {
-								$config_file_path = RS_CONFIG;
-								
-								$handle = fopen($config_file_path, 'w');
-								
-								foreach($config_file as $line) fwrite($handle, $line);
-								
-								fclose($handle);
-								
-								// Set file permissions
-								chmod($config_file_path, 0666);
 								?>
-								<p>The <code>config.php</code> file was successfully created! The database connection is all set up. You may now proceed with the installation.</p>
-								<div class="button-wrap"><a class="button" href="rsdb-install.php">Run installation</a></div>
+								<p>The default config file could not be found. Your copy of <?php echo RS_ENGINE; ?> may be corrupted. Please download the appropriate package and try again.</p>
+								<div class="button-wrap"><a class="button" href="?step=1">Go Back</a></div>
 								<?php
 							}
 						}

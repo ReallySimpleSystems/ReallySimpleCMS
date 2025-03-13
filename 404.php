@@ -7,11 +7,7 @@
  */
 
 require_once __DIR__ . '/init.php';
-require_once RS_FUNC;
-
-// Fetch the user's session data if they're logged in
-if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session']))
-	$session = getOnlineUser($_COOKIE['session']);
+requireFile(RS_FUNC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -25,10 +21,20 @@ if(isset($_COOKIE['session']) && isValidSession($_COOKIE['session']))
 		<?php headerScripts(array('button', 'jquery')); ?>
 	</head>
 	<body class="<?php echo bodyClasses('not-found'); ?>">
-		<div class="wrapper">
-			<h1>Oops! The requested page could not be found.</h1>
-			<h3>It may have been moved or deleted. <a href="/">Return home</a>?</h3>
-		</div>
-		<?php if($session) adminBar(); ?>
+		<?php
+		echo domTag('div', array(
+			'class' => 'wrapper',
+			'content' => domTag('h1', array(
+				'content' => 'Oops! The requested page could not be found.'
+			)) . domTag('h3', array(
+				'content' => 'It may have been moved or deleted. ' . domTag('a', array(
+					'href' => '/',
+					'content' => 'Return home'
+				)) . '?'
+			))
+		));
+		
+		if($rs_session) adminBar();
+		?>
 	</body>
 </html>

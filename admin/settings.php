@@ -2,15 +2,17 @@
 /**
  * Admin settings page.
  * @since 1.2.6-alpha
+ *
+ * @package ReallySimpleCMS
  */
 
 require_once __DIR__ . '/header.php';
 
-$page = $_GET['page'] ?? 'general';
 $id = (int)($_GET['id'] ?? 0);
 $action = $_GET['action'] ?? '';
+$page = $_GET['page'] ?? 'general';
 
-$rs_settings = new Settings($page);
+$rs_settings = new \Admin\Settings($page);
 ?>
 <article class="content">
 	<?php
@@ -21,7 +23,7 @@ $rs_settings = new Settings($page);
 				redirect('index.php');
 			break;
 		case 'user_roles':
-			$rs_user_role = new UserRole($id, $action, $page);
+			$rs_user_role = new \Admin\UserRole($id, $action, $page);
 			
 			switch($action) {
 				case 'create':

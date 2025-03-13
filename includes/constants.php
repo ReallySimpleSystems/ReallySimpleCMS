@@ -18,8 +18,8 @@ define('PHP_RECOMMENDED', '8.1');
 
 // Current system version
 #define('RS_VERSION', '1.3.13-beta'); // testing update system
-#define('RS_VERSION', '1.3.12-beta');
-define('RS_VERSION', '1.4.0-beta_snap-02');
+#define('RS_VERSION', '1.3.14-beta');
+define('RS_VERSION', '1.4.0-beta_snap-03');
 
 // Current jQuery version
 define('JQUERY_VERSION', '3.7.1');
@@ -34,14 +34,14 @@ define('ICONS_VERSION', '6.2.1');
 // Absolute path to the root directory
 define('PATH', dirname(__DIR__));
 
-// Path to the `admin` directory
-define('ADMIN', '/admin');
-
 // Path to the `includes` directory
 define('INC', '/includes');
 
 // Path to the `resources` directory
 define('RES', '/resources');
+
+// Path to the `admin` directory
+define('ADMIN', '/admin');
 
 // Path to the `content` directory
 define('CONT', '/content');
@@ -49,20 +49,32 @@ define('CONT', '/content');
 // Path to the `setup` directory
 define('SETUP', '/setup');
 
-// Path to the `modules` directory
-define('MODULES', '/modules');
+// Path to the `ajax` directory
+define('AJAX', INC . '/ajax');
 
-// Path to the `uploads` directory
-define('UPLOADS', CONT . '/uploads');
+// Path to the `modals` directory
+define('MODALS', INC . '/modals');
 
-// Path to the `themes` directory
-define('THEMES', CONT . '/themes');
+// Path to the `register` directory
+define('REGISTER', INC . '/register');
 
 // Path to the stylesheets directory
 define('STYLES', RES . '/css');
 
 // Path to the scripts directory
 define('SCRIPTS', RES . '/js');
+
+// Path to the `modules` directory
+define('MODULES', CONT . '/modules');
+
+// Path to the `themes` directory
+define('THEMES', CONT . '/themes');
+
+// Path to the `admin-themes` directory
+define('ADMIN_THEMES', CONT . '/admin-themes');
+
+// Path to the `uploads` directory
+define('UPLOADS', CONT . '/uploads');
 
 /*------------------------------------*\
     CORE FILES
@@ -87,7 +99,8 @@ define('RS_CRIT_FUNC', PATH . INC . '/critical-functions.php');
 define('GLOBAL_FUNC', PATH . INC . '/global-functions.php');
 
 // Path to the admin functions file
-define('ADMIN_FUNC', PATH . ADMIN . INC . '/functions.php');
+define('RS_ADMIN_FUNC', PATH . INC . '/admin-functions.php');
+define('ADMIN_FUNC', RS_ADMIN_FUNC); // deprecated
 
 /*------------------------------------*\
     MISCELLANEOUS

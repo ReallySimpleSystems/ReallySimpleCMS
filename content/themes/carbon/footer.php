@@ -32,7 +32,7 @@
 				</div>
 			</div>
 		</footer>
-		<?php if($session) adminBar(); ?>
+		<?php if($rs_session) adminBar(); ?>
 		<?php footerScripts('', array(), array(array('script'))); ?>
 	</body>
 </html>

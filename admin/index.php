@@ -7,46 +7,67 @@
  */
 
 require_once __DIR__ . '/header.php';
+
+$action = $_GET['action'] ?? '';
 ?>
 <article class="content">
 	<?php
-	$action = $_GET['action'] ?? '';
-	
 	switch($action) {
 		case 'unhide_notices':
-			$rs_notice = new Notice;
+			$rs_notice = new \Admin\Notice;
 			
-			$rs_notice->unhide($session['id']);
+			$rs_notice->unhide($rs_session['id']);
 			
 			redirect(ADMIN_URI);
 			break;
 		default:
 			?>
 			<section class="heading-wrap">
-				<h1>Admin Dashboard</h1>
+				<?php
+				echo domTag('h1', array(
+					'content' => 'Admin Dashboard'
+				));
+				?>
 			</section>
 			<section>
-				<p>Welcome to the administrative dashboard for <?php putSetting('site_title'); ?>.</p>
 				<?php
+				echo domTag('p', array(
+					'class' => 'headline',
+					'content' => 'Welcome to the administrative dashboard for ' . getSetting('site_title') . '.'
+				));
+				
 				// Notices
 				$theme_path = slash(PATH . THEMES) . getSetting('theme');
 				
-				if(!file_exists($theme_path . '/index.php'))
-					echo notice('Your current theme is broken. View your themes on the <a href="' . ADMIN . '/themes.php">themes page</a>.', 0, false, true);
+				if(!file_exists($theme_path . '/index.php')) {
+					echo notice('Your current theme is broken. View your themes on the ' . domTag('a', array(
+						'href' => ADMIN . '/themes.php',
+						'content' => 'themes page'
+					)) . '.', 0, false, true);
+				}
 				
-				if($session['dismissed_notices'] !== false) {
-					$hidden = count($session['dismissed_notices']);
+				if($rs_session['dismissed_notices'] !== false) {
+					$hidden = count($rs_session['dismissed_notices']);
 					
 					$message = 'You have ' . $hidden . ' hidden ' . ($hidden === 1 ? 'notice' : 'notices') .
-						'. <a href="' . ADMIN_URI . '?action=unhide_notices">Click here</a> to unhide ' . ($hidden === 1 ? 'it' : 'them') . '.';
+						'. ' . domTag('a', array(
+							'href' => ADMIN_URI . '?action=unhide_notices',
+							'content' => 'Click here'
+						)) . ' to unhide ' . ($hidden === 1 ? 'it' : 'them') . '.';
 					
 					echo notice($message, 2, false, true);
 				}
 				
 				if(ctDraft() > 0 || ctDraft('page') > 0) {
-					$message = 'You have ' . ctDraft('page') . ' unpublished <a href="/admin/posts.php?type=page&status=draft">pages</a> and ' . ctDraft() . ' unpublished <a href="/admin/posts.php?status=draft">posts</a>.';
+					$message = 'You have ' . ctDraft('page') . ' unpublished ' . domTag('a', array(
+						'href' => '/admin/posts.php?type=page&status=draft',
+						'content' => 'pages'
+					)) . ' and ' . ctDraft() . ' unpublished ' . domTag('a', array(
+						'href' => '/admin/posts.php?status=draft',
+						'content' => 'posts'
+					)) . '.';
 					
-					if(!isDismissedNotice($message, $session['dismissed_notices']))
+					if(!isDismissedNotice($message, $rs_session['dismissed_notices']))
 						echo notice($message, 0);
 				}
 				?>

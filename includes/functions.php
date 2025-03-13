@@ -5,10 +5,10 @@
  *
  * @package ReallySimpleCMS
  *
- * ## CONSTANTS ##
+ * ## CONSTANTS [1] ##
  * - string COOKIE_HASH
  *
- * ## FUNCTIONS ##
+ * ## FUNCTIONS [18] ##
  * HEADER & FOOTER:
  * - getThemeScript(string $script, string $version): string
  * - putThemeScript(string $script, string $version): void
@@ -21,8 +21,6 @@
  * MISCELLANEOUS:
  * - handleSecureLogin(): void
  * - guessPageType(): void
- * - postTypeExists(string $type): bool
- * - taxonomyExists(string $taxonomy): bool
  * - getPost(string $slug): object
  * - getTerm(string $slug): object
  * - getCategory(string $slug): object
@@ -176,7 +174,7 @@ function footerScripts(string|array $exclude = '', array $include_styles = array
  * @return string
  */
 function bodyClasses(string|array $addtl_classes = array()): string {
-	global $rs_post, $rs_term, $session;
+	global $rs_post, $rs_term, $rs_session;
 	
 	$classes = array();
 	
@@ -204,7 +202,7 @@ function bodyClasses(string|array $addtl_classes = array()): string {
 	
 	$classes = array_merge($classes, (array)$addtl_classes);
 	
-	if($session) $classes[] = 'logged-in';
+	if($rs_session) $classes[] = 'logged-in';
 	
 	return implode(' ', $classes);
 }
@@ -214,7 +212,7 @@ function bodyClasses(string|array $addtl_classes = array()): string {
  * @since 2.2.7-alpha
  */
 function adminBar(): void {
-	global $rs_post, $rs_term, $session, $post_types, $taxonomies;
+	global $rs_post, $rs_term, $rs_session, $rs_post_types, $rs_taxonomies;
 	?>
 	<div id="admin-bar">
 		<ul class="menu">
@@ -241,7 +239,7 @@ function adminBar(): void {
 					));
 					
 					// Post types
-					foreach($post_types as $post_type) {
+					foreach($rs_post_types as $post_type) {
 						if(!userHasPrivilege('can_view_' . str_replace(' ', '_',
 							$post_type['labels']['name_lowercase'])) || !$post_type['show_in_admin_bar']) continue;
 						
@@ -250,15 +248,15 @@ function adminBar(): void {
 						
 						if(!empty($post_type['taxonomies'])) {
 							foreach($post_type['taxonomies'] as $tax) {
-								if(array_key_exists($tax, $taxonomies)) {
+								if(array_key_exists($tax, $rs_taxonomies)) {
 									if(userHasPrivilege('can_view_' . str_replace(' ', '_',
-										$taxonomies[$tax]['labels']['name_lowercase'])) &&
-										$taxonomies[$tax]['show_in_admin_bar']
+										$rs_taxonomies[$tax]['labels']['name_lowercase'])) &&
+										$rs_taxonomies[$tax]['show_in_admin_bar']
 									) {
 										$taxes[] = domTag('li', array(
 											'content' => domTag('a', array(
-												'href' => '/admin/' . $taxonomies[$tax]['menu_link'],
-												'content' => $taxonomies[$tax]['label']
+												'href' => '/admin/' . $rs_taxonomies[$tax]['menu_link'],
+												'content' => $rs_taxonomies[$tax]['label']
 											))
 										));
 									}
@@ -429,7 +427,7 @@ function adminBar(): void {
 				<ul class="sub-menu">
 					<?php
 					// Post types
-					foreach($post_types as $post_type) {
+					foreach($rs_post_types as $post_type) {
 						if(!userHasPrivilege(($post_type['name'] === 'media' ? 'can_upload_media' :
 							'can_create_' . str_replace(' ', '_', $post_type['labels']['name_lowercase']))) ||
 							!$post_type['show_in_admin_bar']) continue;
@@ -439,17 +437,17 @@ function adminBar(): void {
 						
 						if(!empty($post_type['taxonomies'])) {
 							foreach($post_type['taxonomies'] as $tax) {
-								if(array_key_exists($tax, $taxonomies)) {
+								if(array_key_exists($tax, $rs_taxonomies)) {
 									if(userHasPrivilege('can_create_' . str_replace(' ', '_',
-										$taxonomies[$tax]['labels']['name_lowercase'])) &&
-										$taxonomies[$tax]['show_in_admin_bar']
+										$rs_taxonomies[$tax]['labels']['name_lowercase'])) &&
+										$rs_taxonomies[$tax]['show_in_admin_bar']
 									) {
 										$taxes[] = domTag('li', array(
 											'content' => domTag('a', array(
-												'href' => '/admin/' . $taxonomies[$tax]['menu_link'] . (
+												'href' => '/admin/' . $rs_taxonomies[$tax]['menu_link'] . (
 													$tax === 'category' ? '?action=create' : '&action=create'
 												),
-												'content' => $taxonomies[$tax]['labels']['name_singular']
+												'content' => $rs_taxonomies[$tax]['labels']['name_singular']
 											))
 										));
 									}
@@ -592,11 +590,11 @@ function adminBar(): void {
 			<?php
 			// Display name
 			echo domTag('span', array(
-				'content' => 'Welcome, ' . $session['display_name']
+				'content' => 'Welcome, ' . $rs_session['display_name']
 			));
 			
 			// Avatar
-			echo getMedia($session['avatar'], array(
+			echo getMedia($rs_session['avatar'], array(
 				'class' => 'avatar',
 				'width' => 20,
 				'height' => 20
@@ -605,7 +603,7 @@ function adminBar(): void {
 			<ul class="user-dropdown-menu">
 				<?php
 				// Avatar (large)
-				echo getMedia($session['avatar'], array(
+				echo getMedia($rs_session['avatar'], array(
 					'class' => 'avatar-large',
 					'width' => 100,
 					'height' => 100
@@ -705,40 +703,6 @@ function guessPageType(): void {
 			redirect('/404.php');
 		}
 	}
-}
-
-/**
- * Check whether a post type exists in the database.
- * @since 1.0.5-beta
- *
- * @param string $type -- The post's type.
- * @return bool
- */
-function postTypeExists(string $type): bool {
-	global $rs_query;
-	
-	$type = sanitize($type);
-	
-	return $rs_query->selectRow('posts', 'COUNT(p_type)', array(
-		'p_type' => $type
-	)) > 0;
-}
-
-/**
- * Check whether a taxonomy exists in the database.
- * @since 1.0.5-beta
- *
- * @param string $taxonomy -- The taxonomy's name.
- * @return bool
- */
-function taxonomyExists(string $taxonomy): bool {
-	global $rs_query;
-	
-	$taxonomy = sanitize($taxonomy);
-	
-	return $rs_query->selectRow('taxonomies', 'COUNT(ta_name)', array(
-		'ta_name' => $taxonomy
-	)) > 0;
 }
 
 /**

@@ -13,21 +13,17 @@ checkPHPVersion();
 
 if(!file_exists(RS_CONFIG)) redirect(SETUP . '/rsdb-config.php');
 
-require_once RS_CONFIG;
-require_once RS_DEBUG_FUNC;
-require_once GLOBAL_FUNC;
+requireFiles(array(RS_CONFIG, RS_DEBUG_FUNC, GLOBAL_FUNC));
 
 $rs_query = new \Engine\Query;
 checkDBStatus();
 
-require_once RS_SCHEMA;
+requireFile(RS_SCHEMA);
 
 $schema = dbSchema();
 $tables = $rs_query->showTables();
 
 if(!empty($tables)) {
-	$installed = true;
-	
 	// Create any missing tables
 	foreach($schema as $key => $value)
 		if(!$rs_query->tableExists($key)) $rs_query->createTable($key, $value);
@@ -36,27 +32,35 @@ if(!empty($tables)) {
 }
 
 // Installation engine
-require_once PATH . SETUP . '/run-install.php';
+requireFile(PATH . SETUP . '/run-install.php');
+
+$debug = false;
+
+if(isDebugMode()) $debug = true;
 
 $step = (int)($_GET['step'] ?? 1);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
 		<title><?php echo RS_ENGINE; ?> Database Installation</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="robots" content="noindex, nofollow">
 		<?php
-		putStylesheet('button.min.css');
-		putStylesheet('setup.min.css');
+		putStylesheet('button' . ($debug ? '' : '.min') . '.css');
+		putStylesheet('setup' . ($debug ? '' : '.min') . '.css');
 		putStylesheet('font-awesome.min.css', ICONS_VERSION);
 		putStylesheet('font-awesome-rules.min.css');
 		?>
 	</head>
 	<body class="rscms-install">
 		<div class="wrapper">
-			<h1><?php echo RS_ENGINE; ?></h1>
+			<?php
+			echo domTag('h1', array(
+				'content' => RS_ENGINE
+			));
+			?>
 			<main class="content" role="main">
 				<?php
 				/**
@@ -149,11 +153,16 @@ $step = (int)($_GET['step'] ?? 1);
 				}
 				?>
 			</main>
-			<p class="powered-by">Powered by <?php echo RS_DEVELOPER; ?></p>
+			<?php
+			echo domTag('p', array(
+				'class' => 'powered-by',
+				'content' => 'Powered by ' . RS_DEVELOPER
+			));
+			?>
 		</div>
 		<?php
 		putScript('jquery.min.js', JQUERY_VERSION);
-		putScript('setup.min.js');
+		putScript('setup' . ($debug ? '' : '.min') . '.js');
 		?>
 	</body>
 </html>
