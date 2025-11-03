@@ -1,0 +1,41 @@
+/*!
+ * Styles for the Bedrock admin theme.
+ * Primary colors are dark grey, light grey, and blue.
+ * @since 1.0
+ * @version 1.1
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Bedrock
+ */
+
+:root {
+	
+	/* Background colors */
+	
+	--rsadmin__bg-color: #2f2f2f;
+	--rsadmin__header-notice-bg-color: #0f0f0f;
+	--rsadmin__menu-bg-color: #4f4f4f;
+	--rsadmin__submenu-bg-color: #5f5f5f;
+	--rsadmin__graph-overlay-bg-color: #cdcdcd;
+	--rsadmin__graph-bar-bg-color: #84c2fa;
+	--rsadmin__graph-bar-hover-bg-color: #94d2ff;
+	--rsadmin__table-bg-color: #ededed;
+	--rsadmin__table-odd-bg-color: #ddd;
+	--rsadmin__form-bg-color: #1f1f1f;
+	--rsadmin__input-bg-color: #fdfdfd;
+	--rsadmin__modal-bg-color: #3f3f3f;
+	
+	/* Border colors */
+	
+	--rsadmin__graph-border-color: #cdcdcd;
+	--rsadmin__form-border-color: #7d7d7d;
+	--rsadmin__input-border-color: #adadad;
+	
+	/* Text/link colors */
+	
+	--rsadmin__text-color: #fefefe;
+	--rsadmin__link-color: #b6e0fa;
+	--rsadmin__secondary-link-color: #46708a;
+	--rsadmin__submenu-hover-link-color: #daa660;
+	--rsadmin__table-color: #101010;
+}

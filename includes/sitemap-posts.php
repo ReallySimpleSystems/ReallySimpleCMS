@@ -15,14 +15,14 @@ foreach($rs_post_types as $post_type) {
 	// Skip the `media` post type
 	if($post_type['name'] === 'media') continue;
 	
-	if($post_type['public']) $public_post_types[] = $post_type['name'];
+	if($post_type['public'] === true) $public_post_types[] = $post_type['name'];
 }
 
 foreach($public_post_types as $type) {
 	if(is_writable(PATH)) {
 		$sitemap_file_path = PATH . '/sitemap-' . str_replace('_', '-', $type) . '.xml';
 		
-		$posts = $rs_query->select('posts', array('id', 'date', 'modified', 'slug', 'parent', 'type'), array(
+		$posts = $rs_query->select(getTable('p'), array('id', 'date', 'modified', 'slug', 'parent', 'type'), array(
 			'status' => 'published',
 			'type' => $type
 		), array(

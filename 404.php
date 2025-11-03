@@ -7,7 +7,7 @@
  */
 
 require_once __DIR__ . '/init.php';
-require_once RS_FUNC;
+requireFile(RS_FUNC);
 ?>
 <!DOCTYPE html>
 <html lang="en">

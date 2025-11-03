@@ -1,0 +1,46 @@
+/*!
+ * Styles for the Forest admin theme.
+ * Primary colors are green, brown, and yellow.
+ * @since 1.0
+ * @version 1.8
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Forest
+ */
+
+:root {
+	
+	/* Background colors */
+	
+	--rsadmin__bg-color: #2f2f19;
+	--rsadmin__header-notice-bg-color: #0f0f00;
+	--rsadmin__menu-bg-color: #0f6f2f;
+	--rsadmin__menu-hover-bg-color: #2f1f00;
+	--rsadmin__submenu-bg-color: #0f7f3f;
+	--rsadmin__graph-overlay-bg-color: #3d9d1d;
+	--rsadmin__graph-bar-bg-color: #c6fa60;
+	--rsadmin__graph-bar-hover-bg-color: #ddff76;
+	--rsadmin__table-bg-color: #bded9d;
+	--rsadmin__table-odd-bg-color: #addd8d;
+	--rsadmin__form-bg-color: #091f0c;
+	--rsadmin__input-bg-color: #ddffbd;
+	--rsadmin__modal-bg-color: #0f4f1f;
+	--rsadmin__active-tab-bg-color: #082f0f;
+	
+	/* Border colors */
+	
+	--rsadmin__graph-border-color: #9dcd7d;
+	--rsadmin__graph-overlay-border-color: #9ddd6d;
+	--rsadmin__table-border-color: #8dbd6d;
+	--rsadmin__form-border-color: #6fdf2f;
+	--rsadmin__input-border-color: #7dad5d;
+	--rsadmin__modal-border-color: var(--rsadmin__form-border-color);
+	
+	/* Text/link colors */
+	
+	--rsadmin__text-color: #fff;
+	--rsadmin__link-color: #c6fa60;
+	--rsadmin__secondary-link-color: #369a20;
+	--rsadmin__submenu-hover-link-color: #f6ca60;
+	--rsadmin__table-color: #0a1004;
+}

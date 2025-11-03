@@ -21,6 +21,7 @@ $step = (int)($_GET['step'] ?? 0);
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="robots" content="noindex, nofollow">
+		<link href="<?php echo STYLES . '/global.min.css'; ?>" rel="stylesheet">
 		<link href="<?php echo STYLES . '/button.min.css'; ?>" rel="stylesheet">
 		<link href="<?php echo STYLES . '/setup.min.css'; ?>" rel="stylesheet">
 	</head>
@@ -80,7 +81,7 @@ $step = (int)($_GET['step'] ?? 0);
 							define('DB_CHARSET', 'utf8');
 							define('DB_COLLATE', '');
 							
-							$rs_query = new Query;
+							$rs_query = new \Engine\Query;
 							
 							// Stop execution if the database connection can't be established
 							if(!$rs_query->conn_status) {

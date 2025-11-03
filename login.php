@@ -12,13 +12,13 @@ require_once RS_FUNC;
 ob_start();
 session_start();
 
-$rs_login = new Login;
+$rs_login = new \Engine\Login;
 $action = $_GET['action'] ?? '';
 ?>
 <!DOCTYPE html>
 <html>
 	<head>
-		<title><?php echo empty($action) ? 'Log In' : ucwords(str_replace('_', ' ', $action)); ?> ▸ <?php putSetting('site_title'); ?></title>
+		<title><?php echo empty($action) ? 'Log In' : capitalize($action); ?> ▸ <?php putSetting('site_title'); ?></title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="robots" content="noindex, nofollow">

@@ -1,0 +1,49 @@
+/*!
+ * Styles for the Sunset admin theme.
+ * Primary colors are purple, pink, and orange.
+ * @since 1.0
+ * @version 1.10
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Sunset
+ */
+
+:root {
+	
+	/* Background colors */
+	
+	--rsadmin__bg-color: #2f001f;
+	--rsadmin__header-notice-bg-color: #0f0000;
+	--rsadmin__menu-bg-color: #8f3f6f;
+	--rsadmin__menu-hover-bg-color: #0f062f;
+	--rsadmin__submenu-bg-color: #bf1f4f;
+	--rsadmin__graph-overlay-bg-color: #ad5d8d;
+	--rsadmin__graph-bar-bg-color: #fa7016;
+	--rsadmin__graph-bar-hover-bg-color: #ff8026;
+	--rsadmin__table-bg-color: #fdaddd;
+	--rsadmin__table-odd-bg-color: #ed9dcd;
+	--rsadmin__form-bg-color: #1a001f;
+	--rsadmin__input-bg-color: #ffcdfd;
+	--rsadmin__modal-bg-color: #6f1f4f;
+	--rsadmin__modal-details-bg-color: #7f2f5f;
+	--rsadmin__active-tab-bg-color: #3f0f2f;
+	
+	/* Border colors */
+	
+	--rsadmin__graph-border-color: #dd8dbd;
+	--rsadmin__graph-overlay-border-color: #dd8dad;
+	--rsadmin__table-border-color: #cd7dad;
+	--rsadmin__table-separator-color: #5f3f7f;
+	--rsadmin__form-border-color: #fd4d5d;
+	--rsadmin__input-border-color: #bd6d9d;
+	--rsadmin__modal-border-color: var(--rsadmin__form-border-color);
+	
+	/* Text/link colors */
+	
+	--rsadmin__text-color: #fff;
+	--rsadmin__link-color: #fa7016;
+	--rsadmin__secondary-link-color: #ca4006;
+	--rsadmin__active-menu-link-color: #e0b6fa;
+	--rsadmin__submenu-hover-link-color: #fac016;
+	--rsadmin__table-color: #10040a;
+}

@@ -1,12 +1,11 @@
 <?php
 /**
  * PHP Exception/Error page.
+ * Displays a user-friendly message if ini `display_errors` is off,
+ *  and the backtrace of the error if the setting is on.
  * @since 1.3.14-beta
  *
  * @package ReallySimpleCMS
- *
- * Displays a user-friendly message if ini `display_errors` is off,
- *  and the backtrace of the error if the setting is on.
  */
 ?>
 <!DOCTYPE html>
@@ -16,10 +15,13 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<?php
-		if(isDebugMode())
+		if(isDebugMode()) {
+			putStylesheet('global.css');
 			putStylesheet('style.css');
-		else
+		} else {
+			putStylesheet('global.min.css');
 			putStylesheet('style.min.css');
+		}
 		?>
 	</head>
 	<body class="error-page">

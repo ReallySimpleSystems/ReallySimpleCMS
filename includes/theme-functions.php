@@ -5,8 +5,8 @@
  *
  * @package ReallySimpleCMS
  *
- * ## FUNCTIONS ##
- * POSTS:
+ * ## FUNCTIONS [71] ##
+ * { POSTS [33] }
  * - isPost(): bool
  * - getPostId(): int
  * - putPostId(): void
@@ -40,7 +40,7 @@
  * - postHasFeaturedImage(): bool
  * - getPostExcerpt(int $num_words): string
  * - putPostExcerpt(int $num_words): void
- * TERMS:
+ * { TERMS [27] }
  * - isTerm(): bool
  * - getTermId(): int
  * - putTermId(): void
@@ -68,14 +68,14 @@
  * - putTermTaxName(): void
  * - getTermPosts(mixed $_term, string $order_by, string $order, int $limit): array
  * - putTermPosts(mixed $_term, string $order_by, string $order, int $limit): void
- * QUERIES:
+ * { QUERIES [6] }
  * - querySelect(string $table, string|array $cols, array $where, array $args): int|array
  * - querySelectRow(string $table, string|array $cols, array $where, array $args): int|array
  * - querySelectField(string $table, string $col, array $where, array $args): string
  * - queryInsert(string $table, array $data, array $args): int
  * - queryUpdate(string $table, array $data, array $where, array $args): void
  * - queryDelete(string $table, array $where, array $args): void
- * MISCELLANEOUS:
+ * { MISCELLANEOUS [5] }
  * - templateExists(string $template, string $dir): bool
  * - getHeader(string $template): bool
  * - getFooter(string $template): bool
@@ -685,20 +685,20 @@ function getTermPosts(mixed $_term = null, string $order_by = 'date', string $or
 		$term = getTermId();
 	}
 	
-	$relationships = $rs_query->select('term_relationships', 'post', array(
+	$relationships = $rs_query->select(getTable('tr'), 'post', array(
 		'term' => $term
 	));
 	
 	foreach($relationships as $relationship) {
 		// Skip the post if it isn't published
-		if(!$rs_query->selectRow('posts', 'id', array(
+		if(!$rs_query->selectRow(getTable('p'), 'id', array(
 			'id' => $relationship['post'],
 			'status' => 'published'
 		))) {
 			continue;
 		}
 		
-		$posts[] = $rs_query->selectRow('posts', '*', array(
+		$posts[] = $rs_query->selectRow(getTable('p'), '*', array(
 			'id' => $relationship['post']
 		), array(
 			'order_by' => $order_by,
@@ -753,13 +753,13 @@ function putTermPosts(mixed $_term = null, string $order_by = 'date', string $or
  * @since 1.3.8-beta
  *
  * @see Query::select()
- * @param string $table -- The table name.
+ * @param string|array $table -- The table name and optionally, table prefix.
  * @param string|array $cols (optional) -- The column(s) to query.
  * @param array $where (optional) -- The where clause.
  * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
  * @return int|array
  */
-function querySelect(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
+function querySelect(string|array $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
 	global $rs_query;
 	
 	return $rs_query->select($table, $data, $where, $args);
@@ -770,13 +770,13 @@ function querySelect(string $table, string|array $cols = '*', array $where = arr
  * @since 1.3.8-beta
  *
  * @see Query::selectRow()
- * @param string $table -- The table name.
+ * @param string|array $table -- The table name and optionally, table prefix.
  * @param string|array $cols (optional) -- The column(s) to query.
  * @param array $where (optional) -- The where clause.
  * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
  * @return int|array
  */
-function querySelectRow(string $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
+function querySelectRow(string|array $table, string|array $cols = '*', array $where = array(), array $args = array()): int|array {
 	global $rs_query;
 	
 	return $rs_query->selectRow($table, $data, $where, $args);
@@ -787,13 +787,13 @@ function querySelectRow(string $table, string|array $cols = '*', array $where = 
  * @since 1.3.8-beta
  *
  * @see Query::selectField()
- * @param string $table -- The table name.
+ * @param string|array $table -- The table name and optionally, table prefix.
  * @param string $col -- The column to query.
  * @param array $where (optional) -- The where clause.
  * @param array $args (optional) -- Additional args (e.g., `order_by`, `order`, `limit`).
  * @return string
  */
-function querySelectField(string $table, string $col, array $where = array(), array $args = array()): string {
+function querySelectField(string|array $table, string $col, array $where = array(), array $args = array()): string {
 	global $rs_query;
 	
 	return $rs_query->selectField($table, $col, $where, $args);
@@ -804,12 +804,12 @@ function querySelectField(string $table, string $col, array $where = array(), ar
  * @since 1.3.8-beta
  *
  * @see Query::insert()
- * @param string $table -- The table name.
+ * @param string|array $table -- The table name and optionally, table prefix.
  * @param array $data -- The data to insert.
  * @param array $args (optional) -- Additional args.
  * @return int
  */
-function queryInsert(string $table, array $data, array $args = array()): int {
+function queryInsert(string|array $table, array $data, array $args = array()): int {
 	global $rs_query;
 	
 	return $rs_query->insert($table, $data, $args);
@@ -820,12 +820,12 @@ function queryInsert(string $table, array $data, array $args = array()): int {
  * @since 1.3.8-beta
  *
  * @see Query::update()
- * @param string $table -- The table name.
+ * @param string|array $table -- The table name and optionally, table prefix.
  * @param array $data -- The data to update.
  * @param array $where (optional) -- The where clause.
  * @param array $args (optional) -- Additional args.
  */
-function queryUpdate(string $table, array $data, array $where = array(), array $args = array()): void {
+function queryUpdate(string|array $table, array $data, array $where = array(), array $args = array()): void {
 	global $rs_query;
 	
 	$rs_query->update($table, $data, $where, $args);
@@ -836,11 +836,11 @@ function queryUpdate(string $table, array $data, array $where = array(), array $
  * @since 1.3.8-beta
  *
  * @see Query::delete()
- * @param string $table -- The table name.
+ * @param string|array $table -- The table name and optionally, table prefix.
  * @param array $where (optional) -- The where clause.
  * @param array $args (optional) -- Additional args.
  */
-function queryDelete(string $table, array $where = array(), array $args = array()): void {
+function queryDelete(string|array $table, array $where = array(), array $args = array()): void {
 	global $rs_query;
 	
 	$rs_query->delete($table, $where, $args);
@@ -870,16 +870,14 @@ function templateExists(string $template, string $dir): bool {
  * @return bool
  */
 function getHeader(string $template = ''): bool {
-	global $rs_session;
+	global $rs_theme_path;
 	
-	$theme_path = slash(PATH . THEMES) . getSetting('theme');
-	
-	if(!file_exists($theme_path . '/header.php') && !file_exists(slash($theme_path) . $template . '.php')) {
+	if(!file_exists($rs_theme_path . '/header.php') && !file_exists(slash($rs_theme_path) . $template . '.php')) {
 		// Don't load anything; our header template doesn't exist
 		return false;
 	} else {
 		// Include the header template
-		require_once slash($theme_path) . (!empty($template) ? $template : 'header') . '.php';
+		requireFile(slash($rs_theme_path) . (!empty($template) ? $template : 'header') . '.php');
 		return true;
 	}
 }
@@ -892,16 +890,14 @@ function getHeader(string $template = ''): bool {
  * @return bool
  */
 function getFooter(string $template = ''): bool {
-	global $rs_session;
+	global $rs_theme_path;
 	
-	$theme_path = slash(PATH . THEMES) . getSetting('theme');
-	
-	if(!file_exists($theme_path . '/footer.php') && !file_exists(slash($theme_path) . $template . '.php')) {
+	if(!file_exists($rs_theme_path . '/footer.php') && !file_exists(slash($rs_theme_path) . $template . '.php')) {
 		// Don't load anything; our footer template doesn't exist
 		return false;
 	} else {
 		// Include the footer template
-		require_once slash($theme_path) . (!empty($template) ? $template : 'footer') . '.php';
+		requireFile(slash($rs_theme_path) . (!empty($template) ? $template : 'footer') . '.php');
 		return true;
 	}
 }

@@ -16,6 +16,191 @@
 - \*-alpha (Alpha version)
 - \*-beta (Beta version)
 
+## Version 1.3.15-beta (2025-11-03)
+
+**General changes:**
+- Cleaned up Alpha changelog
+- Bumped minimum PHP version to `8.1` and recommended to `8.2`
+- Created a global stylesheet file to hold system-wide styles
+- Renamed the `theme` setting to `active_theme` and added a new setting: `active_modules`
+- Replaced all occurrences of hardcoded database table names with the new `getTable` function
+- All admin classes are now prefixed with `ad_` when instantiated (e.g., `$rs_post` becomes `$rs_ad_post`)
+- Moved the `Admin\Theme::isActiveTheme`, `::isBrokenTheme`, and `::themeExists` methods to `register/themes.php`
+- Updated the broken theme message on the List Themes page
+- When a new user is created, the admin theme is now set to `bedrock` by default
+- Added a user stats page
+- Relabeled "Your Profile" to "My Profile" on admin menu for consistency
+- Renamed front end resource files to `front.css` and `front.js`, respectively
+- Changes from `v1.4.0-beta_snap_03`:
+  - Tweaked copyright text in README
+  - Namespaced all core and admin classes
+    - Henceforth, all mentions of core classes in the changelog will include their namespaces
+  - Removed redundant checks for whether a user is online in several files
+  - Moved the admin `functions.php` file to the `includes` directory and renamed it `admin-functions.php`
+  - Added support for prefixed columns in the `Engine\Query` class
+    - The `Engine\Query::select`, `::selectRow`, `::selectField`, `::insert`, `::update`, and `::delete` methods now accept an optional parameter (bundled with `$table`) to prefix the columns/fields
+  - Replaced numerous instances of hardcoded HTML with DOMtags
+  - Modals and AJAX loaders have been moved to their own subdirectories of the `includes` directory
+  - Changed the "Full Name" column on the List Users page to "Display Name"
+  - Split the admin about page into the following tabs:
+    - Stats: displays various stats about the site
+    - Software: displays software information
+    - Credits: displays development information
+	- This page now displays much more information
+  - Removed the `ADMIN_THEMES` constant from `admin-functions.php` as it's now defined in `constants.php`
+  - Overhauled registry logic and created a new class to handle all component registries
+    - Modules, themes, and admin themes can now be registered
+    - Post types and taxonomies can be registered as before
+    - Register and unregister functions for modules, themes, and admin themes should be called from the component's base file (e.g., `/<module_name>/<module_name>.php`, `/<theme_name>/functions.php`)
+  - Cleaned up admin CSS and moved default styles to the new Bedrock admin theme
+  - Tweaked the `.gitignore` file
+
+**Programmatic changes:**
+- New constants/global vars:
+  - `AJAX`, `MODALS`, `REGISTER`
+  - `$rs_admin_themes`, `$rs_register`, `$rs_theme_path`, `$rs_themes`
+- Renamed constants/global vars:
+  - `ADMIN_FUNC` -> `RS_ADMIN_FUNC`
+- Deprecated constants/global vars:
+  - `ADMIN_SCRIPTS`, `ADMIN_STYLES`
+- New classes:
+  - `Engine\Register`
+- New functions/methods:
+  - `Admin\Comment` class (`getResults`)
+  - `Admin\Login` class (`getResultsAttempts`, `getResultsBlacklist`, `getResultsRules`)
+  - `Admin\Media` class (`getEntryCount`, `getResults`)
+  - `Admin\Menu` class (`getResults`)
+  - `Admin\Post` class (`getResults`)
+  - `Admin\Term` class (`getResults`)
+  - `Admin\User` class (`getResults`)
+  - `Admin\UserRole` class (`getResults`)
+  - `Admin\Widget` class (`getResults`)
+  - `Engine\Register` class (`registerAdminTheme`, `registerModule`, `registerTheme`, `unregisterAdminTheme`, `unregisterModule`, `unregisterTheme`)
+  - `Enums\Table` enum (`getTable`, `getTableName`, `getTablePrefix`)
+  - `admin-functions.php` (`aboutTabCredits`, `aboutTabSoftware`, `aboutTabStats`, `userStats`)
+  - `critical-functions.php` (`themeSetup`)
+  - `debug.php` (`checkContentDir`)
+  - `global-functions.php` (`capitalize`, `getQueryString`, `getTable`, `removeDir`)
+  - `register/admin-themes.php` (`adminThemeExists`, `loadAdminThemeReg`, `registerAdminTheme`, `registerAdminThemes`, `unregisterAdminTheme`)
+  - `register/post-types.php` (`registerPostType`, `unregisterPostType`)
+  - `register/taxonomies.php` (`registerTaxonomy`, `unregisterTaxonomy`)
+  - `register/themes.php` (`registerThemes`, `registerTheme`, `unregisterTheme`)
+- Renamed functions/methods:
+  - `Admin\Comment` class (`getCommentCount` -> `getEntryCount`)
+  - `Admin\Login` class (`getLoginCount` -> `getEntryCount`)
+  - `Admin\Menu` class (`getMenuCount` -> `getEntryCount`)
+  - `Admin\Post` class (`getPostCount` -> `getEntryCount`)
+  - `Admin\Profile` class (`getThemesList` -> `getAdminThemesList`, `validateData` -> `validateSubmission`)
+  - `Admin\Term` class (`getTermCount` -> `getEntryCount`)
+  - `Admin\User` class (`getUserCount` -> `getEntryCount`)
+  - `Admin\UserRole` class (`getUserRoleCount` -> `getEntryCount`)
+  - `Admin\Widget` class (`getWidgetCount` -> `getEntryCount`)
+  - `admin-functions.php` (`adminNavMenu` -> `registerAdminMenu`, `adminNavMenuItem` -> `registerAdminMenuItem`)
+  - `register/admin-themes.php` (`adminThemeStylesheet` -> `loadAdminTheme`)
+- Deprecated functions/methods:
+  - `admin-functions.php` (`adminScript`, `adminStylesheet`)
+- Removed functions/methods:
+  - `Engine\Query` class (`errorMsg`)
+
+**Bug fixes:**
+- Many admin classes are still using `$id` instead of `$this->id` in their validation methods
+- A method of the `Admin\Profile` class is not named correctly
+- Media items that do not exist in the uploads folder throw an error in the media modal
+- Menu items of invalid post types throw an error on the front end
+- Admin pagination breaks due to rearranged internal methods
+- Users can vote for their own comments
+- From `v1.4.0-beta_snap_03`:
+  - Some core files are improperly included in the database installer
+
+**Modified files:**
+- .gitignore (M)
+- 404.php (M)
+- README.md (M)
+- admin/about.php
+- admin/categories.php
+- admin/comments.php
+- admin/header.php
+- admin/index.php
+- admin/logins.php
+- admin/media.php
+- admin/menus.php
+- admin/posts.php
+- admin/profile.php
+- admin/settings.php
+- admin/stats.php (N)
+- admin/terms.php
+- admin/themes.php
+- admin/users.php
+- admin/widgets.php
+- content/themes/carbon/functions.php (M)
+- content/themes/carbon/index.php (M)
+- content/themes/carbon/post.php (M)
+- includes/admin/class-comment.php
+- includes/admin/class-login.php
+- includes/admin/class-media.php
+- includes/admin/class-menu.php
+- includes/admin/class-notice.php (M)
+- includes/admin/class-post.php
+- includes/admin/class-profile.php
+- includes/admin/class-settings.php
+- includes/admin/class-term.php
+- includes/admin/class-theme.php
+- includes/admin/class-user-role.php
+- includes/admin/class-user.php
+- includes/admin/class-widget.php
+- includes/admin/interface-admin.php
+- includes/admin-functions.php
+- includes/ajax/admin-ajax.php (R)
+- includes/ajax/ajax.php
+- includes/ajax/bulk-actions.php
+- includes/ajax/file-upload.php (R)
+- includes/ajax/load-media.php
+- includes/backward-compat.php (M)
+- includes/constants.php
+- includes/critical-functions.php (M)
+- includes/debug.php
+- includes/engine/class-comment.php
+- includes/engine/class-error-handler.php (M)
+- includes/engine/class-login.php (M)
+- includes/engine/class-post.php (M)
+- includes/engine/class-query.php
+- includes/engine/class-register.php (N)
+- includes/engine/class-term.php (M)
+- includes/enums/enum-table.php (N)
+- includes/error.php (M)
+- includes/fallback-theme.php (M)
+- includes/functions.php (M)
+- includes/global-functions.php
+- includes/load-theme.php
+- includes/maintenance.php (M)
+- includes/modals/modal-delete.php (M)
+- includes/modals/modal-upload.php
+- includes/register/admin-themes.php (N)
+- includes/register/post-types.php (N)
+- includes/register/taxonomies.php (N)
+- includes/register/themes.php (N)
+- includes/sitemap-index.php (M)
+- includes/sitemap-posts.php (M)
+- includes/sitemap-terms.php (M)
+- includes/theme-functions.php
+- includes/update-db.php
+- includes/update.php
+- login.php (M)
+- resources/css/front.css
+- resources/css/front.min.css
+- resources/css/global.css (N)
+- resources/css/global.min.css (N)
+- resources/css/setup.css
+- resources/css/setup.min.css
+- resources/js/front.js
+- resources/js/front.min.js
+- resources/js/modal.js
+- resources/js/modal.min.js
+- resources/js/setup.js
+- resources/js/setup.min.js
+- setup/rsdb-config.php (M)
+- setup/rsdb-install.php (M)
+
 ## Version 1.3.14-beta (2025-02-24)
 
 **General changes:**
@@ -328,7 +513,6 @@
 - Removed old scripts from the `update-db.php` file for versions prior to `1.2.0-beta`
 - Cleaned up code in the `dashboardWidget` and `statsBarGraph` functions
 - Updated jQuery to v3.7.1
-- Added a new global constant for the `resources` directory
 - Moved core and admin CSS and JS files to the `resources` directory
 - Moved the `logs` directory to the root
 - Tweaked the directives in the `.htaccess` file
@@ -337,7 +521,6 @@
   - This file itself is now deprecated in favor of the new deprecation system
 - Added a new setting that defines the path of the login URL
   - This adds an extra layer of security to keep `/login.php` from being directly accessed
-- Added a new global constant for the DOMtags version
 - Cleaned up the database schema file
 - Renamed the following database columns:
   - `postmeta` and `usermeta` tables (`_key` -> `datakey`)
@@ -346,6 +529,8 @@
 - Changed the format of snapshot versions from `x.x.x[x]{ss-xx}` to `x.x.x[x]_snap-xx`
 
 **Programmatic changes:**
+- New constants/global vars:
+  - `DOMTAGS_VERSION`, `RES`
 - New functions/methods:
   - `debug.php` (`deprecated`, `errorHandler`)
   - `functions.php` (`handleSecureLogin`)
@@ -568,7 +753,6 @@
 - Renamed a parameter of the `Login::isBlacklisted` method
 - Added a new file that loads critical functions early on in the CMS initialization
 - Rearranged and updated some of the global constants
-- Added a new global constant for the new critical functions file
 - Streamlined and improved class autoloading to allow for interface support
 - Cleaned up the initialization file
 - Tweaked the core front end styles
@@ -579,6 +763,10 @@
 - Added an interface for admin pages (non-functional)
 
 **Programmatic changes:**
+- New constants/global vars:
+  - `CRIT_FUNC`
+- Renamed constants/global vars:
+  - `CMS_NAME` -> `CMS_ENGINE`
 - New functions/methods:
   - `critical-functions.php` (`checkPHPVersion`, `formatPathFragment`, `getClassFilename`)
 - Renamed functions/methods:
@@ -837,10 +1025,11 @@
 - Uploaded files are now stored in year subdirectories of the main `uploads` directory
   - `/content/uploads/<filename>` -> `/content/uploads/<year>/<filename>`
   - All existing media on the site is retroactively updated
-- Created a new global constant named `CMS_VERSION` which will eventually replace `VERSION`
 - Updated the URL that permanently blacklisted users are redirected to ;)
 
 **Programmatic changes:**
+- Renamed constants/global vars:
+  - `VERSION` -> `CMS_VERSION`
 - New functions/methods:
   - `Query` class (`columnExists`)
 
@@ -1111,6 +1300,8 @@
 - Tweaked code in the `getPermalink` function
 
 **Programmatic changes:**
+- New constants/global vars:
+  - `ADMIN_FUNC`, `DB_CONFIG`, `DB_SCHEMA`, `DEBUG_FUNC`, `FUNC`, `GLOBAL_FUNC`, `QUERY_CLASS`
 - New functions/methods:
   - `functions.php` (`putThemeScript`, `putThemeStylesheet`)
   - `global-functions.php` (`putScript`, `putStylesheet`)
@@ -1312,6 +1503,8 @@
 - Tweaked the Carbon theme's `script.js` code
 
 **Programmatic changes:**
+- New constants/global vars:
+  - `CMS_NAME`
 - New functions/methods:
   - Admin `Comment` class (`bulkActions`)
   - Admin `functions.php` (`tag`)
@@ -1384,13 +1577,18 @@
 - Updated the copyright year in the README file
 - Updated Font Awesome to v5.15.4
 - Updated jQuery to v3.6.0
-- Created named constants for the jQuery and Font Awesome versions
-- Renamed the `PHP` named constant to `PHP_MINIMUM` and created a new constant called `PHP_RECOMMENDED`, which will be the version recommended for administrators to run their servers on
-- Set the recommended PHP version to `7.4`
+- Created a new constant which will hold the recommended PHP version for administrators to run their servers on
+  - Set the recommended PHP version to `7.4`
 - Tweaked styling for admin header notices
 - Added an admin header notice for PHP versions below the recommended version
 - Tweaked styling of the admin themes page
 - Added a message that displays if a theme does not have a preview image
+
+**Programmatic changes:**
+- New constants/global vars:
+  - `ICONS_VERSION`, `JQUERY_VERSION`, `PHP_RECOMMENDED`
+- Renamed constants/global vars:
+  - `PHP` -> `PHP_MINIMUM`
 
 **Modified files:**
 - README.md (M)
@@ -2123,6 +2321,8 @@
 - The `getPrivileges` function now orders privileges by their ids
 
 **Programmatic changes:**
+- New constants/global vars:
+  - `$taxonomies`
 - New functions/methods:
   - `globals.php` (`getTaxonomyLabels`, `registerDefaultTaxonomies`)
 
@@ -2292,6 +2492,8 @@
 - Admin menu items are now hidden if a logged in user does not have sufficient privileges to view them
 
 **Programmatic changes:**
+- New constants/global vars:
+  - `$post_types`
 - Deprecated functions/methods:
   - Admin `Post` class (`getPermalink`)
   - Admin `functions.php` (`adminNavMenu`)

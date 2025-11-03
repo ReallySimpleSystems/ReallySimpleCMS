@@ -8,7 +8,7 @@
  */
 
 // Stop execution if the file is accessed directly
-if(!defined('PATH')) exit('You do not have permission to access this directory.');
+if(!defined('PATH')) exit('You do not have permission to access this resource.');
 
 getHeader();
 

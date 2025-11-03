@@ -19,9 +19,9 @@ if(isset($_POST['submit_ajax']) && $_POST['submit_ajax']) {
 	
 	checkPHPVersion();
 	
-	requireFiles(RS_CONFIG, RS_DEBUG_FUNC, GLOBAL_FUNC);
+	requireFiles(array(RS_CONFIG, RS_DEBUG_FUNC, GLOBAL_FUNC));
 	
-	$rs_query = new Query;
+	$rs_query = new \Engine\Query;
 	checkDBStatus();
 	
 	requireFile(RS_SCHEMA);

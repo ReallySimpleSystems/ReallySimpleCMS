@@ -78,6 +78,9 @@ if(version_compare(RS_VERSION, '1.3.14-beta', '>=')) {
 	// Path to the critical functions file
 	define('CRIT_FUNC', RS_CRIT_FUNC);
 	
+	// Path to the admin functions file
+	define('ADMIN_FUNC', RS_ADMIN_FUNC);
+	
 	// The name of the CMS engine
 	define('CMS_ENGINE', RS_ENGINE);
 	

@@ -15,7 +15,7 @@ if(!file_exists(RS_CONFIG)) redirect(SETUP . '/rsdb-config.php');
 
 requireFiles(array(RS_CONFIG, RS_DEBUG_FUNC, GLOBAL_FUNC));
 
-$rs_query = new Query;
+$rs_query = new \Engine\Query;
 checkDBStatus();
 
 requireFile(RS_SCHEMA);
@@ -48,6 +48,7 @@ $step = (int)($_GET['step'] ?? 1);
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="robots" content="noindex, nofollow">
 		<?php
+		putStylesheet('global' . ($debug ? '' : '.min') . '.css');
 		putStylesheet('button' . ($debug ? '' : '.min') . '.css');
 		putStylesheet('setup' . ($debug ? '' : '.min') . '.css');
 		putStylesheet('font-awesome.min.css', ICONS_VERSION);
@@ -101,7 +102,7 @@ $step = (int)($_GET['step'] ?? 1);
 							</tr>
 							<tr>
 								<th><label for="username">Username</label></th>
-								<td><input type="text" id="username" name="username" value="<?php echo $username; ?>"></td>
+								<td><input type="text" id="username" name="username" value="<?php echo $username; ?>" autocomplete="on"></td>
 							</tr>
 							<tr>
 								<th><label for="password">Password</label></th>

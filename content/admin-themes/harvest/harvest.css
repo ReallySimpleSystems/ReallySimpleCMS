@@ -1,0 +1,46 @@
+/*!
+ * Styles for the Harvest admin theme.
+ * Primary colors are orange, brown, and yellow.
+ * @since 1.0
+ * @version 1.9
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Harvest
+ */
+
+:root {
+	
+	/* Background colors */
+	
+	--rsadmin__bg-color: #2f0f06;
+	--rsadmin__header-notice-bg-color: #0f0400;
+	--rsadmin__menu-bg-color: #8f4f0f;
+	--rsadmin__menu-hover-bg-color: #2f0f06;
+	--rsadmin__submenu-bg-color: #7f3f0f;
+	--rsadmin__graph-overlay-bg-color: #8d3d1d;
+	--rsadmin__graph-bar-bg-color: #fa8026;
+	--rsadmin__graph-bar-hover-bg-color: #ff963d;
+	--rsadmin__table-bg-color: #eddd8d;
+	--rsadmin__table-odd-bg-color: #ddcd7d;
+	--rsadmin__form-bg-color: #1f0903;
+	--rsadmin__input-bg-color: #fffdad;
+	--rsadmin__modal-bg-color: #6f2f0f;
+	--rsadmin__active-tab-bg-color: #4f1f08;
+	
+	/* Border colors */
+	
+	--rsadmin__graph-border-color: #cdbd6d;
+	--rsadmin__graph-overlay-border-color: #cd9d6d;
+	--rsadmin__table-border-color: #bdad5d;
+	--rsadmin__form-border-color: #dfbf2f;
+	--rsadmin__input-border-color: #ad9d4d;
+	--rsadmin__modal-border-color: var(--rsadmin__form-border-color);
+	
+	/* Text/link colors */
+	
+	--rsadmin__text-color: #fff;
+	--rsadmin__link-color: #fa8026;
+	--rsadmin__secondary-link-color: #ba4016;
+	--rsadmin__submenu-hover-link-color: #f6ca30;
+	--rsadmin__table-color: #100a04;
+}

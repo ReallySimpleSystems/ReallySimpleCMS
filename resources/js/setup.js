@@ -1,19 +1,26 @@
 /*!
- * Scripts that run during installation.
+ * Scripts that run during the setup phase.
  * @since 1.2.6-beta
+ *
+ * @package ReallySimpleCMS
  */
 jQuery(document).ready($ => {
-	// Turn on strict mode
 	'use strict';
 	
 	/**
-	 * Run the database installation.
+	 * Run the database installation script.
 	 * @since 1.2.6-beta
 	 */
 	$('body').on('submit', '.data-form', function(e) {
 		e.preventDefault();
 		
-		let content = $('.wrapper').html();
+		// Extract the installation path
+		let path = window.location.pathname;
+		let idx = path.lastIndexOf('/');
+		path = path.substring(0, idx);
+		
+		// Form fields
+		let content = $('.content').html();
 		let site_title = $('#site-title').val();
 		let username = $('#username').val();
 		let password = $('#password').val();
@@ -24,7 +31,7 @@ jQuery(document).ready($ => {
 		$('#submit-ajax').val(1);
 		
 		// Display the spinner
-		$('.wrapper').html('<div class="spinner"><i class="fa-solid fa-spinner"></i><br><span>Installing...</span></div>');
+		$('.content').html('<div class="spinner"><i class="fa-solid fa-spinner"></i><br><span>Installing...</span></div>');
 		
 		// Submit the form data
 		$.ajax({
@@ -43,7 +50,7 @@ jQuery(document).ready($ => {
 				
 				if(error) {
 					// Reset the page content
-					$('.wrapper').html(content);
+					$('.content').html(content);
 					
 					// Populate the field values
 					$('#site-title').val(site_title);
@@ -58,10 +65,10 @@ jQuery(document).ready($ => {
 					else
 						$('<p class="status-message failure">' + message + '</p>').insertBefore('.data-form');
 				} else {
-					$('.wrapper').html(message);
+					$('.content').html(message);
 				}
 			},
-			url: '/admin/includes/run-install.php'
+			url: path + '/run-install.php'
 		});
 	});
 });

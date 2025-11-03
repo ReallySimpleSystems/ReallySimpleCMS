@@ -1,0 +1,48 @@
+/*!
+ * Styles for the Sky admin theme.
+ * Primary colors are blue, white and gold.
+ * @since 1.0
+ * @version 1.4
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Sky
+ */
+
+:root {
+	
+	/* Background colors */
+	
+	--rsadmin__bg-color: #91d5f7;
+	--rsadmin__header-notice-bg-color: #fff;
+	--rsadmin__menu-bg-color: #fbbf08;
+	--rsadmin__menu-hover-bg-color: #e8f5f7;
+	--rsadmin__submenu-bg-color: #ffd861;
+	--rsadmin__submenu-hover-bg-color: #fff;
+	--rsadmin__graph-overlay-bg-color: #fff;
+	--rsadmin__table-bg-color: var(--rsadmin__submenu-bg-color);
+	--rsadmin__table-odd-bg-color: #efc851;
+	--rsadmin__form-bg-color: #c8e9f9;
+	--rsadmin__input-bg-color: #ffe871;
+	--rsadmin__modal-bg-color: #db9f00;
+	/* --rsadmin__modal-details-bg-color: var(--rsadmin__submenu-bg-color); */
+	/* --rsadmin__active-tab-bg-color: var(--rsadmin__bg-color); */
+	
+	/* Border colors */
+	
+	/* --rsadmin__graph-border-color: #cdcdcd; */
+	/* --rsadmin__table-border-color: var(--rsadmin__graph-border-color); */
+	--rsadmin__table-separator-color: var(--rsadmin__menu-bg-color);
+	/* --rsadmin__form-border-color: #7d7d7d; */
+	/* --rsadmin__input-border-color: #adadad; */
+	/* --rsadmin__modal-border-color: var(--rsadmin__input-border-color); */
+	
+	/* Text/link colors */
+	
+	--rsadmin__text-color: #000;
+	--rsadmin__link-color: #0b0b9f;
+	--rsadmin__secondary-link-color: #796118;
+	--rsadmin__menu-link-color: #000;
+	--rsadmin__active-menu-link-color: var(--rsadmin__link-color);
+	--rsadmin__submenu-hover-link-color: var(--rsadmin__menu-link-color);
+	/* --rsadmin__table-color: #101010; */
+}

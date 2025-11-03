@@ -1,40 +1,11 @@
 <?php
 /**
- * Carbon theme - functions.
- * @since 2.2.6-alpha
+ * Functions for the Carbon theme.
+ * @since 1.0.0 [2.2.6-alpha]
  *
  * @package ReallySimpleCMS
  * @subpackage Carbon
  */
-
-define('THEME_VERSION', '1.11');
-
-/**
- * Register custom post types.
- * @since 1.0.0-beta
- */
-// registerPostType($slug, $args);
-
-/**
- * Register custom taxonomies.
- * @since 1.0.1-beta
- */
-// registerTaxonomy($name, $post_type, $args);
-
-/**
- * Register theme menus.
- * @since 1.0.0-beta
- */
-registerMenu('Main Menu', 'main-menu');
-registerMenu('Footer Menu', 'footer-menu');
-
-/**
- * Register theme widgets.
- * @since 1.0.0-beta
- */
-registerWidget('Social Media', 'social-media');
-registerWidget('Get in contact with us!', 'business-info');
-registerWidget('Copyright', 'copyright');
 
 /**
  * Fetch the most recent posts in a taxonomy.
@@ -57,14 +28,14 @@ function getRecentPosts(int $count = 3, mixed $terms = null, bool $display_title
 		
 		if(is_null($terms)) {
 			// Fetch all published posts regardless of taxonomy
-			$posts = querySelect('posts', '*', array(
+			$posts = querySelect(getTable('p'), '*', array(
 				'status' => 'published',
 				'type' => 'post'
-			),
-				'date',
-				'DESC',
-				$count
-			);
+			), array(
+				'order_by' => 'date',
+				'order' => 'DESC',
+				'limit' => $count
+			));
 		} else {
 			if($terms === 0) {
 				// Fetch only the posts associated with the current term
@@ -90,7 +61,7 @@ function getRecentPosts(int $count = 3, mixed $terms = null, bool $display_title
 			<ul>
 				<?php
 				foreach($posts as $post) {
-					$feat_image = querySelectField('postmeta', 'value', array(
+					$feat_image = querySelectField(getTable('pm'), 'value', array(
 						'post' => $post['id'],
 						'datakey' => 'feat_image'
 					));

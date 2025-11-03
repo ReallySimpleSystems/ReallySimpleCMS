@@ -9,15 +9,16 @@
 // Stop execution if the file is accessed directly
 if(!defined('PATH')) exit('You do not have permission to access this directory.');
 
-include_once PATH . INC . '/sitemap-posts.php';
-include_once PATH . INC . '/sitemap-terms.php';
+requireFiles(array(
+	PATH . INC . '/sitemap-posts.php',
+	PATH . INC . '/sitemap-terms.php'
+));
 
-$sitemaps = array();
-
-// Make sure that the home directory can be written to
 if(is_writable(PATH)) {
+	$sitemaps = array();
 	$sitemap_file_path = PATH . '/sitemap.xml';
 	$robots_file_path = PATH . '/robots.txt';
+	
 	$handle = opendir(PATH);
 	
 	while(($entry = readdir($handle)) !== false)

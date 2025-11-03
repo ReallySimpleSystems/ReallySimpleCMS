@@ -18,7 +18,7 @@ foreach($public_taxonomies as $tax) {
 	if(is_writable(PATH)) {
 		$sitemap_file_path = PATH . '/sitemap-' . str_replace('_', '-', $tax) . '.xml';
 		
-		$terms = $rs_query->select('terms', array('id', 'slug', 'taxonomy', 'parent'), array(
+		$terms = $rs_query->select(getTable('t'), array('id', 'slug', 'taxonomy', 'parent'), array(
 			'taxonomy' => getTaxonomyId($tax)
 		), array(
 			'order_by' => 'slug'

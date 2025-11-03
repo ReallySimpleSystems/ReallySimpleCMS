@@ -1,12 +1,11 @@
 <?php
 /**
  * Maintenance page used by the CMS if it's in maintenance mode.
+ * Maintenance mode is useful for making potentially breaking changes on the website,
+ *  and the CMS will only display it to logged out viewers.
  * @since 1.3.6-beta
  *
  * @package ReallySimpleCMS
- *
- * Maintenance mode is useful for making potentially breaking changes on the website,
- *  and the CMS will only display it to logged out viewers.
  */
 ?>
 <!DOCTYPE html>
@@ -16,10 +15,13 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<?php
-		if(isDebugMode())
+		if(isDebugMode()) {
+			putStylesheet('global.css');
 			putStylesheet('style.css');
-		else
+		} else {
+			putStylesheet('global.min.css');
 			putStylesheet('style.min.css');
+		}
 		?>
 	</head>
 	<body class="maintenance-page">

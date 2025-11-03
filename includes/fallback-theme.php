@@ -13,10 +13,13 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<?php
-		if(isDebugMode())
+		if(isDebugMode()) {
+			putStylesheet('global.css');
 			putStylesheet('style.css');
-		else
+		} else {
+			putStylesheet('global.min.css');
 			putStylesheet('style.min.css');
+		}
 		?>
 	</head>
 	<body class="fallback-theme">

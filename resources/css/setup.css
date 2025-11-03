@@ -11,17 +11,13 @@
 
 :root {
 	
-	/* Typography */
-	
-	--global--font: 'Segoe UI', Helvetica, sans-serif;
-	
 	/* Colors */
 	
-	--global--bg-color: #2f2f2f;
-	--global--content-bg-color: #ededed;
-	--global--border-color: #c4c4c4;
-	--global--text-color: #101010;
-	--global--heading-color: #fefefe;
+	--rssetup__bg-color: #2f2f2f;
+	--rssetup__content-bg-color: #ededed;
+	--rssetup__border-color: #c4c4c4;
+	--rssetup__text-color: #101010;
+	--rssetup__heading-color: #fefefe;
 }
 
 /*------------------------------------*\
@@ -39,28 +35,22 @@
 }
 
 /*------------------------------------*\
-    NORMALIZATION
+    FORMATTING
 \*------------------------------------*/
 
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-}
-
 html {
-	background-color: var(--global--bg-color);
+	background-color: var(--rssetup__bg-color);
 	min-height: 100%;
 }
 
 body {
-	font-family: var(--global--font);
+	font-family: var(--rscms__font);
 	font-size: 100%;
 	margin: 0;
 }
 
 h1 {
-	color: var(--global--heading-color);
+	color: var(--rssetup__heading-color);
 	text-align: center;
 }
 
@@ -79,8 +69,8 @@ li {
 }
 
 code {
-	background-color: var(--global--heading-color);
-	border: 1px solid var(--global--border-color);
+	background-color: var(--rssetup__heading-color);
+	border: 1px solid var(--rssetup__border-color);
 	border-radius: 2px;
 	font-size: 1rem;
 	padding: 0 0.25em;
@@ -97,10 +87,10 @@ code {
 }
 
 .content {
-	background-color: var(--global--content-bg-color);
+	background-color: var(--rssetup__content-bg-color);
 	border-radius: 6px;
 	box-shadow: 0 2px 4px #000;
-	color: var(--global--text-color);
+	color: var(--rssetup__text-color);
 	padding: 1em;
 }
 
@@ -114,7 +104,7 @@ code {
 }
 
 .powered-by {
-	color: var(--global--heading-color);
+	color: var(--rssetup__heading-color);
 	font-size: 0.8em;
 	font-style: italic;
 	margin-top: 10px;
@@ -125,7 +115,7 @@ code {
 /* Data form */
 
 .data-form * {
-	font-family: var(--global--font);
+	font-family: var(--rscms__font);
 }
 
 .data-form input:not([type="checkbox"]):not(.button) {

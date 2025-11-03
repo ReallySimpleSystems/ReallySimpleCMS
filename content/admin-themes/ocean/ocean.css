@@ -1,0 +1,45 @@
+/*!
+ * Styles for the Ocean admin theme.
+ * Primary colors are blue, aqua, and pink.
+ * @since 1.0
+ * @version 1.11
+ *
+ * @package ReallySimpleCMS
+ * @subpackage Ocean
+ */
+
+:root {
+	
+	/* Background colors */
+	
+	--rsadmin__bg-color: #090f2f;
+	--rsadmin__header-notice-bg-color: #00000f;
+	--rsadmin__menu-bg-color: #0f2f6f;
+	--rsadmin__submenu-bg-color: #0f3f7f;
+	--rsadmin__graph-overlay-bg-color: #1d5d9d;
+	--rsadmin__graph-bar-bg-color: #fa96c0;
+	--rsadmin__graph-bar-hover-bg-color: #ffa6d0;
+	--rsadmin__table-bg-color: #9dedcd;
+	--rsadmin__table-odd-bg-color: #8dddbd;
+	--rsadmin__form-bg-color: #090c1f;
+	--rsadmin__input-bg-color: #bdffed;
+	--rsadmin__modal-bg-color: #0c1f5f;
+	--rsadmin__active-tab-bg-color: #060f3f;
+	
+	/* Border colors */
+	
+	--rsadmin__graph-border-color: #7dcdad;
+	--rsadmin__graph-overlay-border-color: #5dbddd;
+	--rsadmin__table-border-color: #6dbd9d;
+	--rsadmin__form-border-color: #fdbd4d;
+	--rsadmin__input-border-color: #5dad8d;
+	--rsadmin__modal-border-color: var(--rsadmin__form-border-color);
+	
+	/* Text/link colors */
+	
+	--rsadmin__text-color: #fff;
+	--rsadmin__link-color: #fa96c0;
+	--rsadmin__secondary-link-color: #9a06b0;
+	--rsadmin__submenu-hover-link-color: #26fa70;
+	--rsadmin__table-color: #040a10;
+}

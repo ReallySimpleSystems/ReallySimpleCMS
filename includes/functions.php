@@ -1,15 +1,15 @@
 <?php
 /**
- * Site-wide functions.
+ * Front end functions.
  * @since 1.0.0-alpha
  *
  * @package ReallySimpleCMS
  *
- * ## CONSTANTS ##
+ * ## CONSTANTS [1] ##
  * - string COOKIE_HASH
  *
- * ## FUNCTIONS ##
- * HEADER & FOOTER:
+ * ## FUNCTIONS [16] ##
+ * { HEADER & FOOTER [8] }
  * - getThemeScript(string $script, string $version): string
  * - putThemeScript(string $script, string $version): void
  * - getThemeStylesheet(string $stylesheet, string $version): string
@@ -18,18 +18,14 @@
  * - footerScripts(string|array $exclude, array $include_styles, array $include_scripts): void
  * - bodyClasses(string|array $addtl_classes): string
  * - adminBar(): void
- * MISCELLANEOUS:
+ * { MISCELLANEOUS [8] }
  * - handleSecureLogin(): void
  * - guessPageType(): void
- * - postTypeExists(string $type): bool
- * - taxonomyExists(string $taxonomy): bool
  * - getPost(string $slug): object
  * - getTerm(string $slug): object
  * - getCategory(string $slug): object
  * - getMenu(string $slug): void
  * - getWidget(string $slug, bool $display_title = false): void
- * - registerMenu(string $name, string $slug): void
- * - registerWidget(string $title, string $slug): void
  * - formatEmail(string $heading, array $fields): string
  */
 
@@ -58,7 +54,7 @@ define('COOKIE_HASH', md5(getSetting('site_url')));
  * @return string
  */
 function getThemeScript(string $script, string $version = RS_VERSION): string {
-	$theme_path = slash(THEMES) . getSetting('theme');
+	$theme_path = slash(THEMES) . getSetting('active_theme');
 	
 	return '<script src="' . slash($theme_path) . $script .
 		(!empty($version) ? '?v=' . $version : '') . '"></script>';
@@ -84,7 +80,7 @@ function putThemeScript(string $script, string $version = RS_VERSION): void {
  * @return string
  */
 function getThemeStylesheet(string $stylesheet, string $version = RS_VERSION): string {
-	$theme_path = slash(THEMES) . getSetting('theme');
+	$theme_path = slash(THEMES) . getSetting('active_theme');
 	
 	return '<link href="' . slash($theme_path) . $stylesheet .
 		(!empty($version) ? '?v=' . $version : '') . '" rel="stylesheet">';
@@ -116,13 +112,17 @@ function headerScripts(string|array $exclude = '', array $include_styles = array
 	
 	if(isDebugMode()) $debug = true;
 	
+	// Global stylesheet
+	if(!in_array('global', $exclude, true))
+		putStylesheet('global' . ($debug ? '' : '.min') . '.css');
+	
 	// Button stylesheet
 	if(!in_array('button', $exclude, true))
 		putStylesheet('button' . ($debug ? '' : '.min') . '.css');
 	
-	// Default stylesheet
-	if(!in_array('style', $exclude, true))
-		putStylesheet('style' . ($debug ? '' : '.min') . '.css');
+	// Front end stylesheet
+	if(!in_array('front', $exclude, true))
+		putStylesheet('front' . ($debug ? '' : '.min') . '.css');
 	
 	if(!in_array('fa', $exclude, true)) {
 		// Font Awesome icons stylesheet
@@ -169,8 +169,9 @@ function footerScripts(string|array $exclude = '', array $include_styles = array
 			putThemeStylesheet($style[0] . '.css', $style[1] ?? THEME_VERSION);
 	}
 	
-	// Default scripts
-	if(!in_array('script', $exclude, true)) putScript('script.js');
+	// Front end scripts
+	if(!in_array('front', $exclude, true))
+		putScript('front' . ($debug ? '' : '.min') . '.js');
 	
 	// Additional custom scripts
 	if(!empty($include_scripts) && is_array($include_scripts)) {
@@ -196,7 +197,7 @@ function bodyClasses(string|array $addtl_classes = array()): string {
 		$parent = $rs_post->getPostParent();
 		$type = $rs_post->getPostType();
 		
-		$classes[] = getSetting('theme') . '-theme';
+		$classes[] = getSetting('active_theme') . '-theme';
 		$classes[] = $rs_post->getPostSlug($id);
 		$classes[] = $type;
 		$classes[] = $type . '-id-' . $id;
@@ -207,7 +208,7 @@ function bodyClasses(string|array $addtl_classes = array()): string {
 		$id = $rs_term->getTermId();
 		$taxonomy = $rs_term->getTermTaxonomy();
 		
-		$classes[] = getSetting('theme') . '-theme';
+		$classes[] = getSetting('active_theme') . '-theme';
 		$classes[] = $rs_term->getTermSlug($id);
 		$classes[] = $taxonomy;
 		$classes[] = $taxonomy . '-id-' . $id;
@@ -678,17 +679,17 @@ function guessPageType(): void {
 	global $rs_query, $rs_post, $rs_term;
 	
 	if(isset($_GET['preview']) && $_GET['preview'] === 'true' && isset($_GET['id']) && $_GET['id'] > 0) {
-		$rs_post = new Post;
+		$rs_post = new \Engine\Post;
 	} else {
 		$raw_uri = $_SERVER['REQUEST_URI'];
 		
 		// Check whether the current page is the home page
 		if($raw_uri === '/' || str_starts_with($raw_uri, '/?')) {
-			$home_page = $rs_query->selectField('settings', 'value', array(
+			$home_page = $rs_query->selectField(getTable('s'), 'value', array(
 				'name' => 'home_page'
 			));
 			
-			$slug = $rs_query->selectField('posts', 'slug', array(
+			$slug = $rs_query->selectField(getTable('p'), 'slug', array(
 				'id' => $home_page
 			));
 		} else {
@@ -703,53 +704,19 @@ function guessPageType(): void {
 		}
 		
 		// Check whether the current page is a post or a term
-		if($rs_query->selectRow('posts', 'COUNT(slug)', array(
+		if($rs_query->selectRow(getTable('p'), 'COUNT(slug)', array(
 			'slug' => $slug
 		)) > 0) {
-			$rs_post = new Post;
-		} elseif($rs_query->selectRow('terms', 'COUNT(slug)', array(
+			$rs_post = new \Engine\Post;
+		} elseif($rs_query->selectRow(getTable('t'), 'COUNT(slug)', array(
 			'slug' => $slug
 		)) > 0) {
-			$rs_term = new Term;
+			$rs_term = new \Engine\Term;
 		} else {
 			// Catastrophic failure, abort
 			redirect('/404.php');
 		}
 	}
-}
-
-/**
- * Check whether a post type exists in the database.
- * @since 1.0.5-beta
- *
- * @param string $type -- The post's type.
- * @return bool
- */
-function postTypeExists(string $type): bool {
-	global $rs_query;
-	
-	$type = sanitize($type);
-	
-	return $rs_query->selectRow('posts', 'COUNT(type)', array(
-		'type' => $type
-	)) > 0;
-}
-
-/**
- * Check whether a taxonomy exists in the database.
- * @since 1.0.5-beta
- *
- * @param string $taxonomy -- The taxonomy's name.
- * @return bool
- */
-function taxonomyExists(string $taxonomy): bool {
-	global $rs_query;
-	
-	$taxonomy = sanitize($taxonomy);
-	
-	return $rs_query->selectRow('taxonomies', 'COUNT(name)', array(
-		'name' => $taxonomy
-	)) > 0;
 }
 
 /**
@@ -760,7 +727,7 @@ function taxonomyExists(string $taxonomy): bool {
  * @return object
  */
 function getPost(string $slug): object {
-	return new Post($slug);
+	return new \Engine\Post($slug);
 }
 
 /**
@@ -771,7 +738,7 @@ function getPost(string $slug): object {
  * @return object
  */
 function getTerm(string $slug): object {
-	return new Term($slug);
+	return new \Engine\Term($slug);
 }
 
 /**
@@ -793,7 +760,8 @@ function getCategory(string $slug): object {
  * @param string $slug -- The menu's slug.
  */
 function getMenu(string $slug): void {
-	$rs_menu = new Menu;
+	$rs_menu = new \Engine\Menu;
+	
 	$rs_menu->getMenu($slug);
 }
 
@@ -807,7 +775,7 @@ function getMenu(string $slug): void {
 function getWidget(string $slug, bool $display_title = false): void {
 	global $rs_query;
 	
-	$widget = $rs_query->selectRow('posts', array('title', 'content', 'status'), array(
+	$widget = $rs_query->selectRow(getTable('p'), array('title', 'content', 'status'), array(
 		'type' => 'widget',
 		'slug' => $slug
 	));
@@ -838,61 +806,6 @@ function getWidget(string $slug, bool $display_title = false): void {
 				'class' => 'widget-content',
 				'content' => $widget['content']
 			))
-		));
-	}
-}
-
-/**
- * Register a menu.
- * @since 1.0.0-beta
- *
- * @param string $name -- The menu's name.
- * @param string $slug -- The menu's slug.
- */
-function registerMenu(string $name, string $slug): void {
-	global $rs_query;
-	
-	$slug = sanitize($slug);
-	
-	$menu = $rs_query->selectRow('terms', '*', array(
-		'slug' => $slug,
-		'taxonomy' => getTaxonomyId('nav_menu')
-	));
-	
-	if(empty($menu)) {
-		$rs_query->insert('terms', array(
-			'name' => $name,
-			'slug' => $slug,
-			'taxonomy' => getTaxonomyId('nav_menu')
-		));
-	}
-}
-
-/**
- * Register a widget.
- * @since 1.0.0-beta
- *
- * @param string $title -- The widget's title.
- * @param string $slug -- The widget's slug.
- */
-function registerWidget(string $title, string $slug): void {
-	global $rs_query;
-	
-	$slug = sanitize($slug);
-	
-	$widget = $rs_query->selectRow('posts', '*', array(
-		'slug' => $slug,
-		'type' => 'widget'
-	));
-	
-	if(empty($widget)) {
-		$rs_query->insert('posts', array(
-			'title' => $title,
-			'date' => 'NOW()',
-			'content' => '',
-			'status' => 'active',
-			'slug' => $slug,
-			'type' => 'widget'
 		));
 	}
 }

@@ -1,4 +1,5 @@
 config.php
+content/modules/
 content/themes/
 !content/themes/carbon/
 content/uploads/
